@@ -6,18 +6,24 @@
  *   Institute: University of Bonn, AIS lab
  */
 
-#ifndef ALIENGO_WS_PLANNER_H
-#define ALIENGO_WS_PLANNER_H
+#pragma once
 
 // C++ general
 #include <cmath>
 
 // ROS general
 #include <ros/ros.h>
+#include <message_filters/cache.h>
+#include <tf2_ros/message_filter.h>
+#include <message_filters/subscriber.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // ROS messages
 #include <geometry_msgs/Twist.h>
 #include <grid_map_msgs/GridMap.h>
+#include "geometry_msgs/PointStamped.h"
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Config file
 #include "config.hpp"
@@ -25,18 +31,34 @@
 class Planner
 {
 public:
-    explicit Planner(ros::NodeHandle&);
+    explicit Planner(ros::NodeHandle&, tf2_ros::Buffer &, tf2_ros::TransformListener &);
     virtual ~Planner();
-
-    void elevation_map_callback(const grid_map_msgs::GridMap::ConstPtr&);
 
 private:
     void initialize();
     void buildInitialHeightMap();
+    void planHeightMapPath(const ros::TimerEvent&);
 
-    // ROS
+    // ROS nodehandle
     ros::NodeHandle m_nh;
-    ros::Publisher m_vel_pub;
-};
 
-#endif //ALIENGO_WS_PLANNER_H
+    // ROS publishers
+    ros::Publisher m_velocityPublisher;
+
+    // TF variables
+    tf2_ros::TransformListener &m_tf2;
+    tf2_ros::Buffer &m_buffer;
+
+    // ROS timer that triggers planner
+    ros::Timer m_plannerTimer;
+
+    // ROS subscriber and cache for robot pose messages
+    message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
+    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
+
+    // Indicates whether initial height map is ready or not
+    bool m_initialHeightMapBuilt;
+
+    // Robot pose cache size
+    int m_robotPoseCacheSize;
+};

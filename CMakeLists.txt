@@ -8,14 +8,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(
         CATKIN_PACKAGE_DEPENDENCIES
+        tf
         roscpp
         grid_map_msgs
+        tf_conversions
+        message_filters
 )
 
 find_package(catkin REQUIRED
         COMPONENTS
         ${CATKIN_PACKAGE_DEPENDENCIES}
         )
+
+find_package(Boost REQUIRED COMPONENTS system)
 
 ###########
 # MSGs #
@@ -27,12 +32,15 @@ catkin_package(
         include
         CATKIN_DEPENDS
         ${CATKIN_PACKAGE_DEPENDENCIES}
+        DEPENDS
+        Boost
 )
 
 include_directories(
-        SYSTEM
         config
         include
+        SYSTEM
+        ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
 )
 

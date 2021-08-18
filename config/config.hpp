@@ -6,8 +6,7 @@
  *   Institute: University of Bonn, AIS lab
  */
 
-#ifndef ALIENGO_WS_CONFIG_H
-#define ALIENGO_WS_CONFIG_H
+#pragma once
 
 // C++ General
 #include <utility>
@@ -16,4 +15,12 @@
 // Publisher topics
 const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
 
-#endif //ALIENGO_WS_CONFIG_H
+// Subscriber topics
+const std::string ROBOT_POSE_TOPIC("/base_to_footprint_pose");
+
+// TF reference frames
+const std::string HEIGHT_MAP_REFERENCE_FRAME("map");
+const std::string ROBOT_REFERENCE_FRAME("base_footprint");
+
+// Cache size for the robot pose
+const unsigned int ROBOT_POSE_CACHE_SIZE(10);

@@ -8,6 +8,10 @@
 
     <buildtool_depend>catkin</buildtool_depend>
 
+    <depend>tf</depend>
+    <depend>boost</depend>
     <depend>roscpp</depend>
     <depend>grid_map_msgs</depend>
+    <depend>tf_conversions</depend>
+    <depend>message_filters</depend>
 </package>
