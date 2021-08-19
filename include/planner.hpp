@@ -25,6 +25,9 @@
 #include "geometry_msgs/PointStamped.h"
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
+// Grid map
+#include <grid_map_msgs/GetGridMap.h>
+
 // Config file
 #include "config.hpp"
 
@@ -36,29 +39,38 @@ public:
 
 private:
     void initialize();
-    void buildInitialHeightMap();
+    void buildInitialHeightMap(const ros::TimerEvent&);
     void planHeightMapPath(const ros::TimerEvent&);
 
     // ROS nodehandle
     ros::NodeHandle m_nh;
 
-    // ROS publishers
-    ros::Publisher m_velocityPublisher;
-
     // TF variables
     tf2_ros::TransformListener &m_tf2;
     tf2_ros::Buffer &m_buffer;
 
-    // ROS timer that triggers planner
-    ros::Timer m_plannerTimer;
+    // ROS publisher for velocity commands
+    ros::Publisher m_velocityPublisher;
+
+    // ROS publisher for requested height map
+    ros::Publisher m_heightMapPublisher;
 
     // ROS subscriber and cache for robot pose messages
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
 
-    // Indicates whether initial height map is ready or not
-    bool m_initialHeightMapBuilt;
+    // ROS service client that requests height map
+    ros::ServiceClient m_heightMapServiceClient;
+
+    // ROS timer that triggers planner
+    ros::Timer m_plannerTimer;
+
+    // ROS timer that triggers initial height map building
+    ros::Timer m_initialHeightMapTimer;
 
     // Robot pose cache size
     int m_robotPoseCacheSize;
+
+    // Robot pose from cache
+    boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> m_latestRobotPose;
 };

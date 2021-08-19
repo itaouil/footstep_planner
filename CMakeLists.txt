@@ -10,7 +10,9 @@ set(
         CATKIN_PACKAGE_DEPENDENCIES
         tf
         roscpp
+        grid_map_ros
         grid_map_msgs
+        grid_map_core
         tf_conversions
         message_filters
 )

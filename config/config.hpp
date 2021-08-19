@@ -14,6 +14,7 @@
 
 // Publisher topics
 const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
+const std::string HEIGHT_MAP_SERVICE_TOPIC("/height_map_service");
 
 // Subscriber topics
 const std::string ROBOT_POSE_TOPIC("/base_to_footprint_pose");
@@ -24,3 +25,9 @@ const std::string ROBOT_REFERENCE_FRAME("base_footprint");
 
 // Cache size for the robot pose
 const unsigned int ROBOT_POSE_CACHE_SIZE(10);
+
+// Grid map service parameters
+const unsigned int HEIGHT_MAP_LENGTH_X(7);
+const unsigned int HEIGHT_MAP_LENGTH_Y(7);
+
+// Height map acquiring
