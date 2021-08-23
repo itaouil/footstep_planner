@@ -13,37 +13,46 @@
 #include <algorithm>
 #include <functional>
 
+// Config
+#include <config.hpp>
+
 namespace AStar
 {
+    /**
+     * Basic structure for grid indexing
+     */
     struct Vec2i
     {
+        //! (x,y) position in the grid
         int x, y;
 
+        //! Equality operator for the struct
         bool operator == (const Vec2i& coordinates_) const;
     };
 
-    using uint = unsigned int;
-    using HeuristicFunction = std::function<uint(Vec2i, Vec2i)>;
-    using CoordinateList = std::vector<Vec2i>;
-
+    /**
+     * Basic structure for search nodes
+     */
     struct Node
     {
-        uint G, H;
-        Vec2i coordinates;
+        //! Parent node
         Node *parent;
 
-        explicit Node(Vec2i coord_, Node *parent_ = nullptr);
-        uint getScore() const;
-    };
+        //! Node (x,y) position in the grid
+        Vec2i coordinates;
 
-    using NodeSet = std::vector<Node*>;
+        //! Costs
+        unsigned int G, H;
+
+        //! Constructor
+        explicit Node(Vec2i coord_, Node *parent_ = nullptr);
+
+        //! Routine to get node's total cost
+        unsigned int getScore() const;
+    };
 
     class Search
     {
-        bool detectCollision(Vec2i coordinates_);
-        Node* findNodeOnList(NodeSet& nodes_, Vec2i coordinates_);
-        void releaseNodes(NodeSet& nodes_);
-
     public:
         /**
          * Constructor.
@@ -55,28 +64,119 @@ namespace AStar
          */
         virtual ~Search();
 
-        void setWorldSize(Vec2i worldSize_);
-        void setDiagonalMovement(bool enable_);
-        void setHeuristic(const HeuristicFunction& heuristic_);
-        CoordinateList findPath(Vec2i source_, Vec2i target_);
-        void addCollision(Vec2i coordinates_);
-        void removeCollision(Vec2i coordinates_);
-        void clearCollisions();
+        /**
+         * Find path from source to target
+         * in a given height map.
+         *
+         * @param source_
+         * @param target_
+         * @return sequence of 2D points (grid cells indexes)
+         */
+        std::vector<Vec2i> findPath(Vec2i source_, Vec2i target_);
     private:
-        HeuristicFunction heuristic;
-        CoordinateList direction, walls;
+        //! Grid map size
         Vec2i worldSize;
-        uint directions;
+
+        //! Considered neighbours
+        unsigned int directions;
+
+        //! Allowed direction in the search
+        std::vector<Vec2i> direction;
+
+        //! Heuristic function to be used
+        std::function<unsigned int(Vec2i, Vec2i)> heuristic;
+
+        /**
+         * Set grid size.
+         *
+         * @param worldSize_
+         */
+        void setWorldSize(Vec2i worldSize_);
+
+        /**
+         * Sets whether the search uses a 4
+         * or 8 neighbor expansion of the nodes.
+         *
+         * @param enable_
+         */
+        void setDiagonalMovement(bool enable_);
+
+        /**
+         * Check if expanded coordinate is valid
+         * with respect to the grid bounds as well
+         * as if the height is acceptable.
+         *
+         * @param coordinates_
+         * @return if grid cell without bounds
+         */
+        bool detectCollision(Vec2i coordinates_);
+
+        /**
+         * Release the node pointers within collection.
+         *
+         * @param nodes_
+         */
+        void releaseNodes(std::vector<Node*>& nodes_);
+
+        /**
+         * Find if given node is in a vector (open/closed set).
+         *
+         * @param nodes_
+         * @param coordinates_
+         * @return the requested node or a nullptr
+         */
+        Node* findNodeOnList(std::vector<Node*>& nodes_, Vec2i coordinates_);
+
+        /**
+         * Sets heuristic to be used for the H cost.
+         *
+         * @param heuristic_
+         */
+        void setHeuristic(const std::function<unsigned int(Vec2i, Vec2i)>& heuristic_);
     };
 
     class Heuristic
     {
+        /**
+         * A* Heuristic routine that returns the
+         * difference between two coordinate points.
+         *
+         * @param source_
+         * @param target_
+         * @return points' coordinate difference
+         */
         static Vec2i getDelta(Vec2i source_, Vec2i target_);
 
     public:
-        static uint manhattan(Vec2i source_, Vec2i target_);
-        static uint euclidean(Vec2i source_, Vec2i target_);
-        static uint octagonal(Vec2i source_, Vec2i target_);
+        /**
+         * A* Heuristic class routine that computes
+         * the manhattan distance between two points.
+         *
+         * @param source_
+         * @param target_
+         * @return manhattan distance
+         */
+        static unsigned int manhattan(Vec2i source_, Vec2i target_);
+
+        /**
+         * A* Heuristic class routine that computes
+         * the euclidean distance between two points.
+         *
+         * @param source_
+         * @param target_
+         * @return euclidean distance
+         */
+        static unsigned int euclidean(Vec2i source_, Vec2i target_);
+
+        /**
+         * A* Heuristic class routine that computes
+         * the octagonal distance between two points.
+         *
+         * @param source_
+         * @param target_
+         * @return octagonal distance
+         */
+        static unsigned int octagonal(Vec2i source_, Vec2i target_);
     };
 }
 
