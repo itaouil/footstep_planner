@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>aliengo_planner</name>
+    <name>aliengo_navigation</name>
     <version>0.7.2</version>
-    <description>Planning software for aliengo</description>
+    <description>Navigation software for aliengo</description>
     <maintainer email="s6iltaou@gmail.com">Ilyass Taouil</maintainer>
     <license>BSD</license>
 

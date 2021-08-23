@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.1)
-project(aliengo_planner)
+project(aliengo_navigation)
 
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(-Wall -Wextra -Wpedantic)
@@ -50,10 +50,10 @@ include_directories(
 # Executable #
 ##############
 
-add_executable(planner src/planner.cpp
+add_executable(navigation src/navigation.cpp src/planner.cpp src/search/AStar.cpp
         )
 
-target_link_libraries(planner ${catkin_LIBRARIES}
+target_link_libraries(navigation ${catkin_LIBRARIES}
         )
 
 ###########

@@ -30,4 +30,10 @@ const unsigned int ROBOT_POSE_CACHE_SIZE(10);
 const unsigned int HEIGHT_MAP_LENGTH_X(7);
 const unsigned int HEIGHT_MAP_LENGTH_Y(7);
 
-// Height map acquiring
+// Height map acquiring flag
+const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
+
+// Planner parameters
+const double HEIGHT_MAP_RESOLUTION(0.07);
+const unsigned int HEIGHT_MAP_MAX_SIZE_X(HEIGHT_MAP_LENGTH_X/HEIGHT_MAP_RESOLUTION);
+const unsigned int HEIGHT_MAP_MAX_SIZE_Y(HEIGHT_MAP_LENGTH_Y/HEIGHT_MAP_RESOLUTION);
