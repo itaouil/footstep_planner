@@ -8,10 +8,14 @@
 
 #pragma once
 
+// C++ general
 #include <cmath>
 #include <vector>
 #include <algorithm>
 #include <functional>
+
+// Robot model
+#include <model.hpp>
 
 // Config
 #include <config.hpp>
@@ -19,7 +23,7 @@
 namespace AStar
 {
     /**
-      * Actions structure
+      * Action structure
       */
     struct Action
     {
@@ -34,9 +38,9 @@ namespace AStar
     };
 
     /**
-     * Basic structure for grid indexing
+     * Coordinate structure
      */
-    struct Vec2i
+    struct Vec2D
     {
         //! X position in the grid map
         int x;
@@ -45,7 +49,7 @@ namespace AStar
         int y;
 
         //! Equality operator for the struct
-        bool operator == (const Vec2i& coordinates_) const;
+        bool operator == (const Vec2D& coordinates_) const;
     };
 
     /**
@@ -57,13 +61,13 @@ namespace AStar
         Node *parent;
 
         //! Node (x,y) position in the grid
-        Vec2i coordinates;
+        Vec2D coordinates;
 
         //! Costs
         unsigned int G, H;
 
         //! Constructor
-        explicit Node(Vec2i coord_, Node *parent_ = nullptr);
+        explicit Node(Vec2D coord_, Node *parent_ = nullptr);
 
         //! Routine to get node's total cost
         unsigned int getScore() const;
@@ -90,29 +94,14 @@ namespace AStar
          * @param target_
          * @return sequence of 2D points (grid cells indexes)
          */
-        std::vector<Vec2i> findPath(Vec2i source_, Vec2i target_);
+        std::vector<Vec2D> findPath(Vec2D source_, Vec2D target_);
     private:
-        //! Grid map size
-        Vec2i worldSize;
-
-        //! Considered neighbours
-        unsigned int directions;
-
-        //! Allowed direction in the search
-        std::vector<Vec2i> direction;
-
-        //! Allowed actions in the search
-        std::vector<Action> actions;
-
-        //! Heuristic function to be used
-        std::function<unsigned int(Vec2i, Vec2i)> heuristic;
-
         /**
          * Set grid size.
          *
          * @param worldSize_
          */
-        void setWorldSize(Vec2i worldSize_);
+        void setWorldSize(Vec2D worldSize_);
 
         /**
          * Sets whether the search uses a 4
@@ -130,7 +119,7 @@ namespace AStar
          * @param coordinates_
          * @return if grid cell without bounds
          */
-        bool detectCollision(Vec2i coordinates_);
+        bool detectCollision(Vec2D coordinates_) const;
 
         /**
          * Release the node pointers within collection.
@@ -146,14 +135,35 @@ namespace AStar
          * @param coordinates_
          * @return the requested node or a nullptr
          */
-        Node* findNodeOnList(std::vector<Node*>& nodes_, Vec2i coordinates_);
+        Node* findNodeOnList(std::vector<Node*>& nodes_, Vec2D coordinates_);
 
         /**
          * Sets heuristic to be used for the H cost.
          *
          * @param heuristic_
          */
-        void setHeuristic(const std::function<unsigned int(Vec2i, Vec2i)>& heuristic_);
+        void setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>& heuristic_);
+
+        //! Grid map size
+        Vec2D worldSize;
+
+        //! Number of available actions
+        unsigned int numberOfActions;
+
+        //! Allowed direction in the search
+        std::vector<Vec2D> direction;
+
+        //! Allowed actions in the search
+        std::vector<Action> actions;
+
+        //! Velocities
+        std::vector<double> velocities;
+
+        //! Heuristic function to be used
+        std::function<unsigned int(Vec2D, Vec2D)> heuristic;
+
+        //! Robot model
+        Model m_model;
     };
 
     class Heuristic
@@ -166,7 +176,7 @@ namespace AStar
          * @param target_
          * @return points' coordinate difference
          */
-        static Vec2i getDelta(Vec2i source_, Vec2i target_);
+        static Vec2D getDelta(Vec2D source_, Vec2D target_);
 
     public:
         /**
@@ -177,7 +187,7 @@ namespace AStar
          * @param target_
          * @return manhattan distance
          */
-        static unsigned int manhattan(Vec2i source_, Vec2i target_);
+        static unsigned int manhattan(Vec2D source_, Vec2D target_);
 
         /**
          * A* Heuristic class routine that computes
@@ -187,7 +197,7 @@ namespace AStar
          * @param target_
          * @return euclidean distance
          */
-        static unsigned int euclidean(Vec2i source_, Vec2i target_);
+        static unsigned int euclidean(Vec2D source_, Vec2D target_);
 
         /**
          * A* Heuristic class routine that computes
@@ -197,7 +207,6 @@ namespace AStar
          * @param target_
          * @return octagonal distance
          */
-        static unsigned int octagonal(Vec2i source_, Vec2i target_);
+        static unsigned int octagonal(Vec2D source_, Vec2D target_);
     };
 }
-

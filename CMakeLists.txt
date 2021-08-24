@@ -50,7 +50,7 @@ include_directories(
 # Executable #
 ##############
 
-add_executable(navigation src/navigation.cpp src/planner.cpp src/search/AStar.cpp
+add_executable(navigation src/navigation.cpp src/planner.cpp src/search/AStar.cpp src/model.cpp
         )
 
 target_link_libraries(navigation ${catkin_LIBRARIES}
