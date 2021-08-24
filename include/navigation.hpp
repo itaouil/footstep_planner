@@ -53,9 +53,11 @@ private:
     tf2_ros::TransformListener &m_tf2;
     tf2_ros::Buffer &m_buffer;
 
+    // Planner object
+    Planner m_planner;
+
     // ROS publishers
     ros::Publisher m_velocityPublisher;
-    ros::Publisher m_heightMapPublisher;
 
     // ROS subscribers
     ros::Subscriber m_goalSubscriber;
@@ -65,10 +67,4 @@ private:
     int m_robotPoseCacheSize;
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
     boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> m_latestRobotPose;
-
-    // ROS height map service request
-    ros::ServiceClient m_heightMapServiceClient;
-
-    // Planner object
-    Planner m_planner;
 };

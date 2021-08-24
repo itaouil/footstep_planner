@@ -19,12 +19,30 @@
 namespace AStar
 {
     /**
+      * Actions structure
+      */
+    struct Action
+    {
+        //! Forward velocity
+        double x;
+
+        //! Side velocity
+        double y;
+
+        //! Rotational velocity
+        double theta;
+    };
+
+    /**
      * Basic structure for grid indexing
      */
     struct Vec2i
     {
-        //! (x,y) position in the grid
-        int x, y;
+        //! X position in the grid map
+        int x;
+
+        //! Y position in the grid map
+        int y;
 
         //! Equality operator for the struct
         bool operator == (const Vec2i& coordinates_) const;
@@ -82,6 +100,9 @@ namespace AStar
 
         //! Allowed direction in the search
         std::vector<Vec2i> direction;
+
+        //! Allowed actions in the search
+        std::vector<Action> actions;
 
         //! Heuristic function to be used
         std::function<unsigned int(Vec2i, Vec2i)> heuristic;

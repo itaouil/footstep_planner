@@ -8,9 +8,50 @@
 
 #include "planner.hpp"
 
-Planner::Planner() = default;
+/**
+ * Constructor
+ *
+ * @param p_nh
+ */
+Planner::Planner(ros::NodeHandle& p_nh): m_nh(p_nh)
+{
+    // Height map service client
+    m_heightMapServiceClient = m_nh.serviceClient<grid_map_msgs::GetGridMap>("/elevation_mapping/get_raw_submap");
+}
 
 Planner::~Planner() = default;
+
+/**
+ * Requests height elevation map from
+ * the elevation map package and populates
+ * a reference with the obtained grid map.
+ *
+ * @param p_heightMap
+ * @return if height map request was successful
+ */
+bool Planner::getHeightMap(grid_map_msgs::GridMap &p_heightMap,
+                           const geometry_msgs::PointStamped &p_robotPoseMapFrame)
+{
+    // Service message passed to height map service
+    grid_map_msgs::GetGridMap l_heightMapSrv;
+    l_heightMapSrv.request.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+    l_heightMapSrv.request.position_x = p_robotPoseMapFrame.point.x;
+    l_heightMapSrv.request.position_y = p_robotPoseMapFrame.point.y;
+    l_heightMapSrv.request.length_x = HEIGHT_MAP_LENGTH_X;
+    l_heightMapSrv.request.length_y = HEIGHT_MAP_LENGTH_Y;
+    l_heightMapSrv.request.layers.push_back(std::string("elevation"));
+
+    // Call height map service request
+    if (m_heightMapServiceClient.call(l_heightMapSrv))
+    {
+        p_heightMap = l_heightMapSrv.response.map;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 /**
  * Maps world (continuous) coordinates in
@@ -61,18 +102,42 @@ bool Planner::worldToMapBound(const double p_wx,
  * @param p_goalPosition
  * @return whether planning was successful
  */
-bool Planner::plan(const grid_map_msgs::GridMap &p_heightMap,
-                   const geometry_msgs::PointStamped &p_robotPose,
-                   const geometry_msgs::PoseStamped &p_goalPosition) {
-    // Compute grid indexes for current robot pose
-    unsigned int l_mx = 0;
-    unsigned int l_my = 0;
+bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
+                   const geometry_msgs::PoseStamped &p_goalPosition)
+{
+    // Request height map
+    grid_map_msgs::GridMap l_heightMap;
+    if (!getHeightMap(l_heightMap, p_robotPose))
+    {
+        ROS_WARN("Planner: Height map request failed. Skipping iteration");
+        return false;
+    }
+    else
+    {
+        ROS_INFO("Planner: Height map requestes succeeded.");
+    }
+
+    // Compute grid starting place
+    unsigned int l_startPositionX = 0;
+    unsigned int l_startPositionY = 0;
     worldToMapBound(p_robotPose.point.x,
                     p_robotPose.point.y,
-                    p_heightMap.info.pose.position.x,
-                    p_heightMap.info.pose.position.y,
-                    l_mx,
-                    l_my);
+                    l_heightMap.info.pose.position.x,
+                    l_heightMap.info.pose.position.y,
+                    l_startPositionX,
+                    l_startPositionY);
+
+    // Compute grid goal position
+    unsigned int l_goalPositionX = 0;
+    unsigned int l_goalPositionY = 0;
+    worldToMapBound(p_goalPosition.pose.position.x,
+                    p_goalPosition.pose.position.y,
+                    l_heightMap.info.pose.position.x,
+                    l_heightMap.info.pose.position.y,
+                    l_goalPositionX,
+                    l_goalPositionY);
+
+    //TODO: Call A* start search algorithm to find path
 
     // Call search algorithm and pass
     // it the start and goal indexes

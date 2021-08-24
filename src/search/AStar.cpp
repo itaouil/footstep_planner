@@ -74,6 +74,17 @@ AStar::Search::Search()
             { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 },
             { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }
     };
+
+    // Available actions
+    actions = {
+            { 1, 0, 0 }, // Forward
+            { 0, -1, 0 }, // Right
+            { 0, 1, 0 }, // Left
+            { 0, 0, -1 }, // Clockwise
+            { 0, 0, 1 }, // Counter clockwise
+            { 1, 0, -1  }, // Forward + Counter clockwise
+            { 1, 0, 1 } // Forward + Counter clockwise
+    };
 }
 
 /**
@@ -92,14 +103,14 @@ void AStar::Search::setWorldSize(AStar::Vec2i worldSize_)
 }
 
 /**
- * Sets whether the search uses a 4
- * or 8 neighbor expansion for the nodes
+ * Sets whether the search uses a 5
+ * or 7 neighbor expansion for the nodes
  *
  * @param enable_
  */
 void AStar::Search::setDiagonalMovement(bool enable_)
 {
-    directions = (enable_ ? 8 : 4);
+    directions = (enable_ ? 7 : 5);
 }
 
 /**

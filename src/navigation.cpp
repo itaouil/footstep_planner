@@ -15,6 +15,7 @@
 Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros::TransformListener &p_tf2):
         m_nh(p_nh),
         m_tf2(p_tf2),
+        m_planner(p_nh),
         m_buffer(p_buffer),
         m_robotPoseCacheSize(ROBOT_POSE_CACHE_SIZE)
 {
@@ -43,16 +44,10 @@ void Navigation::initialize()
     // Velocity command publisher
     m_velocityPublisher = m_nh.advertise<geometry_msgs::Twist>(VELOCITY_CMD_TOPIC, 1);
 
-    // Height map service response publisher
-    m_heightMapPublisher = m_nh.advertise<grid_map_msgs::GridMap>(HEIGHT_MAP_SERVICE_TOPIC, 1);
-
     // Robot pose subscriber and cache setup
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(m_robotPoseCacheSize);
-
-    // Height map service client
-    m_heightMapServiceClient = m_nh.serviceClient<grid_map_msgs::GetGridMap>("/elevation_mapping/get_raw_submap");
 }
 
 /**
@@ -134,33 +129,15 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
         return;
     }
 
-    // Service message passed to height map service
-    grid_map_msgs::GetGridMap l_heightMapSrv;
-    l_heightMapSrv.request.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_heightMapSrv.request.position_x = l_robotPoseMapFrame.point.x;
-    l_heightMapSrv.request.position_y = l_robotPoseMapFrame.point.y;
-    l_heightMapSrv.request.length_x = HEIGHT_MAP_LENGTH_X;
-    l_heightMapSrv.request.length_y = HEIGHT_MAP_LENGTH_Y;
-    l_heightMapSrv.request.layers.push_back(std::string("elevation"));
-
-    ROS_INFO_STREAM(l_heightMapSrv.request);
-
-    // Call height map service request
-    grid_map_msgs::GridMap l_heightMap;
-    if (m_heightMapServiceClient.call(l_heightMapSrv))
+    // Call planner to find path to goal
+    if (!m_planner.plan(l_robotPoseMapFrame, p_goalMsg))
     {
-        l_heightMap = l_heightMapSrv.response.map;
-        m_heightMapPublisher.publish(l_heightMap);
-        ROS_INFO("Navigation: Height map service call successful.");
+        ROS_WARN("Navigation: Planner call failed.");
     }
     else
     {
-        ROS_ERROR("Navigation: Failed to call height map service call");
-        return;
+        ROS_INFO("Navigation: Planner call succeeded.");
     }
-
-    // Call planner to find path to goal
-    m_planner.plan(l_heightMap, l_robotPoseMapFrame, p_goalMsg);
 
     //TODO: apply footsteps
 }
