@@ -114,7 +114,7 @@ bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
     }
     else
     {
-        ROS_INFO("Planner: Height map requestes succeeded.");
+        ROS_INFO("Planner: Height map requested succeeded.");
     }
 
     // Compute grid starting place
@@ -137,7 +137,10 @@ bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
                     l_goalPositionX,
                     l_goalPositionY);
 
-    //TODO: Call A* start search algorithm to find path
+    // Call A* search algorithm
+    Vec2D l_source{static_cast<double>(l_startPositionX), static_cast<double>(l_startPositionY)};
+    Vec2D l_target{static_cast<double>(l_goalPositionX), static_cast<double>(l_goalPositionY)};
+    m_search.findPath(l_source, l_target);
 
     // Call search algorithm and pass
     // it the start and goal indexes

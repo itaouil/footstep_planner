@@ -22,6 +22,9 @@
 // A*
 #include <search/AStar.hpp>
 
+// Structs
+#include <structs/vec2d.hpp>
+
 // Config
 #include "config.hpp"
 

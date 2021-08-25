@@ -17,41 +17,15 @@
 // Robot model
 #include <model.hpp>
 
+// Structs
+#include <structs/vec2d.hpp>
+#include <structs/action.hpp>
+
 // Config
 #include <config.hpp>
 
 namespace AStar
 {
-    /**
-      * Action structure
-      */
-    struct Action
-    {
-        //! Forward velocity
-        double x;
-
-        //! Side velocity
-        double y;
-
-        //! Rotational velocity
-        double theta;
-    };
-
-    /**
-     * Coordinate structure
-     */
-    struct Vec2D
-    {
-        //! X position in the grid map
-        int x;
-
-        //! Y position in the grid map
-        int y;
-
-        //! Equality operator for the struct
-        bool operator == (const Vec2D& coordinates_) const;
-    };
-
     /**
      * Basic structure for search nodes
      */
@@ -96,6 +70,24 @@ namespace AStar
          */
         std::vector<Vec2D> findPath(Vec2D source_, Vec2D target_);
     private:
+        //! Grid map size
+        Vec2D worldSize;
+
+        //! Number of available actions
+        unsigned int numberOfActions;
+
+        //! Allowed actions in the search
+        std::vector<Action> actions;
+
+        //! Velocities
+        std::vector<double> velocities;
+
+        //! Heuristic function to be used
+        std::function<unsigned int(Vec2D, Vec2D)> heuristic;
+
+        //! Robot model
+        Model m_model;
+
         /**
          * Set grid size.
          *
@@ -143,27 +135,6 @@ namespace AStar
          * @param heuristic_
          */
         void setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>& heuristic_);
-
-        //! Grid map size
-        Vec2D worldSize;
-
-        //! Number of available actions
-        unsigned int numberOfActions;
-
-        //! Allowed direction in the search
-        std::vector<Vec2D> direction;
-
-        //! Allowed actions in the search
-        std::vector<Action> actions;
-
-        //! Velocities
-        std::vector<double> velocities;
-
-        //! Heuristic function to be used
-        std::function<unsigned int(Vec2D, Vec2D)> heuristic;
-
-        //! Robot model
-        Model m_model;
     };
 
     class Heuristic

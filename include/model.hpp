@@ -8,8 +8,17 @@
 
 #pragma once
 
-// AStar header for Vec2D struct
-#include <search/AStar.hpp>
+// C++
+#include <map>
+
+// ROS
+#include <ros/ros.h>
+
+// Structs
+#include <structs/vec2d.hpp>
+#include <structs/action.hpp>
+#include <structs/velocityCmd.hpp>
+#include <structs/displacement.hpp>
 
 class Model
 {
@@ -25,18 +34,18 @@ public:
     virtual ~Model();
 
     /**
-     * Computes next CoM (Centre of Mass) by
-     * integrating over a time stamp and applied
-     * velocity.
+     * Compute next CoM (Centre of Mass) given
+     * the action and velocity applied.
      *
      * @param p_currentPosition
      * @param p_action
      * @param p_velocity
-     * @return next CoM 2D position
      */
-    AStar::Vec2D propagateCoM(AStar::Vec2D &p_futurePositon,
-                              const AStar::Vec2D &p_currentPosition,
-                              const AStar::Action &p_action,
-                              double p_velocity);
+    void propagateCoM(Vec2D &p_futurePosition,
+                      const Vec2D &p_currentPosition,
+                      const Action &p_action,
+                      double p_velocity);
 private:
+    //! Dictionary containing displacements for each velocity
+    std::map<VelocityCmd, Displacement> m_displacementMap;
 };

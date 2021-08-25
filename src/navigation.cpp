@@ -105,6 +105,8 @@ void Navigation::buildInitialHeightMap()
  */
 void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
 {
+    ROS_INFO("Navigation: Planning request received.");
+
     // Get latest robot pose from the cache
     const ros::Time l_latestPoseTime = ros::Time::now();
     m_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);

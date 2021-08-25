@@ -9,35 +9,12 @@
 #include "search/AStar.hpp"
 
 /**
- * Equality operator for the Vec2D struct.
- *
- * @param coordinates_
- * @return if r.h.s and l.h.s objects are equal
- */
-bool AStar::Vec2D::operator == (const AStar::Vec2D &coordinates_) const
-{
-    return (x == coordinates_.x && y == coordinates_.y);
-}
-
-/**
- * Add operator for the Vec2D struct.
- *
- * @param left_
- * @param right_
- * @return sum of two Vec2D objects
- */
-AStar::Vec2D operator + (const AStar::Vec2D& left_, const AStar::Vec2D& right_)
-{
-    return{ left_.x + right_.x, left_.y + right_.y };
-}
-
-/**
  * A* Node struct constructor.
  *
  * @param coord_
  * @param parent_
  */
-AStar::Node::Node(AStar::Vec2D coord_, AStar::Node *parent_)
+AStar::Node::Node(Vec2D coord_, AStar::Node *parent_)
 {
     parent = parent_;
     coordinates = coord_;
@@ -67,7 +44,7 @@ AStar::Search::Search()
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
     // Set 2D height map size
-    setWorldSize({HEIGHT_MAP_MAX_SIZE_X, HEIGHT_MAP_MAX_SIZE_Y});
+    setWorldSize({static_cast<double>(HEIGHT_MAP_MAX_SIZE_X), static_cast<double>(HEIGHT_MAP_MAX_SIZE_Y)});
 
     // Available actions
     actions = {
@@ -81,7 +58,7 @@ AStar::Search::Search()
     };
 
     // Available velocities
-    velocities = {0.1, 0.3, 0.5, 0.7};
+    velocities = {0.1, 0.15, 0.2, 0.25, 0.3};
 }
 
 /**
@@ -94,7 +71,7 @@ AStar::Search::~Search() = default;
  *
  * @param worldSize_
  */
-void AStar::Search::setWorldSize(AStar::Vec2D worldSize_)
+void AStar::Search::setWorldSize(Vec2D worldSize_)
 {
     worldSize = worldSize_;
 }
@@ -118,7 +95,7 @@ void AStar::Search::setDiagonalMovement(bool enable_)
  * @param coordinates_
  * @return if grid cell without bounds
  */
-bool AStar::Search::detectCollision(AStar::Vec2D coordinates_) const
+bool AStar::Search::detectCollision(Vec2D coordinates_) const
 {
     //TODO: add height check
     if (coordinates_.x < 0 || coordinates_.x >= worldSize.x ||
@@ -148,7 +125,7 @@ void AStar::Search::releaseNodes(std::vector<Node*> &nodes_)
  * @param coordinates_
  * @return the requested node or a nullptr
  */
-AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, AStar::Vec2D coordinates_)
+AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, Vec2D coordinates_)
 {
     for (auto node : nodes_) {
         if (node->coordinates == coordinates_) {
@@ -176,7 +153,7 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>
  * @param target_
  * @return sequence of 2D points (grid cells indexes)
  */
-std::vector<AStar::Vec2D> AStar::Search::findPath(AStar::Vec2D source_, AStar::Vec2D target_)
+std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
 {
     Node *current = nullptr;
     std::vector<Node*> openSet, closedSet;
@@ -205,8 +182,6 @@ std::vector<AStar::Vec2D> AStar::Search::findPath(AStar::Vec2D source_, AStar::V
 
         for (unsigned int i = 0; i < numberOfActions; ++i) {
             for (double & velocity : velocities) {
-                //Vec2D newCoordinates(current->coordinates + direction[i]);
-
                 // Compute new CoM coordinate for
                 // given action and velocity
                 Vec2D newCoordinates{};
@@ -254,7 +229,7 @@ std::vector<AStar::Vec2D> AStar::Search::findPath(AStar::Vec2D source_, AStar::V
  * @param target_
  * @return points' coordinate difference
  */
-AStar::Vec2D AStar::Heuristic::getDelta(AStar::Vec2D source_, AStar::Vec2D target_)
+Vec2D AStar::Heuristic::getDelta(Vec2D source_, Vec2D target_)
 {
     return{ abs(source_.x - target_.x),  abs(source_.y - target_.y) };
 }
@@ -267,7 +242,7 @@ AStar::Vec2D AStar::Heuristic::getDelta(AStar::Vec2D source_, AStar::Vec2D targe
  * @param target_
  * @return manhattan distance
  */
-unsigned int AStar::Heuristic::manhattan(AStar::Vec2D source_, AStar::Vec2D target_)
+unsigned int AStar::Heuristic::manhattan(Vec2D source_, Vec2D target_)
 {
     auto delta = getDelta(source_, target_);
     return static_cast<unsigned int>(10 * (delta.x + delta.y));
@@ -281,7 +256,7 @@ unsigned int AStar::Heuristic::manhattan(AStar::Vec2D source_, AStar::Vec2D targ
  * @param target_
  * @return euclidean distance
  */
-unsigned int AStar::Heuristic::euclidean(AStar::Vec2D source_, AStar::Vec2D target_)
+unsigned int AStar::Heuristic::euclidean(Vec2D source_, Vec2D target_)
 {
     auto delta = getDelta(source_, target_);
     return static_cast<unsigned int>(10 * sqrt(pow(delta.x, 2) + pow(delta.y, 2)));
@@ -295,7 +270,7 @@ unsigned int AStar::Heuristic::euclidean(AStar::Vec2D source_, AStar::Vec2D targ
  * @param target_
  * @return octagonal distance
  */
-unsigned int AStar::Heuristic::octagonal(AStar::Vec2D source_, AStar::Vec2D target_)
+unsigned int AStar::Heuristic::octagonal(Vec2D source_, Vec2D target_)
 {
     auto delta = getDelta(source_, target_);
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
