@@ -13,6 +13,7 @@
 #include <iostream>
 
 // Publisher topics
+const std::string PATH_TOPIC("/path");
 const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
 const std::string HEIGHT_MAP_SERVICE_TOPIC("/height_map_service");
 

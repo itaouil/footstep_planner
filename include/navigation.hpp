@@ -20,6 +20,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // ROS messages
+#include <nav_msgs/Path.h>
 #include <geometry_msgs/Twist.h>
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -57,6 +58,7 @@ private:
     Planner m_planner;
 
     // ROS publishers
+    ros::Publisher m_pathPublisher;
     ros::Publisher m_velocityPublisher;
 
     // ROS subscribers

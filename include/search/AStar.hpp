@@ -45,7 +45,7 @@ namespace AStar
         unsigned int G, H;
 
         //! Constructor
-        explicit Node(Vec2D coord_, Node *parent_ = nullptr);
+        explicit Node(Vec2D coord_, World2D world_, Node *parent_ = nullptr);
 
         //! Routine to get node's total cost
         unsigned int getScore() const;
@@ -99,9 +99,9 @@ namespace AStar
          *
          * @param source_
          * @param target_
-         * @return sequence of 2D points (grid cells indexes)
+         * @return sequence of 2D points (world coordinates)
          */
-        std::vector<Vec2D> findPath(Vec2D source_, Vec2D target_);
+        std::vector<World2D> findPath(Vec2D source_, Vec2D target_);
     private:
         //! Robot model
         Model m_model;

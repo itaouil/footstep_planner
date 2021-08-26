@@ -14,10 +14,11 @@
  * @param coord_
  * @param parent_
  */
-AStar::Node::Node(Vec2D coord_, AStar::Node *parent_)
+AStar::Node::Node(Vec2D coord_, World2D world_, AStar::Node *parent_)
 {
     parent = parent_;
     gridCoordinates = coord_;
+    worldCoordinates = world_;
     G = H = 0;
 }
 
@@ -231,15 +232,15 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>
  *
  * @param source_
  * @param target_
- * @return sequence of 2D points (grid cells indexes)
+ * @return sequence of 2D points (world coordinates)
  */
-std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
+std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
 {
     Node *current = nullptr;
     std::vector<Node*> openSet, closedSet;
     openSet.reserve(100);
     closedSet.reserve(100);
-    openSet.push_back(new Node(source_));
+    openSet.push_back(new Node(source_, World2D{0.0, 0.0}));
 
     while (!openSet.empty()) {
         auto current_it = openSet.begin();
@@ -269,39 +270,39 @@ std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
 //                 ROS_INFO_STREAM("Action: " << actions[i].x << ", " << actions[i].y << ", " << actions[i].theta);
 
                 // Convert grid indexes to world values
-                World2D l_currentCoM{};
+                World2D l_currentWorldCoordinatesCoM{};
                 gridToWorld(m_gridOriginX,
                             m_gridOriginY,
                             current->gridCoordinates,
-                            l_currentCoM);
+                            l_currentWorldCoordinatesCoM);
 
                 // Compute new CoM coordinate for
                 // given action and velocity
-                World2D l_propagatedCoM{};
+                World2D l_propagatedWorldCoordinatesCoM{};
                 m_model.propagateCoM(velocity,
                                      actions[i],
-                                     l_currentCoM,
-                                     l_propagatedCoM);
+                                     l_currentWorldCoordinatesCoM,
+                                     l_propagatedWorldCoordinatesCoM);
 
                 // Convert propagated CoM to grid indexes
-                Vec2D newCoordinates{};
+                Vec2D l_propagatedGridCoordinatesCoM{};
                 AStar::worldToGrid(m_gridOriginX,
                                    m_gridOriginY,
-                                   l_propagatedCoM,
-                                   newCoordinates);
+                                   l_propagatedWorldCoordinatesCoM,
+                                   l_propagatedGridCoordinatesCoM);
 
-//                ROS_INFO_STREAM("New Coordinates: " << newCoordinates.x << ", " << newCoordinates.y);
+//                ROS_INFO_STREAM("New Coordinates: " << l_propagatedGridCoordinatesCoM.x << ", " << l_propagatedGridCoordinatesCoM.y);
 
-                if (detectCollision(newCoordinates) ||
-                    findNodeOnList(closedSet, newCoordinates)) {
+                if (detectCollision(l_propagatedGridCoordinatesCoM) ||
+                    findNodeOnList(closedSet, l_propagatedGridCoordinatesCoM)) {
                     continue;
                 }
 
                 unsigned int totalCost = current->G + ((i < 4) ? 10 : 14);
 
-                Node *successor = findNodeOnList(openSet, newCoordinates);
+                Node *successor = findNodeOnList(openSet, l_propagatedGridCoordinatesCoM);
                 if (successor == nullptr) {
-                    successor = new Node(newCoordinates, current);
+                    successor = new Node(l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM, current);
                     successor->G = totalCost;
                     successor->H = heuristic(successor->gridCoordinates, target_);
                     openSet.push_back(successor);
@@ -314,16 +315,14 @@ std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
         }
     }
 
-    std::vector<Vec2D> path;
+    std::vector<World2D> path;
     while (current != nullptr) {
-        path.push_back(current->gridCoordinates);
+        path.push_back(current->worldCoordinates);
         current = current->parent;
     }
 
     releaseNodes(openSet);
     releaseNodes(closedSet);
-
-    ROS_INFO("AStar: Path found.");
 
     return path;
 }

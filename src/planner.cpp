@@ -56,20 +56,19 @@ bool Planner::getHeightMap(grid_map_msgs::GridMap &p_heightMap,
 /**
  * Plans path from start to goal.
  *
- * @param p_heightMap
- * @param p_robotPose
- * @param p_goalPosition
- * @return whether planning was successful
+ * @param std
+ * @param p_path
  */
-bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
-                   const geometry_msgs::PoseStamped &p_goalPosition)
+void Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
+                   const geometry_msgs::PoseStamped &p_goalPosition,
+                   std::vector<World2D> &p_path)
 {
     // Request height map
     grid_map_msgs::GridMap l_heightMap;
     if (!getHeightMap(l_heightMap, p_robotPose))
     {
         ROS_WARN("Planner: Height map request failed. Skipping iteration");
-        return false;
+        return;
     }
     else
     {
@@ -100,13 +99,8 @@ bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
     m_search.setGridOrigin(l_heightMap.info.pose.position.x, l_heightMap.info.pose.position.y);
 
     // Call A* search algorithm
-    m_search.findPath(l_gridStartPosition, l_gridGoalPosition);
+    std::vector<World2D> l_path = m_search.findPath(l_gridStartPosition, l_gridGoalPosition);
 
-    // Call search algorithm and pass
-    // it the start and goal indexes
-    //TODO: call preferred search algorithm
-
-    return false;
+    // Copy over path
+    std::copy(l_path.begin(), l_path.end(), std::back_inserter(p_path));
 }
-
-

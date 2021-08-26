@@ -38,16 +38,19 @@ void Navigation::initialize()
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
-    // Target goal subscriber
-    m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::planHeightMapPath, this);
-
-    // Velocity command publisher
-    m_velocityPublisher = m_nh.advertise<geometry_msgs::Twist>(VELOCITY_CMD_TOPIC, 1);
+    // Path publisher
+    m_pathPublisher = m_nh.advertise<nav_msgs::Path>(PATH_TOPIC, 1);
 
     // Robot pose subscriber and cache setup
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(m_robotPoseCacheSize);
+
+    // Velocity command publisher
+    m_velocityPublisher = m_nh.advertise<geometry_msgs::Twist>(VELOCITY_CMD_TOPIC, 1);
+
+    // Target goal subscriber
+    m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::planHeightMapPath, this);
 }
 
 /**
@@ -132,13 +135,34 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
     }
 
     // Call planner to find path to goal
-    if (!m_planner.plan(l_robotPoseMapFrame, p_goalMsg))
+    std::vector<World2D> l_path;
+    m_planner.plan(l_robotPoseMapFrame, p_goalMsg, l_path);
+
+    // Publish path
+    if (!l_path.empty())
     {
-        ROS_WARN("Navigation: Planner call failed.");
+        // Path message to be published
+        nav_msgs::Path l_pathMsg;
+        l_pathMsg.header.stamp = ros::Time::now();
+        l_pathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+
+        // Populate path message
+        for (auto &l_worldCoordinate: l_path)
+        {
+            geometry_msgs::PoseStamped l_poseStamped;
+            l_poseStamped.header = l_pathMsg.header;
+            l_poseStamped.pose.position.x = l_worldCoordinate.x;
+            l_poseStamped.pose.position.y = l_worldCoordinate.y;
+            l_pathMsg.poses.push_back(l_poseStamped);
+        }
+
+        m_pathPublisher.publish(l_pathMsg);
+
+        ROS_INFO("Navigation: Path obtained and published.");
     }
     else
     {
-        ROS_INFO("Navigation: Planner call succeeded.");
+        ROS_WARN("Navigation: Path obtained is empty.");
     }
 
     //TODO: apply footsteps

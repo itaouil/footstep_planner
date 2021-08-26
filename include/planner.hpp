@@ -45,10 +45,12 @@ public:
     /**
      * Plans path from start to goal.
      *
-     * @return whether planning was successful
+     * @param std
+     * @param p_path
      */
-    bool plan(const geometry_msgs::PointStamped&,
-              const geometry_msgs::PoseStamped&);
+    void plan(const geometry_msgs::PointStamped &p_robotPose,
+              const geometry_msgs::PoseStamped &p_goalPosition,
+              std::vector<World2D> &p_path);
 private:
     /**
      * Requests height elevation map from
