@@ -14,10 +14,10 @@
 struct Vec2D
 {
     //! X position
-    double x;
+    int x;
 
     //! Y position
-    double y;
+    int y;
 
     //! Equality operator for the struct
     inline bool operator == (const Vec2D& coordinates_) const

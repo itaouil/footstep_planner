@@ -17,7 +17,7 @@
 AStar::Node::Node(Vec2D coord_, AStar::Node *parent_)
 {
     parent = parent_;
-    coordinates = coord_;
+    gridCoordinates = coord_;
     G = H = 0;
 }
 
@@ -33,6 +33,71 @@ unsigned int AStar::Node::getScore() const
 }
 
 /**
+ * Convert from grid coordinates to world coordinates.
+ *
+ * @param p_originX
+ * @param p_originY
+ * @param p_gridCoordinates
+ * @param p_worldCoordinates
+ */
+void AStar::gridToWorld(double p_originX,
+                        double p_originY,
+                        Vec2D p_mapCoordinates,
+                        World2D &p_worldCoordinates)
+{
+    p_worldCoordinates.x = p_originX + p_mapCoordinates.x * HEIGHT_MAP_RESOLUTION;
+    p_worldCoordinates.y = p_originY + p_mapCoordinates.y * HEIGHT_MAP_RESOLUTION;
+}
+
+/**
+ * Convert from world coordinates to grid coordinates.
+ *
+ * @param p_originX
+ * @param p_originY
+ * @param p_worldCoordinates
+ * @param p_gridCoordinates
+ * @return if conversion is successful
+ */
+bool AStar::worldToGrid(const double p_originX,
+                        const double p_originY,
+                        World2D p_worldCoordinates,
+                        Vec2D &p_gridCoordinates)
+{
+    // Make sure that map origin is not
+    // bigger than the world coordinates
+    // to avoid negative grid indices
+    if (round(p_worldCoordinates.x) < round(p_originX) || round(p_worldCoordinates.y) < round(p_originY))
+    {
+        ROS_INFO_STREAM("P_WX: " << p_worldCoordinates.x);
+        ROS_INFO_STREAM("P_WY: " << p_worldCoordinates.y);
+        ROS_INFO_STREAM("OriginX: " << p_originX);
+        ROS_INFO_STREAM("OriginY: " << p_originY);
+        ROS_INFO_STREAM("AStar: Could not convert world pose to grid indices.");
+        return false;
+    }
+
+    // Convert from world coordinates to grid indices
+    p_gridCoordinates.x = (int)((p_worldCoordinates.x - p_originX) / HEIGHT_MAP_RESOLUTION);
+    p_gridCoordinates.y = (int)((p_worldCoordinates.y - p_originY) / HEIGHT_MAP_RESOLUTION);
+
+    // Check that indices are not bigger
+    // than the actual grid max size in x and y
+    if (p_gridCoordinates.x < HEIGHT_MAP_MAX_SIZE_X && p_gridCoordinates.y < HEIGHT_MAP_MAX_SIZE_Y)
+        return true;
+    else
+    {
+        ROS_INFO_STREAM("P_MX: " << p_gridCoordinates.x);
+        ROS_INFO_STREAM("P_MY: " << p_gridCoordinates.y);
+        ROS_INFO_STREAM("OriginX: " << p_originX);
+        ROS_INFO_STREAM("OriginY: " << p_originY);
+        ROS_INFO_STREAM("MAX X: " << HEIGHT_MAP_MAX_SIZE_X);
+        ROS_INFO_STREAM("MAX Y: " << HEIGHT_MAP_MAX_SIZE_Y);
+        ROS_ERROR("AStar: Mapped grid indices are bigger than grid max size.");
+        return false;
+    }
+}
+
+/**
  * A* search class constructor
  */
 AStar::Search::Search()
@@ -44,7 +109,7 @@ AStar::Search::Search()
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
     // Set 2D height map size
-    setWorldSize({static_cast<double>(HEIGHT_MAP_MAX_SIZE_X), static_cast<double>(HEIGHT_MAP_MAX_SIZE_Y)});
+    setWorldSize({HEIGHT_MAP_MAX_SIZE_X, HEIGHT_MAP_MAX_SIZE_Y});
 
     // Available actions
     actions = {
@@ -77,6 +142,18 @@ void AStar::Search::setWorldSize(Vec2D worldSize_)
 }
 
 /**
+ * Sets grid origin in static reference frame.
+ *
+ * @param p_originX
+ * @param origin_y
+ */
+void AStar::Search::setGridOrigin(double p_originX, double p_originY)
+{
+    m_gridOriginX = p_originX;
+    m_gridOriginY = p_originY;
+}
+
+/**
  * Sets whether the search uses a 5
  * or 7 neighbor expansion for the nodes
  *
@@ -100,6 +177,9 @@ bool AStar::Search::detectCollision(Vec2D coordinates_) const
     //TODO: add height check
     if (coordinates_.x < 0 || coordinates_.x >= worldSize.x ||
         coordinates_.y < 0 || coordinates_.y >= worldSize.y) {
+        ROS_INFO("Detect Collision: Collision detected");
+        ROS_INFO_STREAM(coordinates_.x << ", " << worldSize.x);
+        ROS_INFO_STREAM(coordinates_.y << ", " << worldSize.y);
         return true;
     }
     return false;
@@ -128,7 +208,7 @@ void AStar::Search::releaseNodes(std::vector<Node*> &nodes_)
 AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, Vec2D coordinates_)
 {
     for (auto node : nodes_) {
-        if (node->coordinates == coordinates_) {
+        if (node->gridCoordinates == coordinates_) {
             return node;
         }
     }
@@ -173,19 +253,44 @@ std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
             }
         }
 
-        if (current->coordinates == target_) {
+        if (current->gridCoordinates == target_) {
+            ROS_INFO("AStar: Target goal found");
             break;
         }
 
         closedSet.push_back(current);
         openSet.erase(current_it);
 
-        for (unsigned int i = 0; i < numberOfActions; ++i) {
-            for (double & velocity : velocities) {
+        for (double & velocity : velocities)
+        {
+             for (unsigned int i = 0; i < numberOfActions; ++i)
+             {
+//                 ROS_INFO_STREAM("Velocity fed: " << velocity);
+//                 ROS_INFO_STREAM("Action: " << actions[i].x << ", " << actions[i].y << ", " << actions[i].theta);
+
+                // Convert grid indexes to world values
+                World2D l_currentCoM{};
+                gridToWorld(m_gridOriginX,
+                            m_gridOriginY,
+                            current->gridCoordinates,
+                            l_currentCoM);
+
                 // Compute new CoM coordinate for
                 // given action and velocity
+                World2D l_propagatedCoM{};
+                m_model.propagateCoM(velocity,
+                                     actions[i],
+                                     l_currentCoM,
+                                     l_propagatedCoM);
+
+                // Convert propagated CoM to grid indexes
                 Vec2D newCoordinates{};
-                m_model.propagateCoM(newCoordinates, current->coordinates, actions[i], velocity);
+                AStar::worldToGrid(m_gridOriginX,
+                                   m_gridOriginY,
+                                   l_propagatedCoM,
+                                   newCoordinates);
+
+//                ROS_INFO_STREAM("New Coordinates: " << newCoordinates.x << ", " << newCoordinates.y);
 
                 if (detectCollision(newCoordinates) ||
                     findNodeOnList(closedSet, newCoordinates)) {
@@ -198,7 +303,7 @@ std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
                 if (successor == nullptr) {
                     successor = new Node(newCoordinates, current);
                     successor->G = totalCost;
-                    successor->H = heuristic(successor->coordinates, target_);
+                    successor->H = heuristic(successor->gridCoordinates, target_);
                     openSet.push_back(successor);
                 }
                 else if (totalCost < successor->G) {
@@ -211,12 +316,14 @@ std::vector<Vec2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
 
     std::vector<Vec2D> path;
     while (current != nullptr) {
-        path.push_back(current->coordinates);
+        path.push_back(current->gridCoordinates);
         current = current->parent;
     }
 
     releaseNodes(openSet);
     releaseNodes(closedSet);
+
+    ROS_INFO("AStar: Path found.");
 
     return path;
 }

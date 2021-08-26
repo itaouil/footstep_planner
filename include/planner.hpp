@@ -23,7 +23,8 @@
 #include <search/AStar.hpp>
 
 // Structs
-#include <structs/vec2d.hpp>
+#include <structs/vec2D.hpp>
+#include <structs/world2D.hpp>
 
 // Config
 #include "config.hpp"
@@ -58,15 +59,6 @@ private:
      * @return if height map request was successful
      */
     bool getHeightMap(grid_map_msgs::GridMap&, const geometry_msgs::PointStamped&);
-
-    /**
-     * Maps world (continuous) coordinates in
-     * the map frame to the respective indices
-     * (discrete) of the grid map.
-     *
-     * @return whether mapping was successful
-     */
-    bool worldToMapBound(double, double, double, double, unsigned int&, unsigned int&) const;
 
     //! ROS node handle
     ros::NodeHandle m_nh;

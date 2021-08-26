@@ -25,6 +25,6 @@ struct VelocityCmd
     //! Struct comparator
     inline bool operator < ( const VelocityCmd &rhs ) const
     {
-        return ( x < rhs.x );
+        return ( x < rhs.x || (x == rhs.x && y < rhs.y) || (x == rhs.x && y == rhs.y && theta < rhs.theta));
     }
 };

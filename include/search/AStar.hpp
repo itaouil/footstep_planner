@@ -18,8 +18,9 @@
 #include <model.hpp>
 
 // Structs
-#include <structs/vec2d.hpp>
+#include <structs/vec2D.hpp>
 #include <structs/action.hpp>
+#include <structs/world2D.hpp>
 
 // Config
 #include <config.hpp>
@@ -34,8 +35,11 @@ namespace AStar
         //! Parent node
         Node *parent;
 
-        //! Node (x,y) position in the grid
-        Vec2D coordinates;
+        //! (x,y) (discrete) coordinates in the grid
+        Vec2D gridCoordinates;
+
+        //! (x,y) (continuous) coordinates in the world
+        World2D worldCoordinates;
 
         //! Costs
         unsigned int G, H;
@@ -46,6 +50,27 @@ namespace AStar
         //! Routine to get node's total cost
         unsigned int getScore() const;
     };
+
+    /**
+     * Convert from grid coordinates to world coordinates.
+     *
+     * @param p_originX
+     * @param p_originY
+     * @param p_gridCoordinates
+     * @param p_worldCoordinates
+     */
+    void gridToWorld(double p_originX, double p_originY, Vec2D p_gridCoordinates, World2D &p_worldCoordinates);
+
+    /**
+     * Convert from world coordinates to grid coordinates.
+     *
+     * @param p_originX
+     * @param p_originY
+     * @param p_worldCoordinates
+     * @param p_gridCoordinates
+     * @return if conversion is successful
+     */
+    bool worldToGrid(double p_originX, double p_originY, World2D p_worldCoordinates, Vec2D &p_gridCoordinates);
 
     class Search
     {
@@ -61,6 +86,14 @@ namespace AStar
         virtual ~Search();
 
         /**
+         * Sets grid origin in static reference frame.
+         *
+         * @param p_originX
+         * @param origin_y
+         */
+        void setGridOrigin(double p_originX, double p_originY);
+
+        /**
          * Find path from source to target
          * in a given height map.
          *
@@ -70,23 +103,27 @@ namespace AStar
          */
         std::vector<Vec2D> findPath(Vec2D source_, Vec2D target_);
     private:
+        //! Robot model
+        Model m_model;
+
         //! Grid map size
         Vec2D worldSize;
 
-        //! Number of available actions
-        unsigned int numberOfActions;
+        //! Grid map origin
+        double m_gridOriginX;
+        double m_gridOriginY;
 
         //! Allowed actions in the search
         std::vector<Action> actions;
+
+        //! Number of available actions
+        unsigned int numberOfActions;
 
         //! Velocities
         std::vector<double> velocities;
 
         //! Heuristic function to be used
         std::function<unsigned int(Vec2D, Vec2D)> heuristic;
-
-        //! Robot model
-        Model m_model;
 
         /**
          * Set grid size.

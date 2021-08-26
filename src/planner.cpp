@@ -54,47 +54,6 @@ bool Planner::getHeightMap(grid_map_msgs::GridMap &p_heightMap,
 }
 
 /**
- * Maps world (continuous) coordinates in
- * the map frame to the respective discrete
- * (indices) of the grid.
- *
- * @param wx
- * @param wy
- * @param mx
- * @param my
- * @return whether mapping was successful
- */
-bool Planner::worldToMapBound(const double p_wx,
-                              const double p_wy,
-                              const double p_originX,
-                              const double p_originY,
-                              unsigned int& p_mx,
-                              unsigned int& p_my) const {
-    // Make sure that map origin is not
-    // bigger than the world coordinates
-    // to avoid negative grid indices
-    if (p_wx < p_originX || p_wy < p_originY)
-    {
-        ROS_ERROR("Planner: Could not convert world pose to grid indices.");
-        return false;
-    }
-
-    // Convert from world coordinates to grid indices
-    p_mx = (int)((p_wx - p_originX) / HEIGHT_MAP_RESOLUTION);
-    p_my = (int)((p_wy - p_originY) / HEIGHT_MAP_RESOLUTION);
-
-    // Check that indices are not bigger
-    // than the actual grid max size in x and y
-    if (p_mx < HEIGHT_MAP_MAX_SIZE_X && p_my < HEIGHT_MAP_MAX_SIZE_Y)
-        return true;
-    else
-    {
-        ROS_ERROR("Planner: Mapped grid indices are bigger than grid max size.");
-        return false;
-    }
-}
-
-/**
  * Plans path from start to goal.
  *
  * @param p_heightMap
@@ -118,29 +77,30 @@ bool Planner::plan(const geometry_msgs::PointStamped &p_robotPose,
     }
 
     // Compute grid starting place
-    unsigned int l_startPositionX = 0;
-    unsigned int l_startPositionY = 0;
-    worldToMapBound(p_robotPose.point.x,
-                    p_robotPose.point.y,
-                    l_heightMap.info.pose.position.x,
-                    l_heightMap.info.pose.position.y,
-                    l_startPositionX,
-                    l_startPositionY);
+    Vec2D l_gridStartPosition{};
+    World2D l_worldStartPosition{p_robotPose.point.x, p_robotPose.point.y};
+    AStar::worldToGrid(
+                       l_heightMap.info.pose.position.x,
+                       l_heightMap.info.pose.position.y,
+                       l_worldStartPosition,
+                       l_gridStartPosition);
 
     // Compute grid goal position
-    unsigned int l_goalPositionX = 0;
-    unsigned int l_goalPositionY = 0;
-    worldToMapBound(p_goalPosition.pose.position.x,
-                    p_goalPosition.pose.position.y,
-                    l_heightMap.info.pose.position.x,
-                    l_heightMap.info.pose.position.y,
-                    l_goalPositionX,
-                    l_goalPositionY);
+    Vec2D l_gridGoalPosition{};
+    World2D l_worldGoalPosition{p_goalPosition.pose.position.x, p_goalPosition.pose.position.y};
+    AStar::worldToGrid(l_heightMap.info.pose.position.x,
+                       l_heightMap.info.pose.position.y,
+                       l_worldGoalPosition,
+                       l_gridGoalPosition);
+
+    ROS_INFO_STREAM("A* start search called with given source: " << l_gridStartPosition.x << ", " << l_gridStartPosition.y);
+    ROS_INFO_STREAM("A* start search called with given target: " << l_gridGoalPosition.x << ", " << l_gridGoalPosition.y);
+
+    // Set grid origin for the search conversion
+    m_search.setGridOrigin(l_heightMap.info.pose.position.x, l_heightMap.info.pose.position.y);
 
     // Call A* search algorithm
-    Vec2D l_source{static_cast<double>(l_startPositionX), static_cast<double>(l_startPositionY)};
-    Vec2D l_target{static_cast<double>(l_goalPositionX), static_cast<double>(l_goalPositionY)};
-    m_search.findPath(l_source, l_target);
+    m_search.findPath(l_gridStartPosition, l_gridGoalPosition);
 
     // Call search algorithm and pass
     // it the start and goal indexes

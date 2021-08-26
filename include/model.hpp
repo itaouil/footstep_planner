@@ -15,8 +15,9 @@
 #include <ros/ros.h>
 
 // Structs
-#include <structs/vec2d.hpp>
+#include <structs/vec2D.hpp>
 #include <structs/action.hpp>
+#include <structs/world2D.hpp>
 #include <structs/velocityCmd.hpp>
 #include <structs/displacement.hpp>
 
@@ -37,14 +38,12 @@ public:
      * Compute next CoM (Centre of Mass) given
      * the action and velocity applied.
      *
-     * @param p_currentPosition
-     * @param p_action
      * @param p_velocity
+     * @param p_action
+     * @param p_currentCoM
+     * @param p_propagateCoM
      */
-    void propagateCoM(Vec2D &p_futurePosition,
-                      const Vec2D &p_currentPosition,
-                      const Action &p_action,
-                      double p_velocity);
+    void propagateCoM(double p_velocity, const Action &p_action, World2D p_currentCoM, World2D &p_propagateCoM);
 private:
     //! Dictionary containing displacements for each velocity
     std::map<VelocityCmd, Displacement> m_displacementMap;
