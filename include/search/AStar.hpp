@@ -101,30 +101,8 @@ namespace AStar
          * @param target_
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<World2D> findPath(Vec2D source_, Vec2D target_);
+        std::vector<World2D> findPath(World2D source_, World2D target_);
     private:
-        //! Robot model
-        Model m_model;
-
-        //! Grid map size
-        Vec2D worldSize;
-
-        //! Grid map origin
-        double m_gridOriginX;
-        double m_gridOriginY;
-
-        //! Allowed actions in the search
-        std::vector<Action> actions;
-
-        //! Number of available actions
-        unsigned int numberOfActions;
-
-        //! Velocities
-        std::vector<double> velocities;
-
-        //! Heuristic function to be used
-        std::function<unsigned int(Vec2D, Vec2D)> heuristic;
-
         /**
          * Set grid size.
          *
@@ -171,11 +149,34 @@ namespace AStar
          *
          * @param heuristic_
          */
-        void setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>& heuristic_);
+        void setHeuristic(const std::function<unsigned int(Node, Node)>& heuristic_);
+
+        //! Robot model
+        Model m_model;
+
+        //! Grid map size
+        Vec2D worldSize;
+
+        //! Grid map origin
+        double m_gridOriginX;
+        double m_gridOriginY;
+
+        //! Allowed actions in the search
+        std::vector<Action> actions;
+
+        //! Number of available actions
+        unsigned int numberOfActions;
+
+        //! Velocities
+        std::vector<double> velocities;
+
+        //! Heuristic function to be used
+        std::function<unsigned int(Node, Node)> heuristic;
     };
 
     class Heuristic
     {
+    public:
         /**
          * A* Heuristic routine that returns the
          * difference between two coordinate points.
@@ -184,9 +185,18 @@ namespace AStar
          * @param target_
          * @return points' coordinate difference
          */
-        static Vec2D getDelta(Vec2D source_, Vec2D target_);
+        static Vec2D getDistanceDelta(Vec2D source_, Vec2D target_);
 
-    public:
+        /**
+         * A* Heuristic class routine that computes
+         * theta difference between source and target
+         *
+         * @param source_
+         * @param target_
+         * @return theta distance
+         */
+        static unsigned int getHeadingDelta(World2D source_, World2D target_);
+
         /**
          * A* Heuristic class routine that computes
          * the manhattan distance between two points.
@@ -195,7 +205,7 @@ namespace AStar
          * @param target_
          * @return manhattan distance
          */
-        static unsigned int manhattan(Vec2D source_, Vec2D target_);
+        static unsigned int manhattan(Node source_, Node target_);
 
         /**
          * A* Heuristic class routine that computes
@@ -205,7 +215,7 @@ namespace AStar
          * @param target_
          * @return euclidean distance
          */
-        static unsigned int euclidean(Vec2D source_, Vec2D target_);
+        static unsigned int euclidean(Node source_, Node target_);
 
         /**
          * A* Heuristic class routine that computes
@@ -215,6 +225,6 @@ namespace AStar
          * @param target_
          * @return octagonal distance
          */
-        static unsigned int octagonal(Vec2D source_, Vec2D target_);
+        static unsigned int octagonal(Node source_, Node target_);
     };
 }

@@ -16,8 +16,7 @@ Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_nh(p_nh),
         m_tf2(p_tf2),
         m_planner(p_nh),
-        m_buffer(p_buffer),
-        m_robotPoseCacheSize(ROBOT_POSE_CACHE_SIZE)
+        m_buffer(p_buffer)
 {
     initialize();
 }
@@ -25,10 +24,7 @@ Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
 /**
  * Destructor
  */
-Navigation::~Navigation()
-{
-    m_latestRobotPose.reset();
-}
+Navigation::~Navigation() = default;
 
 /**
  * Navigation initialization
@@ -40,11 +36,6 @@ void Navigation::initialize()
 
     // Path publisher
     m_pathPublisher = m_nh.advertise<nav_msgs::Path>(PATH_TOPIC, 1);
-
-    // Robot pose subscriber and cache setup
-    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
-    m_robotPoseCache.connectInput(m_robotPoseSubscriber);
-    m_robotPoseCache.setCacheSize(m_robotPoseCacheSize);
 
     // Velocity command publisher
     m_velocityPublisher = m_nh.advertise<geometry_msgs::Twist>(VELOCITY_CMD_TOPIC, 1);
@@ -110,33 +101,9 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
 {
     ROS_INFO("Navigation: Planning request received.");
 
-    // Get latest robot pose from the cache
-    const ros::Time l_latestPoseTime = ros::Time::now();
-    m_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-    // Check that returned robot pose pointer is not NULL
-    if (!m_latestRobotPose) return;
-
-    // Transform robot pose from robot frame to map frame
-    geometry_msgs::PointStamped l_robotPoseMapFrame;
-    try
-    {
-        geometry_msgs::PointStamped l_robotPoseRobotFrame;
-        l_robotPoseRobotFrame.header = m_latestRobotPose->header;
-        l_robotPoseRobotFrame.point.x = m_latestRobotPose->pose.pose.position.x;
-        l_robotPoseRobotFrame.point.y = m_latestRobotPose->pose.pose.position.y;
-        l_robotPoseRobotFrame.point.z = m_latestRobotPose->pose.pose.position.z;
-
-        m_buffer.transform(l_robotPoseRobotFrame, l_robotPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
-    }
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("Navigation: Could not transform robot pose to map frame. Skipping this iteration.");
-        return;
-    }
-
     // Call planner to find path to goal
     std::vector<World2D> l_path;
-    m_planner.plan(l_robotPoseMapFrame, p_goalMsg, l_path);
+    m_planner.plan(p_goalMsg, l_path);
 
     // Publish path
     if (!l_path.empty())

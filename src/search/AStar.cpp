@@ -59,43 +59,69 @@ void AStar::gridToWorld(double p_originX,
  * @param p_gridCoordinates
  * @return if conversion is successful
  */
+//bool AStar::worldToGrid(const double p_originX,
+//                        const double p_originY,
+//                        World2D p_worldCoordinates,
+//                        Vec2D &p_gridCoordinates)
+//{
+//    // Make sure that map origin is not
+//    // bigger than the world coordinates
+//    // to avoid negative grid indices
+//    if (round(p_worldCoordinates.x) < round(p_originX) || round(p_worldCoordinates.y) < round(p_originY))
+//    {
+//        ROS_INFO_STREAM("P_WX: " << p_worldCoordinates.x);
+//        ROS_INFO_STREAM("P_WY: " << p_worldCoordinates.y);
+//        ROS_INFO_STREAM("OriginX: " << p_originX);
+//        ROS_INFO_STREAM("OriginY: " << p_originY);
+//        ROS_INFO_STREAM("AStar: Could not convert world pose to grid indices.");
+//        return false;
+//    }
+//
+//    // Convert from world coordinates to grid indices
+//    p_gridCoordinates.x = (int)((p_worldCoordinates.x - p_originX) / HEIGHT_MAP_RESOLUTION);
+//    p_gridCoordinates.y = (int)((p_worldCoordinates.y - p_originY) / HEIGHT_MAP_RESOLUTION);
+//
+//    // Check that indices are not bigger
+//    // than the actual grid max size in x and y
+//    if (p_gridCoordinates.x < HEIGHT_MAP_MAX_SIZE_X && p_gridCoordinates.y < HEIGHT_MAP_MAX_SIZE_Y)
+//        return true;
+//    else
+//    {
+//        ROS_INFO_STREAM("P_MX: " << p_gridCoordinates.x);
+//        ROS_INFO_STREAM("P_MY: " << p_gridCoordinates.y);
+//        ROS_INFO_STREAM("OriginX: " << p_originX);
+//        ROS_INFO_STREAM("OriginY: " << p_originY);
+//        ROS_INFO_STREAM("MAX X: " << HEIGHT_MAP_MAX_SIZE_X);
+//        ROS_INFO_STREAM("MAX Y: " << HEIGHT_MAP_MAX_SIZE_Y);
+//        ROS_ERROR("AStar: Mapped grid indices are bigger than grid max size.");
+//        return false;
+//    }
+//}
+
 bool AStar::worldToGrid(const double p_originX,
                         const double p_originY,
                         World2D p_worldCoordinates,
                         Vec2D &p_gridCoordinates)
 {
-    // Make sure that map origin is not
-    // bigger than the world coordinates
-    // to avoid negative grid indices
-    if (round(p_worldCoordinates.x) < round(p_originX) || round(p_worldCoordinates.y) < round(p_originY))
-    {
-        ROS_INFO_STREAM("P_WX: " << p_worldCoordinates.x);
-        ROS_INFO_STREAM("P_WY: " << p_worldCoordinates.y);
-        ROS_INFO_STREAM("OriginX: " << p_originX);
-        ROS_INFO_STREAM("OriginY: " << p_originY);
-        ROS_INFO_STREAM("AStar: Could not convert world pose to grid indices.");
-        return false;
-    }
+    // Compute top left corner world
+    // coordinates of the height map
+    double l_topLeftCornerX = p_originX + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2));
+    double l_topLeftCornerY = p_originY + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_Y) / 2));
+    ROS_INFO_STREAM("Offset: " << HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2)));
+    ROS_INFO_STREAM("Top left corner: " << l_topLeftCornerX << ", " << l_topLeftCornerY);
 
-    // Convert from world coordinates to grid indices
-    p_gridCoordinates.x = (int)((p_worldCoordinates.x - p_originX) / HEIGHT_MAP_RESOLUTION);
-    p_gridCoordinates.y = (int)((p_worldCoordinates.y - p_originY) / HEIGHT_MAP_RESOLUTION);
+    // Compute offset between top left corner
+    // and the given world coordinates
+    double l_distanceX = std::abs(l_topLeftCornerX - p_worldCoordinates.x);
+    double l_distanceY = std::abs(l_topLeftCornerY - p_worldCoordinates.y);
+    ROS_INFO_STREAM("Distances: " << l_distanceX << ", " << l_distanceY);
 
-    // Check that indices are not bigger
-    // than the actual grid max size in x and y
-    if (p_gridCoordinates.x < HEIGHT_MAP_MAX_SIZE_X && p_gridCoordinates.y < HEIGHT_MAP_MAX_SIZE_Y)
-        return true;
-    else
-    {
-        ROS_INFO_STREAM("P_MX: " << p_gridCoordinates.x);
-        ROS_INFO_STREAM("P_MY: " << p_gridCoordinates.y);
-        ROS_INFO_STREAM("OriginX: " << p_originX);
-        ROS_INFO_STREAM("OriginY: " << p_originY);
-        ROS_INFO_STREAM("MAX X: " << HEIGHT_MAP_MAX_SIZE_X);
-        ROS_INFO_STREAM("MAX Y: " << HEIGHT_MAP_MAX_SIZE_Y);
-        ROS_ERROR("AStar: Mapped grid indices are bigger than grid max size.");
-        return false;
-    }
+    // Compute relative grid position
+    p_gridCoordinates.x = (int)(l_distanceX / HEIGHT_MAP_RESOLUTION);
+    p_gridCoordinates.y = (int)(l_distanceY / HEIGHT_MAP_RESOLUTION);
+    ROS_INFO_STREAM("Coordinates: " << p_gridCoordinates.x << ", " << p_gridCoordinates.y);
+
+    return true;
 }
 
 /**
@@ -110,7 +136,7 @@ AStar::Search::Search()
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
     // Set 2D height map size
-    setWorldSize({HEIGHT_MAP_MAX_SIZE_X, HEIGHT_MAP_MAX_SIZE_Y});
+    setWorldSize({HEIGHT_MAP_GRID_SIZE_X, HEIGHT_MAP_GRID_SIZE_Y});
 
     // Available actions
     actions = {
@@ -119,7 +145,7 @@ AStar::Search::Search()
             { 0, 1, 0 }, // Left
             { 0, 0, -1 }, // Clockwise
             { 0, 0, 1 }, // Counter clockwise
-            { 1, 0, -1  }, // Forward + Counter clockwise
+            { 1, 0, -1 }, // Forward + Counter clockwise
             { 1, 0, 1 } // Forward + Counter clockwise
     };
 
@@ -221,7 +247,7 @@ AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, Vec2D coo
   *
   * @param heuristic_
   */
-void AStar::Search::setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>& heuristic_)
+void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& heuristic_)
 {
     heuristic = [heuristic_](auto && PH1, auto && PH2) { return heuristic_(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); };
 }
@@ -230,17 +256,27 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Vec2D, Vec2D)>
  * Find path from source to target
  * in a given height map.
  *
- * @param source_
- * @param target_
+ * @param p_sourceWorldCoordinates
+ * @param p_targetWorldCoordinates
  * @return sequence of 2D points (world coordinates)
  */
-std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
+std::vector<World2D> AStar::Search::findPath(World2D p_sourceWorldCoordinates, World2D p_targetWorldCoordinates)
 {
+    // Convert source and target world
+    // coordinates to grid coordinates
+    Vec2D l_sourceGridCoordinates{};
+    Vec2D l_targetGridCoordinates{};
+    worldToGrid(m_gridOriginX, m_gridOriginY, p_sourceWorldCoordinates, l_sourceGridCoordinates);
+    worldToGrid(m_gridOriginX, m_gridOriginY, p_targetWorldCoordinates, l_targetGridCoordinates);
+
+    ROS_INFO_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", " << l_sourceGridCoordinates.y);
+    ROS_INFO_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", " << l_targetGridCoordinates.y);
+
     Node *current = nullptr;
     std::vector<Node*> openSet, closedSet;
     openSet.reserve(100);
     closedSet.reserve(100);
-    openSet.push_back(new Node(source_, World2D{0.0, 0.0}));
+    openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates));
 
     while (!openSet.empty()) {
         auto current_it = openSet.begin();
@@ -254,7 +290,7 @@ std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
             }
         }
 
-        if (current->gridCoordinates == target_) {
+        if (current->gridCoordinates == l_targetGridCoordinates) {
             ROS_INFO("AStar: Target goal found");
             break;
         }
@@ -269,19 +305,12 @@ std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
 //                 ROS_INFO_STREAM("Velocity fed: " << velocity);
 //                 ROS_INFO_STREAM("Action: " << actions[i].x << ", " << actions[i].y << ", " << actions[i].theta);
 
-                // Convert grid indexes to world values
-                World2D l_currentWorldCoordinatesCoM{};
-                gridToWorld(m_gridOriginX,
-                            m_gridOriginY,
-                            current->gridCoordinates,
-                            l_currentWorldCoordinatesCoM);
-
                 // Compute new CoM coordinate for
                 // given action and velocity
                 World2D l_propagatedWorldCoordinatesCoM{};
                 m_model.propagateCoM(velocity,
                                      actions[i],
-                                     l_currentWorldCoordinatesCoM,
+                                     current->worldCoordinates,
                                      l_propagatedWorldCoordinatesCoM);
 
                 // Convert propagated CoM to grid indexes
@@ -304,12 +333,13 @@ std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
                 if (successor == nullptr) {
                     successor = new Node(l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM, current);
                     successor->G = totalCost;
-                    successor->H = heuristic(successor->gridCoordinates, target_);
+                    successor->H = heuristic(*successor, Node{l_targetGridCoordinates, p_targetWorldCoordinates});
                     openSet.push_back(successor);
                 }
                 else if (totalCost < successor->G) {
                     successor->parent = current;
                     successor->G = totalCost;
+                    successor->worldCoordinates = l_propagatedWorldCoordinatesCoM;
                 }
             }
         }
@@ -335,9 +365,33 @@ std::vector<World2D> AStar::Search::findPath(Vec2D source_, Vec2D target_)
  * @param target_
  * @return points' coordinate difference
  */
-Vec2D AStar::Heuristic::getDelta(Vec2D source_, Vec2D target_)
+Vec2D AStar::Heuristic::getDistanceDelta(Vec2D source_, Vec2D target_)
 {
     return{ abs(source_.x - target_.x),  abs(source_.y - target_.y) };
+}
+
+/**
+ * A* Heuristic class routine that computes
+ * theta difference between source and target
+ *
+ * @param source_
+ * @param target_
+ * @return theta distance
+ */
+unsigned int AStar::Heuristic::getHeadingDelta(World2D source_, World2D target_)
+{
+    // Compute magnitude of source and target vectors
+    double l_magnitudeSource = std::sqrt(std::pow(source_.x, 2) + std::pow(source_.y, 2));
+    double l_magnitudeTarget = std::sqrt(std::pow(target_.x, 2) + std::pow(target_.y, 2));
+
+    // Compute dot product between source and target
+    double l_dotProduct = source_.x * target_.x + source_.y * target_.y;
+
+    // Compute angle between two vectors
+    double l_theta = std::acos(l_dotProduct / (l_magnitudeSource * l_magnitudeTarget));
+    ROS_INFO_STREAM("HEADING DIFFERENCE: " << l_theta);
+
+    return static_cast<unsigned int>(l_theta);
 }
 
 /**
@@ -348,9 +402,9 @@ Vec2D AStar::Heuristic::getDelta(Vec2D source_, Vec2D target_)
  * @param target_
  * @return manhattan distance
  */
-unsigned int AStar::Heuristic::manhattan(Vec2D source_, Vec2D target_)
+unsigned int AStar::Heuristic::manhattan(Node source_, Node target_)
 {
-    auto delta = getDelta(source_, target_);
+    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
     return static_cast<unsigned int>(10 * (delta.x + delta.y));
 }
 
@@ -362,10 +416,11 @@ unsigned int AStar::Heuristic::manhattan(Vec2D source_, Vec2D target_)
  * @param target_
  * @return euclidean distance
  */
-unsigned int AStar::Heuristic::euclidean(Vec2D source_, Vec2D target_)
+unsigned int AStar::Heuristic::euclidean(Node source_, Node target_)
 {
-    auto delta = getDelta(source_, target_);
-    return static_cast<unsigned int>(10 * sqrt(pow(delta.x, 2) + pow(delta.y, 2)));
+    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
+    auto angle = getHeadingDelta(source_.worldCoordinates, target_.worldCoordinates);
+    return static_cast<unsigned int>(10 * sqrt(pow(delta.x, 2) + pow(delta.y, 2))) + angle * 100;
 }
 
 /**
@@ -376,8 +431,8 @@ unsigned int AStar::Heuristic::euclidean(Vec2D source_, Vec2D target_)
  * @param target_
  * @return octagonal distance
  */
-unsigned int AStar::Heuristic::octagonal(Vec2D source_, Vec2D target_)
+unsigned int AStar::Heuristic::octagonal(Node source_, Node target_)
 {
-    auto delta = getDelta(source_, target_);
+    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }

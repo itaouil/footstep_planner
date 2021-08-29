@@ -63,10 +63,4 @@ private:
 
     // ROS subscribers
     ros::Subscriber m_goalSubscriber;
-    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
-
-    // Robot pose cache variables
-    int m_robotPoseCacheSize;
-    message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
-    boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> m_latestRobotPose;
 };
