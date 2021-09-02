@@ -40,12 +40,16 @@ struct Node
      * @param p_worldCoordinates
      * @param p_parent
      */
-    explicit Node(Vec2D p_gridCoordinates, World2D p_worldCoordinates, Node *p_parent = nullptr):
+    explicit Node(Vec2D p_gridCoordinates,
+                  World2D p_worldCoordinates,
+                  FeetConfiguration feetConfiguration,
+                  Node *p_parent = nullptr):
         parent(p_parent),
         G(0),
         H(0),
         gridCoordinates(p_gridCoordinates),
-        worldCoordinates(p_worldCoordinates)
+        worldCoordinates(p_worldCoordinates),
+        feetConfiguration(feetConfiguration)
     {}
 
     /**

@@ -76,7 +76,7 @@ bool AStar::worldToGrid(const double p_originX,
 /**
  * A* search class constructor
  */
-AStar::Search::Search()
+AStar::Search::Search(ros::NodeHandle& p_nh): m_model(p_nh)
 {
     // Set cost heuristics: manhattan, euclidean, octagonal
     setHeuristic(&Heuristic::euclidean);
@@ -155,9 +155,9 @@ bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const
     //TODO: add height check
     if (p_gridCoordinates.x < 0 || p_gridCoordinates.x >= m_gridSize.x ||
         p_gridCoordinates.y < 0 || p_gridCoordinates.y >= m_gridSize.y) {
-        ROS_INFO("Detect Collision: Collision detected");
-        ROS_INFO_STREAM(p_gridCoordinates.x << ", " << m_gridSize.x);
-        ROS_INFO_STREAM(p_gridCoordinates.y << ", " << m_gridSize.y);
+        ROS_DEBUG("AStar: Collision detected.");
+        ROS_DEBUG_STREAM(p_gridCoordinates.x << ", " << m_gridSize.x);
+        ROS_DEBUG_STREAM(p_gridCoordinates.y << ", " << m_gridSize.y);
         return true;
     }
     return false;
@@ -196,7 +196,7 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
         // Check if the two nodes have the same state
         // (i.e. same grid coordinates and the same yaw)
         if (node->gridCoordinates == p_gridCoordinates && l_yawDifference < 0.1) {
-            ROS_INFO_STREAM("Same node: " << l_yawDifference << "\n");
+            ROS_DEBUG_STREAM("Same node: " << l_yawDifference << "\n");
             return node;
         }
     }
@@ -247,7 +247,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     Node *l_currentNode = nullptr;
 
     // Push to initial open set the source node
-    l_openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates));
+    l_openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates, p_sourceFeetConfiguration));
 
     // Search process
     while (!l_openSet.empty())
@@ -277,13 +277,13 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
         l_closedSet.push_back(l_currentNode);
         l_openSet.erase(l_iterator);
 
-        for (double & velocity : m_velocities)
+        for (double & l_velocity : m_velocities)
         {
              for (unsigned int i = 0; i < m_numberOfActions; ++i)
              {
                 // Propagate CoM using current action and velocity
                 World2D l_propagatedWorldCoordinatesCoM{};
-                m_model.propagateCoM(velocity,
+                m_model.propagateCoM(l_velocity,
                                      m_actions[i],
                                      l_currentNode->worldCoordinates,
                                      l_propagatedWorldCoordinatesCoM);
@@ -302,7 +302,14 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     continue;
                 }
 
-                ROS_DEBUG_STREAM("Current velocity: " << velocity);
+                // Compute feet configuration for new state
+                FeetConfiguration l_predictedFeetConfiguration;
+                m_model.predictFeetConfiguration(l_velocity,
+                                                 m_actions[i],
+                                                 l_currentNode->feetConfiguration,
+                                                 l_predictedFeetConfiguration);
+
+                ROS_DEBUG_STREAM("Current velocity: " << l_velocity);
                 ROS_DEBUG_STREAM("Current action: " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
                 ROS_DEBUG_STREAM("New CoM (x,y,theta): " << l_propagatedGridCoordinatesCoM.x << ", " << l_propagatedGridCoordinatesCoM.y << ", " << getYawFromQuaternion(l_propagatedWorldCoordinatesCoM.q));
 
@@ -311,9 +318,14 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                 Node *successor = findNodeOnList(l_openSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q);
                 if (successor == nullptr)
                 {
-                    successor = new Node(l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM, l_currentNode);
+                    successor = new Node(l_propagatedGridCoordinatesCoM,
+                                         l_propagatedWorldCoordinatesCoM,
+                                         l_predictedFeetConfiguration,
+                                         l_currentNode);
                     successor->G = totalCost;
-                    successor->H = m_heuristic(*successor, Node{l_targetGridCoordinates, p_targetWorldCoordinates});
+                    successor->H = m_heuristic(*successor, Node{l_targetGridCoordinates,
+                                                                p_targetWorldCoordinates,
+                                                                l_predictedFeetConfiguration});
                     successor->action = m_actions[i];
                     l_openSet.push_back(successor);
                 }
@@ -323,6 +335,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->worldCoordinates = l_propagatedWorldCoordinatesCoM;
+                    successor->feetConfiguration = l_predictedFeetConfiguration;
                 }
 
                 ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");
@@ -414,8 +427,8 @@ unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p
     auto l_angleDelta = getHeadingDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
     auto distance = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
-    ROS_INFO_STREAM("HEADING DELTA: " << l_angleDelta);
-    ROS_INFO_STREAM("DISTANCE DELTA: " << distance);
+    ROS_DEBUG_STREAM("HEADING DELTA: " << l_angleDelta);
+    ROS_DEBUG_STREAM("DISTANCE DELTA: " << distance);
 
     return static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2))) + std::abs(l_angleDelta) * 10;
 }

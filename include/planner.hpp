@@ -93,11 +93,11 @@ private:
     //! ROS node handle
     ros::NodeHandle m_nh;
 
-    //! TF2 buffer
-    tf2_ros::Buffer m_buffer;
-
     //! A* search
     AStar::Search m_search;
+
+    //! TF2 buffer
+    tf2_ros::Buffer m_buffer;
 
     //! TF2 listener
     tf2_ros::TransformListener m_listener;

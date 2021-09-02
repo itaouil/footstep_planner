@@ -64,7 +64,7 @@ namespace AStar
         /**
          * Constructor.
          */
-        explicit Search();
+        explicit Search(ros::NodeHandle& p_nh);
 
         /**
          * Destructor.

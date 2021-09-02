@@ -18,6 +18,7 @@
 
 // ROS messages
 #include <geometry_msgs/PointStamped.h>
+#include <aliengo_navigation/FootstepPrediction.h>
 
 // Structs
 #include <structs/vec2D.hpp>
@@ -36,7 +37,7 @@ public:
     /**
      * Constructor.
      */
-    explicit Model();
+    explicit Model(ros::NodeHandle& p_nh);
 
     /**
      * Destructor.
@@ -44,16 +45,9 @@ public:
     virtual ~Model();
 
     /**
-     * Footsteps prediction using
-     * learnt models.
-     *
-     * @param p_velocity
-     * @param p_action
-     * @param p_currentFeetConfiguration
+     * Populates command to displacement map.
      */
-    void predictFeetConfiguration(double p_velocity,
-                                  const Action &p_action,
-                                  const FeetConfiguration &p_currentFeetConfiguration);
+    void populateDisplacementMap();
 
     /**
      * Compute next CoM (Centre of Mass) given
@@ -65,7 +59,27 @@ public:
      * @param p_propagateCoM
      */
     void propagateCoM(double p_velocity, const Action &p_action, const World2D &p_currentCoM, World2D &p_propagatedCoM);
+
+    /**
+     * Footsteps prediction using
+     * learnt models.
+     *
+     * @param p_velocity
+     * @param p_action
+     * @param p_currentFeetConfiguration
+     * @param p_predictedFeetConfiguration
+     */
+    void predictFeetConfiguration(double p_velocity,
+                                  const Action &p_action,
+                                  const FeetConfiguration &p_currentFeetConfiguration,
+                                  FeetConfiguration &p_predictedFeetConfiguration);
 private:
+    //! ROS node handle
+    ros::NodeHandle m_nh;
+
+    //! ROS height map service request
+    ros::ServiceClient m_footstepPredictionServiceClient;
+
     //! Dictionary containing displacements for each velocity
     std::map<VelocityCmd, Displacement> m_displacementMap;
 };

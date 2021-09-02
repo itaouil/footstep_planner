@@ -11,7 +11,24 @@
 /**
  * Constructor
  */
-Model::Model()
+Model::Model(ros::NodeHandle& p_nh): m_nh(p_nh)
+{
+    // Footstep prediction service client
+    m_footstepPredictionServiceClient = m_nh.serviceClient<aliengo_navigation::FootstepPrediction>("/footstep_prediction");
+
+    // Populate map
+    populateDisplacementMap();
+}
+
+/**
+ * Destructor
+ */
+Model::~Model() = default;
+
+/**
+ * Populates command to displacement map.
+ */
+void Model::populateDisplacementMap()
 {
     // 0.1 velocity displacement
     m_displacementMap.insert(std::pair<VelocityCmd, Displacement>({0.1,0,0}, {0.029, 0.0035})); //FWD
@@ -52,13 +69,6 @@ Model::Model()
     m_displacementMap.insert(std::pair<VelocityCmd, Displacement>({0,0,-0.3}, {0.012, 0.019})); //CLOCK
     m_displacementMap.insert(std::pair<VelocityCmd, Displacement>({0,-0.3,0}, {0.0077,  -0.086})); //RIGHT
     m_displacementMap.insert(std::pair<VelocityCmd, Displacement>({0,0.3,0}, {0.0049, 0.087})); //LEFT
-}
-
-/**
- * Destructor
- */
-Model::~Model() {
-
 }
 
 /**
@@ -124,4 +134,47 @@ void Model::propagateCoM(double p_velocity,
     p_propagatedCoM.x = p_currentCoM.x + l_displacementMapFrame.point.x;
     p_propagatedCoM.y = p_currentCoM.y + l_displacementMapFrame.point.y;
     p_propagatedCoM.q = l_newCoMRotation;
+}
+
+/**
+ * Footsteps prediction using
+ * learnt models.
+ *
+ * @param p_velocity
+ * @param p_action
+ * @param p_currentFeetConfiguration
+ * @param p_predictedFeetConfiguration
+ */
+void Model::predictFeetConfiguration(double p_velocity,
+                                     const Action &p_action,
+                                     const FeetConfiguration &p_currentFeetConfiguration,
+                                     FeetConfiguration &p_predictedFeetConfiguration)
+{
+    aliengo_navigation::FootstepPrediction l_footstepPredictionSrv;
+    l_footstepPredictionSrv.request.x_velocity = p_action.x * p_velocity;
+    l_footstepPredictionSrv.request.y_velocity = p_action.y * p_velocity;
+    l_footstepPredictionSrv.request.theta_velocity = p_action.theta * p_velocity;
+    l_footstepPredictionSrv.request.fl_x = p_currentFeetConfiguration.fl.x;
+    l_footstepPredictionSrv.request.fl_y = p_currentFeetConfiguration.fl.y;
+    l_footstepPredictionSrv.request.fr_x = p_currentFeetConfiguration.fr.x;
+    l_footstepPredictionSrv.request.fr_y = p_currentFeetConfiguration.fr.y;
+    l_footstepPredictionSrv.request.rl_x = p_currentFeetConfiguration.rl.x;
+    l_footstepPredictionSrv.request.rl_y = p_currentFeetConfiguration.rl.y;
+    l_footstepPredictionSrv.request.rr_x = p_currentFeetConfiguration.rr.x;
+    l_footstepPredictionSrv.request.rr_y = p_currentFeetConfiguration.rr.y;
+    if (m_footstepPredictionServiceClient.call(l_footstepPredictionSrv))
+    {
+        p_predictedFeetConfiguration.fl.x = l_footstepPredictionSrv.response.predictions[0];
+        p_predictedFeetConfiguration.fl.y = l_footstepPredictionSrv.response.predictions[1];
+        p_predictedFeetConfiguration.fr.x = l_footstepPredictionSrv.response.predictions[2];
+        p_predictedFeetConfiguration.fr.y = l_footstepPredictionSrv.response.predictions[3];
+        p_predictedFeetConfiguration.rl.x = l_footstepPredictionSrv.response.predictions[4];
+        p_predictedFeetConfiguration.rl.y = l_footstepPredictionSrv.response.predictions[5];
+        p_predictedFeetConfiguration.rr.x = l_footstepPredictionSrv.response.predictions[6];
+        p_predictedFeetConfiguration.rr.y = l_footstepPredictionSrv.response.predictions[7];
+    }
+    else
+    {
+        ROS_ERROR("Model: Footstep prediction failed.");
+    }
 }

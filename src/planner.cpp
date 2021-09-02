@@ -15,6 +15,7 @@
  */
 Planner::Planner(ros::NodeHandle& p_nh):
     m_nh(p_nh),
+    m_search(p_nh),
     m_listener(m_buffer)
 {
     // Robot pose subscriber and cache setup
@@ -208,15 +209,15 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     // Compute initial feet configuration
     FeetConfiguration l_feetConfigurationCoMFrame;
     getFeetConfiguration(l_feetConfigurationCoMFrame);
-
     auto t6 = high_resolution_clock::now();
+
     ROS_INFO_STREAM("Time took to compute feet configuration: " << duration_cast<milliseconds>(t6 - t5).count() << "millis");
 
     ROS_DEBUG_STREAM("Fl Configuration: " << l_feetConfigurationCoMFrame.fl.x << ", " << l_feetConfigurationCoMFrame.fl.y);
     ROS_DEBUG_STREAM("FR Configuration: " << l_feetConfigurationCoMFrame.fr.x << ", " << l_feetConfigurationCoMFrame.fr.y);
     ROS_DEBUG_STREAM("RL Configuration: " << l_feetConfigurationCoMFrame.rl.x << ", " << l_feetConfigurationCoMFrame.rl.y);
     ROS_DEBUG_STREAM("RR Configuration: " << l_feetConfigurationCoMFrame.rr.x << ", " << l_feetConfigurationCoMFrame.rr.y);
-    
+
     // Call A* search algorithm
     std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,
                                                  l_worldGoalPosition,
