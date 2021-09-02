@@ -102,7 +102,7 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
     ROS_INFO("Navigation: Planning request received.");
 
     // Call planner to find path to goal
-    std::vector<World2D> l_path;
+    std::vector<Node> l_path;
     m_planner.plan(p_goalMsg, l_path);
 
     // Publish path
@@ -114,13 +114,15 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
         l_pathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
 
         // Populate path message
-        for (auto &l_worldCoordinate: l_path)
+        for (auto &l_node: l_path)
         {
             geometry_msgs::PoseStamped l_poseStamped;
             l_poseStamped.header = l_pathMsg.header;
-            l_poseStamped.pose.position.x = l_worldCoordinate.x;
-            l_poseStamped.pose.position.y = l_worldCoordinate.y;
+            l_poseStamped.pose.position.x = l_node.worldCoordinates.x;
+            l_poseStamped.pose.position.y = l_node.worldCoordinates.y;
             l_pathMsg.poses.push_back(l_poseStamped);
+
+            ROS_INFO_STREAM("Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
         }
 
         m_pathPublisher.publish(l_pathMsg);

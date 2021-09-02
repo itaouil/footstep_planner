@@ -18,6 +18,7 @@
 #include <model.hpp>
 
 // Structs
+#include <structs/node.hpp>
 #include <structs/vec2D.hpp>
 #include <structs/action.hpp>
 #include <structs/world2D.hpp>
@@ -28,28 +29,13 @@
 namespace AStar
 {
     /**
-     * Basic structure for search nodes
+     * Obtain yaw angle from
+     * respective quaternion rotation.
+     *
+     * @param p_quaternion
+     * @return yaw angle from quaternion
      */
-    struct Node
-    {
-        //! Parent node
-        Node *parent;
-
-        //! (x,y) (discrete) coordinates in the grid
-        Vec2D gridCoordinates;
-
-        //! (x,y) (continuous) coordinates in the world
-        World2D worldCoordinates;
-
-        //! Costs
-        unsigned int G, H;
-
-        //! Constructor
-        explicit Node(Vec2D coord_, World2D world_, Node *parent_ = nullptr);
-
-        //! Routine to get node's total cost
-        unsigned int getScore() const;
-    };
+    double getYawFromQuaternion(const tf2::Quaternion &p_quaternion);
 
     /**
      * Convert from grid coordinates to world coordinates.
@@ -59,7 +45,7 @@ namespace AStar
      * @param p_gridCoordinates
      * @param p_worldCoordinates
      */
-    void gridToWorld(double p_originX, double p_originY, Vec2D p_gridCoordinates, World2D &p_worldCoordinates);
+    void gridToWorld(double p_originX, double p_originY, const Vec2D &p_gridCoordinates, World2D &p_worldCoordinates);
 
     /**
      * Convert from world coordinates to grid coordinates.
@@ -70,7 +56,7 @@ namespace AStar
      * @param p_gridCoordinates
      * @return if conversion is successful
      */
-    bool worldToGrid(double p_originX, double p_originY, World2D p_worldCoordinates, Vec2D &p_gridCoordinates);
+    bool worldToGrid(double p_originX, double p_originY, const World2D &p_worldCoordinates, Vec2D &p_gridCoordinates);
 
     class Search
     {
@@ -97,52 +83,56 @@ namespace AStar
          * Find path from source to target
          * in a given height map.
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceWorldCoordinates
+         * @param p_targetWorldCoordinates
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<World2D> findPath(World2D source_, World2D target_);
+        std::vector<Node> findPath(const World2D &p_sourceWorldCoordinates, const World2D &p_targetWorldCoordinates);
     private:
         /**
-         * Set grid size.
+         * Set grid map size.
          *
-         * @param worldSize_
+         * @param p_dimensionX
+         * @param p_dimensionY
          */
-        void setWorldSize(Vec2D worldSize_);
+        void setGridSize(unsigned int p_dimensionX, unsigned int p_dimensionY);
 
         /**
          * Sets whether the search uses a 4
          * or 8 neighbor expansion of the nodes.
          *
-         * @param enable_
+         * @param p_enable
          */
-        void setDiagonalMovement(bool enable_);
+        void setDiagonalMovement(bool p_enable);
 
         /**
          * Check if expanded coordinate is valid
          * with respect to the grid bounds as well
          * as if the height is acceptable.
          *
-         * @param coordinates_
+         * @param p_gridCoordinates
          * @return if grid cell without bounds
          */
-        bool detectCollision(Vec2D coordinates_) const;
+        bool detectCollision(const Vec2D &p_gridCoordinates) const;
 
         /**
          * Release the node pointers within collection.
          *
-         * @param nodes_
+         * @param p_nodes
          */
-        void releaseNodes(std::vector<Node*>& nodes_);
+        void releaseNodes(std::vector<Node*>& p_nodes);
 
         /**
          * Find if given node is in a vector (open/closed set).
          *
-         * @param nodes_
-         * @param coordinates_
+         * @param p_nodes
+         * @param p_gridCoordinates
+         * @param p_quaternion
          * @return the requested node or a nullptr
          */
-        Node* findNodeOnList(std::vector<Node*>& nodes_, Vec2D coordinates_);
+        Node* findNodeOnList(const std::vector<Node*>& p_nodes,
+                             const Vec2D &p_gridCoordinates,
+                             const tf2::Quaternion &p_quaternion);
 
         /**
          * Sets heuristic to be used for the H cost.
@@ -155,23 +145,23 @@ namespace AStar
         Model m_model;
 
         //! Grid map size
-        Vec2D worldSize;
+        Vec2D m_gridSize;
 
         //! Grid map origin
         double m_gridOriginX;
         double m_gridOriginY;
 
         //! Allowed actions in the search
-        std::vector<Action> actions;
+        std::vector<Action> m_actions;
 
         //! Number of available actions
-        unsigned int numberOfActions;
+        unsigned int m_numberOfActions;
 
         //! Velocities
-        std::vector<double> velocities;
+        std::vector<double> m_velocities;
 
         //! Heuristic function to be used
-        std::function<unsigned int(Node, Node)> heuristic;
+        std::function<unsigned int(Node, Node)> m_heuristic;
     };
 
     class Heuristic
@@ -181,50 +171,50 @@ namespace AStar
          * A* Heuristic routine that returns the
          * difference between two coordinate points.
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceGridCoordinates
+         * @param p_targetGridCoordinates
          * @return points' coordinate difference
          */
-        static Vec2D getDistanceDelta(Vec2D source_, Vec2D target_);
+        static Vec2D getDistanceDelta(const Vec2D &p_sourceGridCoordinates, const Vec2D &p_targetGridCoordinates);
 
         /**
          * A* Heuristic class routine that computes
          * theta difference between source and target
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceWorldCoordinates
+         * @param p_targetWorldCoordinates
          * @return theta distance
          */
-        static unsigned int getHeadingDelta(World2D source_, World2D target_);
+        static double getHeadingDelta(const World2D &p_sourceWorldCoordinates, const World2D &p_targetWorldCoordinates);
 
         /**
          * A* Heuristic class routine that computes
          * the manhattan distance between two points.
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceNode
+         * @param p_targetNode
          * @return manhattan distance
          */
-        static unsigned int manhattan(Node source_, Node target_);
+        static unsigned int manhattan(const Node &p_sourceNode, const Node &p_targetNode);
 
         /**
          * A* Heuristic class routine that computes
          * the euclidean distance between two points.
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceNode
+         * @param p_targetNode
          * @return euclidean distance
          */
-        static unsigned int euclidean(Node source_, Node target_);
+        static unsigned int euclidean(const Node &p_sourceNode, const Node &p_targetNode);
 
         /**
          * A* Heuristic class routine that computes
          * the octagonal distance between two points.
          *
-         * @param source_
-         * @param target_
+         * @param p_sourceNode
+         * @param p_targetNode
          * @return octagonal distance
          */
-        static unsigned int octagonal(Node source_, Node target_);
+        static unsigned int octagonal(const Node &p_sourceNode, const Node &p_targetNode);
     };
 }

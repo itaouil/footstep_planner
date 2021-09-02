@@ -8,19 +8,17 @@
 
 #pragma once
 
-#include <structs/quaternion.hpp>
-
 /**
-  * World (continuous coordinates) structure
+  * World (continuous) coordinates
   */
 struct World2D
 {
     //! X position in the world
-    double x;
+    double x{};
 
     //! Y position in the world
-    double y;
+    double y{};
 
     //! Robot rotation w.r.t to map frame
-    Quaternion q;
+    tf2::Quaternion q;
 };

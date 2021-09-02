@@ -25,6 +25,7 @@
 #include <structs/world2D.hpp>
 #include <structs/velocityCmd.hpp>
 #include <structs/displacement.hpp>
+#include <structs/feetConfiguration.hpp>
 
 // Config
 #include <config.hpp>
@@ -43,6 +44,18 @@ public:
     virtual ~Model();
 
     /**
+     * Footsteps prediction using
+     * learnt models.
+     *
+     * @param p_velocity
+     * @param p_action
+     * @param p_currentFeetConfiguration
+     */
+    void predictFeetConfiguration(double p_velocity,
+                                  const Action &p_action,
+                                  const FeetConfiguration &p_currentFeetConfiguration);
+
+    /**
      * Compute next CoM (Centre of Mass) given
      * the action and velocity applied.
      *
@@ -51,7 +64,7 @@ public:
      * @param p_currentCoM
      * @param p_propagateCoM
      */
-    void propagateCoM(double p_velocity, const Action &p_action, World2D p_currentCoM, World2D &p_propagatedCoM);
+    void propagateCoM(double p_velocity, const Action &p_action, const World2D &p_currentCoM, World2D &p_propagatedCoM);
 private:
     //! Dictionary containing displacements for each velocity
     std::map<VelocityCmd, Displacement> m_displacementMap;

@@ -9,28 +9,18 @@
 #include "search/AStar.hpp"
 
 /**
- * A* Node struct constructor.
+ * Obtain yaw angle (in degrees) from
+ * respective quaternion rotation.
  *
- * @param coord_
- * @param parent_
+ * @param p_quaternion
+ * @return yaw angle from quaternion
  */
-AStar::Node::Node(Vec2D coord_, World2D world_, AStar::Node *parent_)
+double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion)
 {
-    parent = parent_;
-    gridCoordinates = coord_;
-    worldCoordinates = world_;
-    G = H = 0;
-}
-
-/**
- * A* Node struct routine that returns
- * the total cost of the node.
- *
- * @return total node cost H(s) + G(s)
- */
-unsigned int AStar::Node::getScore() const
-{
-    return G + H;
+    double l_roll, l_pitch, l_yaw;
+    tf2::Matrix3x3 l_rotationMatrix(p_quaternion);
+    l_rotationMatrix.getRPY(l_roll, l_pitch, l_yaw);
+    return ((l_yaw * 180) / M_PI);
 }
 
 /**
@@ -43,7 +33,7 @@ unsigned int AStar::Node::getScore() const
  */
 void AStar::gridToWorld(double p_originX,
                         double p_originY,
-                        Vec2D p_mapCoordinates,
+                        const Vec2D &p_mapCoordinates,
                         World2D &p_worldCoordinates)
 {
     p_worldCoordinates.x = p_originX + p_mapCoordinates.x * HEIGHT_MAP_RESOLUTION;
@@ -59,67 +49,26 @@ void AStar::gridToWorld(double p_originX,
  * @param p_gridCoordinates
  * @return if conversion is successful
  */
-//bool AStar::worldToGrid(const double p_originX,
-//                        const double p_originY,
-//                        World2D p_worldCoordinates,
-//                        Vec2D &p_gridCoordinates)
-//{
-//    // Make sure that map origin is not
-//    // bigger than the world coordinates
-//    // to avoid negative grid indices
-//    if (round(p_worldCoordinates.x) < round(p_originX) || round(p_worldCoordinates.y) < round(p_originY))
-//    {
-//        ROS_INFO_STREAM("P_WX: " << p_worldCoordinates.x);
-//        ROS_INFO_STREAM("P_WY: " << p_worldCoordinates.y);
-//        ROS_INFO_STREAM("OriginX: " << p_originX);
-//        ROS_INFO_STREAM("OriginY: " << p_originY);
-//        ROS_INFO_STREAM("AStar: Could not convert world pose to grid indices.");
-//        return false;
-//    }
-//
-//    // Convert from world coordinates to grid indices
-//    p_gridCoordinates.x = (int)((p_worldCoordinates.x - p_originX) / HEIGHT_MAP_RESOLUTION);
-//    p_gridCoordinates.y = (int)((p_worldCoordinates.y - p_originY) / HEIGHT_MAP_RESOLUTION);
-//
-//    // Check that indices are not bigger
-//    // than the actual grid max size in x and y
-//    if (p_gridCoordinates.x < HEIGHT_MAP_MAX_SIZE_X && p_gridCoordinates.y < HEIGHT_MAP_MAX_SIZE_Y)
-//        return true;
-//    else
-//    {
-//        ROS_INFO_STREAM("P_MX: " << p_gridCoordinates.x);
-//        ROS_INFO_STREAM("P_MY: " << p_gridCoordinates.y);
-//        ROS_INFO_STREAM("OriginX: " << p_originX);
-//        ROS_INFO_STREAM("OriginY: " << p_originY);
-//        ROS_INFO_STREAM("MAX X: " << HEIGHT_MAP_MAX_SIZE_X);
-//        ROS_INFO_STREAM("MAX Y: " << HEIGHT_MAP_MAX_SIZE_Y);
-//        ROS_ERROR("AStar: Mapped grid indices are bigger than grid max size.");
-//        return false;
-//    }
-//}
-
 bool AStar::worldToGrid(const double p_originX,
                         const double p_originY,
-                        World2D p_worldCoordinates,
+                        const World2D &p_worldCoordinates,
                         Vec2D &p_gridCoordinates)
 {
-    // Compute top left corner world
-    // coordinates of the height map
-    double l_topLeftCornerX = p_originX + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2));
-    double l_topLeftCornerY = p_originY + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_Y) / 2));
-    ROS_INFO_STREAM("Offset: " << HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2)));
-    ROS_INFO_STREAM("Top left corner: " << l_topLeftCornerX << ", " << l_topLeftCornerY);
+    // Compute top left corner world coordinates of the height map
+    double l_topLeftCornerWorldX = p_originX + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2));
+    double l_topLeftCornerWorldY = p_originY + HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_Y) / 2));
+//    ROS_INFO_STREAM("Offset: " << HEIGHT_MAP_RESOLUTION * ((static_cast<double>(HEIGHT_MAP_GRID_SIZE_X) / 2)));
+//    ROS_INFO_STREAM("Top left corner: " << l_topLeftCornerX << ", " << l_topLeftCornerY);
 
-    // Compute offset between top left corner
-    // and the given world coordinates
-    double l_distanceX = std::abs(l_topLeftCornerX - p_worldCoordinates.x);
-    double l_distanceY = std::abs(l_topLeftCornerY - p_worldCoordinates.y);
-    ROS_INFO_STREAM("Distances: " << l_distanceX << ", " << l_distanceY);
+    // Compute offset between top left corner and target position
+    double l_distanceX = std::abs(l_topLeftCornerWorldX - p_worldCoordinates.x);
+    double l_distanceY = std::abs(l_topLeftCornerWorldY - p_worldCoordinates.y);
+//    ROS_INFO_STREAM("Distances: " << l_distanceX << ", " << l_distanceY);
 
     // Compute relative grid position
     p_gridCoordinates.x = (int)(l_distanceX / HEIGHT_MAP_RESOLUTION);
     p_gridCoordinates.y = (int)(l_distanceY / HEIGHT_MAP_RESOLUTION);
-    ROS_INFO_STREAM("Coordinates: " << p_gridCoordinates.x << ", " << p_gridCoordinates.y);
+//    ROS_INFO_STREAM("Coordinates: " << p_gridCoordinates.x << ", " << p_gridCoordinates.y);
 
     return true;
 }
@@ -136,21 +85,21 @@ AStar::Search::Search()
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
     // Set 2D height map size
-    setWorldSize({HEIGHT_MAP_GRID_SIZE_X, HEIGHT_MAP_GRID_SIZE_Y});
+    setGridSize(HEIGHT_MAP_GRID_SIZE_X, HEIGHT_MAP_GRID_SIZE_Y);
 
     // Available actions
-    actions = {
+    m_actions = {
             { 1, 0, 0 }, // Forward
             { 0, -1, 0 }, // Right
             { 0, 1, 0 }, // Left
             { 0, 0, -1 }, // Clockwise
-            { 0, 0, 1 }, // Counter clockwise
-            { 1, 0, -1 }, // Forward + Counter clockwise
-            { 1, 0, 1 } // Forward + Counter clockwise
+            { 0, 0, 1 }, // Counterclockwise
+            { 1, 0, -1 }, // Forward + Counterclockwise
+            { 1, 0, 1 } // Forward + Counterclockwise
     };
 
     // Available velocities
-    velocities = {0.1, 0.15, 0.2, 0.25, 0.3};
+    m_velocities = {0.25, 0.3};
 }
 
 /**
@@ -159,13 +108,15 @@ AStar::Search::Search()
 AStar::Search::~Search() = default;
 
 /**
- * Set grid size.
+ * Set grid map size.
  *
- * @param worldSize_
+ * @param p_dimensionX
+ * @param p_dimensionY
  */
-void AStar::Search::setWorldSize(Vec2D worldSize_)
+void AStar::Search::setGridSize(const unsigned int p_dimensionX, const unsigned int p_dimensionY)
 {
-    worldSize = worldSize_;
+    m_gridSize.x = p_dimensionX;
+    m_gridSize.y = p_dimensionY;
 }
 
 /**
@@ -174,7 +125,7 @@ void AStar::Search::setWorldSize(Vec2D worldSize_)
  * @param p_originX
  * @param origin_y
  */
-void AStar::Search::setGridOrigin(double p_originX, double p_originY)
+void AStar::Search::setGridOrigin(const double p_originX, const double p_originY)
 {
     m_gridOriginX = p_originX;
     m_gridOriginY = p_originY;
@@ -184,11 +135,11 @@ void AStar::Search::setGridOrigin(double p_originX, double p_originY)
  * Sets whether the search uses a 5
  * or 7 neighbor expansion for the nodes
  *
- * @param enable_
+ * @param p_enable
  */
-void AStar::Search::setDiagonalMovement(bool enable_)
+void AStar::Search::setDiagonalMovement(bool p_enable)
 {
-    numberOfActions = (enable_ ? 7 : 5);
+    m_numberOfActions = (p_enable ? 7 : 5);
 }
 
 /**
@@ -196,17 +147,17 @@ void AStar::Search::setDiagonalMovement(bool enable_)
  * with respect to the grid bounds as well
  * as if the height is acceptable.
  *
- * @param coordinates_
+ * @param p_gridCoordinates
  * @return if grid cell without bounds
  */
-bool AStar::Search::detectCollision(Vec2D coordinates_) const
+bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const
 {
     //TODO: add height check
-    if (coordinates_.x < 0 || coordinates_.x >= worldSize.x ||
-        coordinates_.y < 0 || coordinates_.y >= worldSize.y) {
+    if (p_gridCoordinates.x < 0 || p_gridCoordinates.x >= m_gridSize.x ||
+        p_gridCoordinates.y < 0 || p_gridCoordinates.y >= m_gridSize.y) {
         ROS_INFO("Detect Collision: Collision detected");
-        ROS_INFO_STREAM(coordinates_.x << ", " << worldSize.x);
-        ROS_INFO_STREAM(coordinates_.y << ", " << worldSize.y);
+        ROS_INFO_STREAM(p_gridCoordinates.x << ", " << m_gridSize.x);
+        ROS_INFO_STREAM(p_gridCoordinates.y << ", " << m_gridSize.y);
         return true;
     }
     return false;
@@ -215,27 +166,37 @@ bool AStar::Search::detectCollision(Vec2D coordinates_) const
 /**
  * Release the node pointers within collection.
  *
- * @param nodes_
+ * @param p_nodes
  */
-void AStar::Search::releaseNodes(std::vector<Node*> &nodes_)
+void AStar::Search::releaseNodes(std::vector<Node*> &p_nodes)
 {
-    for (auto it = nodes_.begin(); it != nodes_.end();) {
+    for (auto it = p_nodes.begin(); it != p_nodes.end();) {
         delete *it;
-        it = nodes_.erase(it);
+        it = p_nodes.erase(it);
     }
 }
 
 /**
  * Find if given node is in a vector (open/closed set).
  *
- * @param nodes_
- * @param coordinates_
+ * @param p_nodes
+ * @param p_gridCoordinates
  * @return the requested node or a nullptr
  */
-AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, Vec2D coordinates_)
+Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
+                                    const Vec2D &p_gridCoordinates,
+                                    const tf2::Quaternion &p_quaternion)
 {
-    for (auto node : nodes_) {
-        if (node->gridCoordinates == coordinates_) {
+    for (auto &node : p_nodes) {
+        // Compute heading angle between the nodes
+        double l_yaw1 = getYawFromQuaternion(p_quaternion);
+        double l_yaw2 = getYawFromQuaternion(node->worldCoordinates.q);
+        double l_yawDifference = std::abs(l_yaw2 - l_yaw1);
+
+        // Check if the two nodes have the same state
+        // (i.e. same grid coordinates and the same yaw)
+        if (node->gridCoordinates == p_gridCoordinates && l_yawDifference < 0.1) {
+            ROS_INFO_STREAM("Same node: " << l_yawDifference << "\n");
             return node;
         }
     }
@@ -249,7 +210,8 @@ AStar::Node *AStar::Search::findNodeOnList(std::vector<Node*> &nodes_, Vec2D coo
   */
 void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& heuristic_)
 {
-    heuristic = [heuristic_](auto && PH1, auto && PH2) { return heuristic_(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); };
+    m_heuristic = [heuristic_](auto && PH1, auto && PH2) {return heuristic_(std::forward<decltype(PH1)>(PH1),
+                                                          std::forward<decltype(PH2)>(PH2));};
 }
 
 /**
@@ -260,7 +222,8 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& 
  * @param p_targetWorldCoordinates
  * @return sequence of 2D points (world coordinates)
  */
-std::vector<World2D> AStar::Search::findPath(World2D p_sourceWorldCoordinates, World2D p_targetWorldCoordinates)
+std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinates,
+                                          const World2D &p_targetWorldCoordinates)
 {
     // Convert source and target world
     // coordinates to grid coordinates
@@ -269,48 +232,58 @@ std::vector<World2D> AStar::Search::findPath(World2D p_sourceWorldCoordinates, W
     worldToGrid(m_gridOriginX, m_gridOriginY, p_sourceWorldCoordinates, l_sourceGridCoordinates);
     worldToGrid(m_gridOriginX, m_gridOriginY, p_targetWorldCoordinates, l_targetGridCoordinates);
 
-    ROS_INFO_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", " << l_sourceGridCoordinates.y);
-    ROS_INFO_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", " << l_targetGridCoordinates.y);
+    ROS_DEBUG_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", " << l_sourceGridCoordinates.y);
+    ROS_DEBUG_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", " << l_targetGridCoordinates.y);
 
-    Node *current = nullptr;
-    std::vector<Node*> openSet, closedSet;
-    openSet.reserve(100);
-    closedSet.reserve(100);
-    openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates));
+    // Create open and closed sets
+    // for the search process
+    std::vector<Node*> l_openSet, l_closedSet;
+    l_openSet.reserve(100);
+    l_closedSet.reserve(100);
 
-    while (!openSet.empty()) {
-        auto current_it = openSet.begin();
-        current = *current_it;
+    // Currently expanded node
+    Node *l_currentNode = nullptr;
 
-        for (auto it = openSet.begin(); it != openSet.end(); it++) {
-            auto node = *it;
-            if (node->getScore() <= current->getScore()) {
-                current = node;
-                current_it = it;
+    // Push to initial open set the source node
+    l_openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates));
+
+    // Search process
+    while (!l_openSet.empty())
+    {
+        auto l_iterator = l_openSet.begin();
+        l_currentNode = *l_iterator;
+
+        for (auto it = l_openSet.begin(); it != l_openSet.end(); it++)
+        {
+            auto l_iteratorNode = *it;
+            if (l_iteratorNode->getScore() <= l_currentNode->getScore())
+            {
+                l_currentNode = l_iteratorNode;
+                l_iterator = it;
             }
         }
 
-        if (current->gridCoordinates == l_targetGridCoordinates) {
-            ROS_INFO("AStar: Target goal found");
+        if (l_currentNode->gridCoordinates == l_targetGridCoordinates)
+        {
+            ROS_INFO("Search: Target goal found");
             break;
         }
 
-        closedSet.push_back(current);
-        openSet.erase(current_it);
+        l_closedSet.push_back(l_currentNode);
+        l_openSet.erase(l_iterator);
 
-        for (double & velocity : velocities)
+        for (double & velocity : m_velocities)
         {
-             for (unsigned int i = 0; i < numberOfActions; ++i)
+             for (unsigned int i = 0; i < m_numberOfActions; ++i)
              {
-//                 ROS_INFO_STREAM("Velocity fed: " << velocity);
-//                 ROS_INFO_STREAM("Action: " << actions[i].x << ", " << actions[i].y << ", " << actions[i].theta);
+
 
                 // Compute new CoM coordinate for
                 // given action and velocity
                 World2D l_propagatedWorldCoordinatesCoM{};
                 m_model.propagateCoM(velocity,
-                                     actions[i],
-                                     current->worldCoordinates,
+                                     m_actions[i],
+                                     l_currentNode->worldCoordinates,
                                      l_propagatedWorldCoordinatesCoM);
 
                 // Convert propagated CoM to grid indexes
@@ -320,39 +293,54 @@ std::vector<World2D> AStar::Search::findPath(World2D p_sourceWorldCoordinates, W
                                    l_propagatedWorldCoordinatesCoM,
                                    l_propagatedGridCoordinatesCoM);
 
-//                ROS_INFO_STREAM("New Coordinates: " << l_propagatedGridCoordinatesCoM.x << ", " << l_propagatedGridCoordinatesCoM.y);
 
                 if (detectCollision(l_propagatedGridCoordinatesCoM) ||
-                    findNodeOnList(closedSet, l_propagatedGridCoordinatesCoM)) {
+                    findNodeOnList(l_closedSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q)) {
                     continue;
                 }
 
-                unsigned int totalCost = current->G + ((i < 4) ? 10 : 14);
+                ROS_DEBUG_STREAM("Current velocity: " << velocity);
+                ROS_DEBUG_STREAM("Current action: " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
+                ROS_DEBUG_STREAM("New CoM (x,y,theta): " << l_propagatedGridCoordinatesCoM.x << ", " << l_propagatedGridCoordinatesCoM.y << ", " << getYawFromQuaternion(l_propagatedWorldCoordinatesCoM.q));
 
-                Node *successor = findNodeOnList(openSet, l_propagatedGridCoordinatesCoM);
-                if (successor == nullptr) {
-                    successor = new Node(l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM, current);
+                unsigned int totalCost = l_currentNode->G + ((i < 4) ? 10 : 14);
+
+                Node *successor = findNodeOnList(l_openSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q);
+                if (successor == nullptr)
+                {
+                    successor = new Node(l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM, l_currentNode);
                     successor->G = totalCost;
-                    successor->H = heuristic(*successor, Node{l_targetGridCoordinates, p_targetWorldCoordinates});
-                    openSet.push_back(successor);
+                    successor->H = m_heuristic(*successor, Node{l_targetGridCoordinates, p_targetWorldCoordinates});
+                    successor->action = m_actions[i];
+                    l_openSet.push_back(successor);
                 }
-                else if (totalCost < successor->G) {
-                    successor->parent = current;
+                else if (totalCost < successor->G)
+                {
                     successor->G = totalCost;
+                    successor->action = m_actions[i];
+                    successor->parent = l_currentNode;
                     successor->worldCoordinates = l_propagatedWorldCoordinatesCoM;
                 }
+
+                ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");
             }
         }
     }
 
-    std::vector<World2D> path;
-    while (current != nullptr) {
-        path.push_back(current->worldCoordinates);
-        current = current->parent;
+    // Populate path
+    std::vector<Node> path;
+    while (l_currentNode != nullptr)
+    {
+        path.push_back(*l_currentNode);
+        l_currentNode = l_currentNode->parent;
     }
 
-    releaseNodes(openSet);
-    releaseNodes(closedSet);
+    // Reverse path (from source to target)
+    std::reverse(path.begin(), path.end());
+
+    // Release resources
+    releaseNodes(l_openSet);
+    releaseNodes(l_closedSet);
 
     return path;
 }
@@ -361,78 +349,84 @@ std::vector<World2D> AStar::Search::findPath(World2D p_sourceWorldCoordinates, W
  * A* Heuristic class' routine that returns the
  * coordinate difference between two points.
  *
- * @param source_
- * @param target_
+ * @param p_sourceGridCoordinates
+ * @param p_targetGridCoordinates
  * @return points' coordinate difference
  */
-Vec2D AStar::Heuristic::getDistanceDelta(Vec2D source_, Vec2D target_)
+Vec2D AStar::Heuristic::getDistanceDelta(const Vec2D &p_sourceGridCoordinates,
+                                         const Vec2D &p_targetGridCoordinates)
 {
-    return{ abs(source_.x - target_.x),  abs(source_.y - target_.y) };
+    return{abs(p_sourceGridCoordinates.x - p_targetGridCoordinates.x), abs(p_sourceGridCoordinates.y - p_targetGridCoordinates.y) };
 }
 
 /**
  * A* Heuristic class routine that computes
  * theta difference between source and target
  *
- * @param source_
- * @param target_
- * @return theta distance
+ * @param p_sourceWorldCoordinates
+ * @param p_targetWorldCoordinates
+ * @return relative yaw rotation between robot and goal
  */
-unsigned int AStar::Heuristic::getHeadingDelta(World2D source_, World2D target_)
+double AStar::Heuristic::getHeadingDelta(const World2D &p_sourceWorldCoordinates,
+                                         const World2D &p_targetWorldCoordinates)
 {
-    // Compute magnitude of source and target vectors
-    double l_magnitudeSource = std::sqrt(std::pow(source_.x, 2) + std::pow(source_.y, 2));
-    double l_magnitudeTarget = std::sqrt(std::pow(target_.x, 2) + std::pow(target_.y, 2));
+    // Compute map to target quaternion
+    tf2::Quaternion l_mapToTargetQuaternion;
+    l_mapToTargetQuaternion.setRPY(0, 0, std::atan2(p_targetWorldCoordinates.y, p_targetWorldCoordinates.x));
 
-    // Compute dot product between source and target
-    double l_dotProduct = source_.x * target_.x + source_.y * target_.y;
+    // Compute relative rotation between
+    // target quaternion and CoM quaternion
+    tf2::Quaternion l_CoMToTargetQuaternion;
+    l_CoMToTargetQuaternion = l_mapToTargetQuaternion * p_sourceWorldCoordinates.q.inverse();
+    l_CoMToTargetQuaternion.normalize();
 
-    // Compute angle between two vectors
-    double l_theta = std::acos(l_dotProduct / (l_magnitudeSource * l_magnitudeTarget));
-    ROS_INFO_STREAM("HEADING DIFFERENCE: " << l_theta);
-
-    return static_cast<unsigned int>(l_theta);
+    // Return yaw angle in degrees
+    return getYawFromQuaternion(l_CoMToTargetQuaternion);
 }
 
 /**
  * A* Heuristic class routine that computes
  * the manhattan distance between two points.
  *
- * @param source_
- * @param target_
+ * @param p_sourceNode
+ * @param p_targetNode
  * @return manhattan distance
  */
-unsigned int AStar::Heuristic::manhattan(Node source_, Node target_)
+unsigned int AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p_targetNode)
 {
-    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
-    return static_cast<unsigned int>(10 * (delta.x + delta.y));
+    auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
+    return static_cast<unsigned int>(10 * (l_distanceDelta.x + l_distanceDelta.y));
 }
 
 /**
  * A* Heuristic class routine that computes
  * the euclidean distance between two points.
  *
- * @param source_
- * @param target_
+ * @param p_sourceNode
+ * @param p_targetNode
  * @return euclidean distance
  */
-unsigned int AStar::Heuristic::euclidean(Node source_, Node target_)
+unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_targetNode)
 {
-    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
-    auto angle = getHeadingDelta(source_.worldCoordinates, target_.worldCoordinates);
-    return static_cast<unsigned int>(10 * sqrt(pow(delta.x, 2) + pow(delta.y, 2))) + angle * 100;
+    auto l_angleDelta = getHeadingDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
+    auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
+    auto distance = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
+    ROS_INFO_STREAM("HEADING DELTA: " << l_angleDelta);
+    ROS_INFO_STREAM("DISTANCE DELTA: " << distance);
+
+    return static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2))) + std::abs(l_angleDelta) * 10;
 }
 
 /**
  * A* Heuristic class routine that computes
  * the octagonal distance between two points.
  *
- * @param source_
- * @param target_
+ * @param p_sourceNode
+ * @param p_targetNode
  * @return octagonal distance
  */
-unsigned int AStar::Heuristic::octagonal(Node source_, Node target_)
+unsigned int AStar::Heuristic::octagonal(const Node &p_sourceNode, const Node &p_targetNode)
 {
-    auto delta = getDistanceDelta(source_.gridCoordinates, target_.gridCoordinates);
+    auto delta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }

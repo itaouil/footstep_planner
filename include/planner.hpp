@@ -27,6 +27,7 @@
 #include <search/AStar.hpp>
 
 // Structs
+#include <structs/node.hpp>
 #include <structs/vec2D.hpp>
 #include <structs/world2D.hpp>
 #include <structs/quaternion.hpp>
@@ -53,7 +54,7 @@ public:
      * @param std
      * @param p_path
      */
-    void plan(const geometry_msgs::PoseStamped &p_goalPosition, std::vector<World2D> &p_path);
+    void plan(const geometry_msgs::PoseStamped &p_goalPosition, std::vector<Node> &p_path);
 private:
     /**
      * Requests height elevation map from

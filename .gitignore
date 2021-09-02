@@ -5,6 +5,9 @@
 # Datasets
 data
 
+# Models
+models
+
 ### C++ ###
 # Prerequisites
 *.d
