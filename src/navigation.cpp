@@ -15,8 +15,8 @@
 Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros::TransformListener &p_tf2):
         m_nh(p_nh),
         m_tf2(p_tf2),
-        m_planner(p_nh),
-        m_buffer(p_buffer)
+        m_buffer(p_buffer),
+        m_planner(p_nh)
 {
     initialize();
 }

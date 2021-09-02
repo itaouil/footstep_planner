@@ -220,10 +220,12 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& 
  *
  * @param p_sourceWorldCoordinates
  * @param p_targetWorldCoordinates
+ * @param p_sourceFeetConfiguration
  * @return sequence of 2D points (world coordinates)
  */
 std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinates,
-                                          const World2D &p_targetWorldCoordinates)
+                                          const World2D &p_targetWorldCoordinates,
+                                          const FeetConfiguration &p_sourceFeetConfiguration)
 {
     // Convert source and target world
     // coordinates to grid coordinates
@@ -253,6 +255,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
         auto l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
 
+        // Find which node in the open
+        // set to expand based on cost
         for (auto it = l_openSet.begin(); it != l_openSet.end(); it++)
         {
             auto l_iteratorNode = *it;
@@ -263,6 +267,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
             }
         }
 
+        // Target is the expanded node break condition
         if (l_currentNode->gridCoordinates == l_targetGridCoordinates)
         {
             ROS_INFO("Search: Target goal found");
@@ -276,10 +281,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
         {
              for (unsigned int i = 0; i < m_numberOfActions; ++i)
              {
-
-
-                // Compute new CoM coordinate for
-                // given action and velocity
+                // Propagate CoM using current action and velocity
                 World2D l_propagatedWorldCoordinatesCoM{};
                 m_model.propagateCoM(velocity,
                                      m_actions[i],
@@ -293,7 +295,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                    l_propagatedWorldCoordinatesCoM,
                                    l_propagatedGridCoordinatesCoM);
 
-
+                // Check if obtained CoM was already visited
+                // or is outside the grid map boundaries
                 if (detectCollision(l_propagatedGridCoordinatesCoM) ||
                     findNodeOnList(l_closedSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q)) {
                     continue;

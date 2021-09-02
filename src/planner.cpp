@@ -15,19 +15,92 @@
  */
 Planner::Planner(ros::NodeHandle& p_nh):
     m_nh(p_nh),
-    m_listener(m_buffer),
-    m_robotPoseCacheSize(ROBOT_POSE_CACHE_SIZE)
+    m_listener(m_buffer)
 {
     // Robot pose subscriber and cache setup
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
-    m_robotPoseCache.setCacheSize(m_robotPoseCacheSize);
+    m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
     // Height map service client
     m_heightMapServiceClient = m_nh.serviceClient<grid_map_msgs::GetGridMap>(HEIGHT_MAP_SERVICE_TOPIC);
 }
 
 Planner::~Planner() = default;
+
+/**
+ * Compute the feet placement (x,y)
+ * w.r.t to the CoM frame.
+ *
+ * @param p_sourceFrame
+ * @param p_feetConfiguration
+ */
+void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
+{
+    // Common foot pose message
+    geometry_msgs::PoseStamped l_footPoseFootFrame;
+    l_footPoseFootFrame.header.stamp = ros::Time::now();
+    l_footPoseFootFrame.pose.position.x = 0;
+    l_footPoseFootFrame.pose.position.y = 0;
+    l_footPoseFootFrame.pose.position.z = 0;
+    l_footPoseFootFrame.pose.orientation.x = 0;
+    l_footPoseFootFrame.pose.orientation.y = 0;
+    l_footPoseFootFrame.pose.orientation.z = 0;
+    l_footPoseFootFrame.pose.orientation.w = 1;
+
+    // FL configuration
+    geometry_msgs::PoseStamped l_flFootPoseCoMFrame;
+    l_footPoseFootFrame.header.frame_id = "FL_foot";
+    getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_flFootPoseCoMFrame);
+
+    // FR configuration
+    geometry_msgs::PoseStamped l_frFootPoseCoMFrame;
+    l_footPoseFootFrame.header.frame_id = "FR_foot";
+    getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_frFootPoseCoMFrame);
+
+    // RL configuration
+    geometry_msgs::PoseStamped l_rlFootPoseCoMFrame;
+    l_footPoseFootFrame.header.frame_id = "RL_foot";
+    getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_rlFootPoseCoMFrame);
+
+    // RR configuration
+    geometry_msgs::PoseStamped l_rrFootPoseCoMFrame;
+    l_footPoseFootFrame.header.frame_id = "RR_foot";
+    getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_rrFootPoseCoMFrame);
+
+    // Populate feet configuration structure
+    p_feetConfiguration.fl.x = l_flFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.fl.y = l_flFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.fr.x = l_frFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.fr.y = l_frFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.rl.x = l_rlFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.rl.y = l_rlFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.rr.x = l_rrFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.rr.y = l_rrFootPoseCoMFrame.pose.position.y;
+}
+
+/**
+ * Compute transform from source to
+ * target frame.
+ *
+ * @param p_targetFrame
+ * @param p_initialPose
+ * @param p_targetPose
+ */
+void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
+                                             const geometry_msgs::PoseStamped &p_initialPose,
+                                             geometry_msgs::PoseStamped &p_targetPose)
+{
+    try
+    {
+        m_buffer.transform(p_initialPose, p_targetPose, p_targetFrame, ros::Duration(1.0));
+    }
+    catch (tf2::TransformException &ex)
+    {
+        ROS_WARN("Planner: Could not transform source pose to target one. Skipping this iteration.");
+        return;
+    }
+}
 
 /**
  * Requests height elevation map from
@@ -69,27 +142,28 @@ bool Planner::getHeightMap(grid_map_msgs::GridMap &p_heightMap, const geometry_m
 void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                    std::vector<Node> &p_path)
 {
-    // Get latest robot pose from the cache
+    auto t0 = high_resolution_clock::now();
+
+    // Get the latest robot pose from the cache
     const ros::Time l_latestPoseTime = ros::Time::now();
     boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> l_latestRobotPose =
             m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
 
+    auto t1 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took to fetch pose from cache: " << duration_cast<microseconds>(t1 - t0).count() << "micros");
+
     // Transform robot pose to map frame
     geometry_msgs::PoseStamped l_robotPoseMapFrame;
-    try
-    {
-        geometry_msgs::PoseStamped l_robotPoseRobotFrame;
-        l_robotPoseRobotFrame.header = l_latestRobotPose->header;
-        l_robotPoseRobotFrame.pose.position = l_latestRobotPose->pose.pose.position;
-        l_robotPoseRobotFrame.pose.orientation = l_latestRobotPose->pose.pose.orientation;
-        m_buffer.transform(l_robotPoseRobotFrame, l_robotPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
-    }
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("Planner: Could not transform robot pose to map frame. Skipping this iteration.");
-        return;
-    }
+    geometry_msgs::PoseStamped l_robotPoseRobotFrame;
+    l_robotPoseRobotFrame.header = l_latestRobotPose->header;
+    l_robotPoseRobotFrame.pose.position = l_latestRobotPose->pose.pose.position;
+    l_robotPoseRobotFrame.pose.orientation = l_latestRobotPose->pose.pose.orientation;
+    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_robotPoseRobotFrame, l_robotPoseMapFrame);
 
-    ROS_INFO_STREAM("Transform: " << l_robotPoseMapFrame);
+    auto t2 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took to transform robot pose: " << duration_cast<microseconds>(t2 - t1).count() << "micros");
+
+    ROS_DEBUG_STREAM("Robot pose in map frame: " << l_robotPoseMapFrame);
 
     // Request height map
     grid_map_msgs::GridMap l_heightMap;
@@ -108,23 +182,51 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
         ROS_INFO("Planner: Height map request succeeded. Initial search parameters set.");
     }
 
-    // Compute grid starting place
+    auto t3 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took to request grid map: " << duration_cast<milliseconds>(t3 - t2).count() << "millis");
+
+    // Compute grid source coordinates
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(l_robotPoseMapFrame.pose.orientation, l_startPositionQuaternion);
     World2D l_worldStartPosition{l_robotPoseMapFrame.pose.position.x,
                                  l_robotPoseMapFrame.pose.position.y,
                                  l_startPositionQuaternion};
 
-    // Compute grid goal position
+    auto t4 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took for start pose conversion: " << duration_cast<microseconds>(t4 - t3).count() << "micros");
+
+    // Compute grid goal coordinates
     tf2::Quaternion l_goalPositionQuaternion;
     tf2::convert(p_goalPosition.pose.orientation, l_goalPositionQuaternion);
     World2D l_worldGoalPosition{p_goalPosition.pose.position.x,
                                 p_goalPosition.pose.position.y,
                                 l_goalPositionQuaternion};
 
+    auto t5 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took for target pose conversion: " << duration_cast<microseconds>(t5 - t4).count() << "micros");
+
+    // Compute initial feet configuration
+    FeetConfiguration l_feetConfigurationCoMFrame;
+    getFeetConfiguration(l_feetConfigurationCoMFrame);
+
+    auto t6 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took to compute feet configuration: " << duration_cast<milliseconds>(t6 - t5).count() << "millis");
+
+    ROS_DEBUG_STREAM("Fl Configuration: " << l_feetConfigurationCoMFrame.fl.x << ", " << l_feetConfigurationCoMFrame.fl.y);
+    ROS_DEBUG_STREAM("FR Configuration: " << l_feetConfigurationCoMFrame.fr.x << ", " << l_feetConfigurationCoMFrame.fr.y);
+    ROS_DEBUG_STREAM("RL Configuration: " << l_feetConfigurationCoMFrame.rl.x << ", " << l_feetConfigurationCoMFrame.rl.y);
+    ROS_DEBUG_STREAM("RR Configuration: " << l_feetConfigurationCoMFrame.rr.x << ", " << l_feetConfigurationCoMFrame.rr.y);
+    
     // Call A* search algorithm
-    std::vector<Node> l_path = m_search.findPath(l_worldStartPosition, l_worldGoalPosition);
+    std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,
+                                                 l_worldGoalPosition,
+                                                 l_feetConfigurationCoMFrame);
+
+    auto t7 = high_resolution_clock::now();
+    ROS_INFO_STREAM("Time took to plan the path: " << duration_cast<milliseconds>(t7 - t6).count() << "millis");
 
     // Copy over path
     std::copy(l_path.begin(), l_path.end(), std::back_inserter(p_path));
 }
+
+

@@ -85,9 +85,12 @@ namespace AStar
          *
          * @param p_sourceWorldCoordinates
          * @param p_targetWorldCoordinates
+         * @param p_sourceFeetConfiguration
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<Node> findPath(const World2D &p_sourceWorldCoordinates, const World2D &p_targetWorldCoordinates);
+        std::vector<Node> findPath(const World2D &p_sourceWorldCoordinates,
+                                   const World2D &p_targetWorldCoordinates,
+                                   const FeetConfiguration &p_sourceFeetConfiguration);
     private:
         /**
          * Set grid map size.

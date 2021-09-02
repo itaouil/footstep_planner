@@ -9,6 +9,7 @@
 #pragma once
 
 // ROS general
+#include <chrono>
 #include <ros/ros.h>
 #include <message_filters/cache.h>
 #include <message_filters/subscriber.h>
@@ -19,6 +20,7 @@
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
+#include <visualization_msgs/MarkerArray.h>
 
 // ROS services
 #include <grid_map_msgs/GetGridMap.h>
@@ -34,6 +36,8 @@
 
 // Config
 #include "config.hpp"
+
+using namespace std::chrono;
 
 class Planner
 {
@@ -57,6 +61,26 @@ public:
     void plan(const geometry_msgs::PoseStamped &p_goalPosition, std::vector<Node> &p_path);
 private:
     /**
+     * Compute transform from source to
+     * target frame.
+     *
+     * @param p_targetFrame
+     * @param p_initialPose
+     * @param p_targetPose
+     */
+    void getSourceToTargetPoseTransform(const std::string &p_targetFrame,
+                                        const geometry_msgs::PoseStamped &p_initialPose,
+                                        geometry_msgs::PoseStamped &p_targetPose);
+
+    /**
+     * Compute feet placement (x,y)
+     * w.r.t to the CoM frame.
+     *
+     * @param p_feetConfiguration
+     */
+    void getFeetConfiguration(FeetConfiguration &p_feetConfiguration);
+
+    /**
      * Requests height elevation map from
      * the elevation map package and populates
      * a reference with the obtained grid map.
@@ -72,17 +96,16 @@ private:
     //! TF2 buffer
     tf2_ros::Buffer m_buffer;
 
+    //! A* search
+    AStar::Search m_search;
+
     //! TF2 listener
     tf2_ros::TransformListener m_listener;
 
     //! ROS height map service request
     ros::ServiceClient m_heightMapServiceClient;
 
-    //! A* search
-    AStar::Search m_search;
-
     //! Robot pose cache
-    int m_robotPoseCacheSize;
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
     boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> m_latestRobotPose;
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
