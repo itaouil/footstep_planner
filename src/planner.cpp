@@ -213,10 +213,10 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
 
     ROS_INFO_STREAM("Time took to compute feet configuration: " << duration_cast<milliseconds>(t6 - t5).count() << "millis");
 
-    ROS_DEBUG_STREAM("Fl Configuration: " << l_feetConfigurationCoMFrame.fl.x << ", " << l_feetConfigurationCoMFrame.fl.y);
-    ROS_DEBUG_STREAM("FR Configuration: " << l_feetConfigurationCoMFrame.fr.x << ", " << l_feetConfigurationCoMFrame.fr.y);
-    ROS_DEBUG_STREAM("RL Configuration: " << l_feetConfigurationCoMFrame.rl.x << ", " << l_feetConfigurationCoMFrame.rl.y);
-    ROS_DEBUG_STREAM("RR Configuration: " << l_feetConfigurationCoMFrame.rr.x << ", " << l_feetConfigurationCoMFrame.rr.y);
+    ROS_INFO_STREAM("Fl Configuration: " << l_feetConfigurationCoMFrame.fl.x << ", " << l_feetConfigurationCoMFrame.fl.y);
+    ROS_INFO_STREAM("FR Configuration: " << l_feetConfigurationCoMFrame.fr.x << ", " << l_feetConfigurationCoMFrame.fr.y);
+    ROS_INFO_STREAM("RL Configuration: " << l_feetConfigurationCoMFrame.rl.x << ", " << l_feetConfigurationCoMFrame.rl.y);
+    ROS_INFO_STREAM("RR Configuration: " << l_feetConfigurationCoMFrame.rr.x << ", " << l_feetConfigurationCoMFrame.rr.y);
 
     // Call A* search algorithm
     std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,

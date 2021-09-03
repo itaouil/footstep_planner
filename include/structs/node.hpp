@@ -21,6 +21,9 @@ struct Node
     //! Action applied to reach state
     Action action;
 
+    //! Velocity applied to reach state
+    double velocity;
+
     //! Costs (global and heuristic)
     unsigned int G, H;
 

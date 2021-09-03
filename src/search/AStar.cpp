@@ -323,19 +323,21 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                          l_predictedFeetConfiguration,
                                          l_currentNode);
                     successor->G = totalCost;
+                    successor->velocity = l_velocity;
+                    successor->action = m_actions[i];
                     successor->H = m_heuristic(*successor, Node{l_targetGridCoordinates,
                                                                 p_targetWorldCoordinates,
                                                                 l_predictedFeetConfiguration});
-                    successor->action = m_actions[i];
                     l_openSet.push_back(successor);
                 }
                 else if (totalCost < successor->G)
                 {
                     successor->G = totalCost;
+                    successor->velocity = l_velocity;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->worldCoordinates = l_propagatedWorldCoordinatesCoM;
-                    successor->feetConfiguration = l_predictedFeetConfiguration;
+//                    successor->feetConfiguration = l_predictedFeetConfiguration;
                 }
 
                 ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");
@@ -424,13 +426,19 @@ unsigned int AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p
  */
 unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_targetNode)
 {
+    // Angle and distance differences
     auto l_angleDelta = getHeadingDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
-    auto distance = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
-    ROS_DEBUG_STREAM("HEADING DELTA: " << l_angleDelta);
-    ROS_DEBUG_STREAM("DISTANCE DELTA: " << distance);
 
-    return static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2))) + std::abs(l_angleDelta) * 10;
+    // Euclidean distance
+    auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 1000000);
+    auto l_distanceHeuristic = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
+
+    ROS_INFO_STREAM("Angle Delta: " << l_angleDelta);
+    ROS_INFO_STREAM("Angle heuristic: " << l_angleHeuristic);
+    ROS_INFO_STREAM("Distance heuristic: " << l_distanceHeuristic);
+
+    return l_angleHeuristic + l_distanceHeuristic;
 }
 
 /**

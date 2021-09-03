@@ -60,6 +60,7 @@ private:
     // ROS publishers
     ros::Publisher m_pathPublisher;
     ros::Publisher m_velocityPublisher;
+    ros::Publisher m_feetConfigurationPublisher;
 
     // ROS subscribers
     ros::Subscriber m_goalSubscriber;
