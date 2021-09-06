@@ -3,6 +3,7 @@
 
 """
     Listen to simulation topics:
+        * /odom:                                to retrieve robot odometry (i.e. position of CoM and current velocity)
         * /foot:                                to retrieve foot position w.r.t to the base
         * /cmd_vel:                             to get robot commanded velocity
         * /foot_contacts:                       to retrieve whether the foot is contact with the ground or not
@@ -20,15 +21,15 @@ import rospy
 import message_filters
 
 # ROS msgs imports
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import WrenchStamped, PoseArray, Twist
 
-
 # Global path and file
-path = "/home/itaouil/workspace/thesis/aliengo_navigation/src/aliengo_bridge/data/dataset3"
-file_object = open(path + "/motion_085.csv", "a")
+path = "/home/itaouil/workspace/aliengo_ws/src/aliengo_navigation/data/dataset3"
+file_object = open(path + "/motion.csv", "a")
 
 
-def callback(cmd_vel_msg, foot_msg, force_fr_msg, force_fl_msg, force_rr_msg, force_rl_msg):
+def callback(cmd_vel_msg, foot_msg, force_fr_msg, force_fl_msg, force_rr_msg, force_rl_msg, odom_msg):
     global file_object
 
     file_object.write(str(time.time()) + "," +
@@ -61,13 +62,22 @@ def callback(cmd_vel_msg, foot_msg, force_fr_msg, force_fl_msg, force_rr_msg, fo
                       str(force_rl_msg.wrench.force.z) + "," +
                       str(force_rr_msg.wrench.force.x) + "," +
                       str(force_rr_msg.wrench.force.y) + "," +
-                      str(force_rr_msg.wrench.force.z) + "\n")
+                      str(force_rr_msg.wrench.force.z) + "," +
+                      str(odom_msg.pose.pose.position.x) + "," +
+                      str(odom_msg.pose.pose.position.y) + "," +
+                      str(odom_msg.pose.pose.position.z) + "," +
+                      str(odom_msg.twist.twist.linear.x) + "," +
+                      str(odom_msg.twist.twist.linear.y) + "," +
+                      str(odom_msg.twist.twist.linear.z) + "," +
+                      str(odom_msg.twist.twist.angular.x) + "," +
+                      str(odom_msg.twist.twist.angular.y) + "," +
+                      str(odom_msg.twist.twist.angular.z) + "\n")
 
 
 def listener():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
-
+    odom_sub = message_filters.Subscriber("/odom", Odometry)
     cmd_vel_sub = message_filters.Subscriber("/cmd_vel", Twist)
     foot_sub = message_filters.Subscriber("/foot_poses", PoseArray)
     force_fr_sub = message_filters.Subscriber("/visual/FR_foot_contact/the_force", WrenchStamped)
@@ -76,7 +86,7 @@ def listener():
     force_rl_sub = message_filters.Subscriber("/visual/RL_foot_contact/the_force", WrenchStamped)
 
     ts = message_filters.ApproximateTimeSynchronizer(
-        [cmd_vel_sub, foot_sub, force_fr_sub, force_fl_sub, force_rr_sub, force_rl_sub], 10, 0.03, allow_headerless=True)
+        [cmd_vel_sub, foot_sub, force_fr_sub, force_fl_sub, force_rr_sub, force_rl_sub, odom_sub], 10, 0.03, allow_headerless=True)
     ts.registerCallback(callback)
 
     rospy.spin()
