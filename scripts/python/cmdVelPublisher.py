@@ -22,8 +22,8 @@ import numpy as np
 from geometry_msgs.msg import Twist
 
 
-def publishCmdVelAccelerations(msg, pub, curr_velocity, direction=1):
-    for next_velocity in np.arange(0.1, 0.8, 0.1):
+def publishCmdVelAccelerations(msg, pub, curr_velocity):
+    for next_velocity in np.arange(0.1, 0.7, 0.05):
         # Skip if next velocity to be applied is
         # the same as the current velocity of below
         if abs(next_velocity) - abs(curr_velocity) < 0.05:
@@ -60,6 +60,8 @@ def publishCmdVelAccelerations(msg, pub, curr_velocity, direction=1):
                 pub.publish(new_msg)
                 rate.sleep()
 
+    rospy.sleep(1)
+
 
 def publishCmdVelStutter(msg, pub):
     for x in range(80):
@@ -85,6 +87,8 @@ def publishCmdVelContinuous(msg, pub):
         pub.publish(msg)
         rate.sleep()
 
+    rospy.sleep(1)
+
 
 def cmdVelPublisher():
     # Initialise node
@@ -97,8 +101,8 @@ def cmdVelPublisher():
     rospy.sleep(1)
 
     while not rospy.is_shutdown():
-        for velocity in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]:
-            # Forward walking
+        for velocity in np.arange(0.1, 0.7, 0.05):
+            # # Forward walking
             cmd = Twist()
             cmd.linear.x = velocity
             cmd.linear.y = 0
