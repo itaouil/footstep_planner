@@ -99,7 +99,7 @@ AStar::Search::Search(ros::NodeHandle& p_nh): m_model(p_nh)
     };
 
     // Available velocities
-    m_velocities = {0.25, 0.3};
+    m_velocities = {0.1, 0.3, 0.5, 0.7};
 }
 
 /**
@@ -180,23 +180,38 @@ void AStar::Search::releaseNodes(std::vector<Node*> &p_nodes)
  * Find if given node is in a vector (open/closed set).
  *
  * @param p_nodes
+ * @param p_action
+ * @param p_velocity
  * @param p_gridCoordinates
+ * @param p_quaternion
  * @return the requested node or a nullptr
  */
 Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
+                                    const Action &p_action,
+                                    const double p_velocity,
                                     const Vec2D &p_gridCoordinates,
                                     const tf2::Quaternion &p_quaternion)
 {
-    for (auto &node : p_nodes) {
+    for (auto &node : p_nodes)
+    {
         // Compute heading angle between the nodes
         double l_yaw1 = getYawFromQuaternion(p_quaternion);
         double l_yaw2 = getYawFromQuaternion(node->worldCoordinates.q);
         double l_yawDifference = std::abs(l_yaw2 - l_yaw1);
 
         // Check if the two nodes have the same state
-        // (i.e. same grid coordinates and the same yaw)
-        if (node->gridCoordinates == p_gridCoordinates && l_yawDifference < 0.1) {
-            ROS_DEBUG_STREAM("Same node: " << l_yawDifference << "\n");
+        // (i.e. same grid coordinates, same yaw, and same velocity)
+        if (node->gridCoordinates == p_gridCoordinates &&
+            node->action == p_action &&
+            node->velocity == p_velocity &&
+            l_yawDifference < 0.1)
+        {
+            ROS_INFO_STREAM("Same node: " << node->gridCoordinates.x << ", "
+                                               << node->gridCoordinates.y << ", "
+                                               << p_gridCoordinates.x << ", "
+                                               << p_gridCoordinates.y << ", "
+                                               << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
+                                               << l_yawDifference << "\n");
             return node;
         }
     }
@@ -206,12 +221,27 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
 /**
   * Sets heuristic to be used for the H cost.
   *
-  * @param heuristic_
+  * @param p_heuristic
   */
-void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& heuristic_)
+void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& p_heuristic)
 {
-    m_heuristic = [heuristic_](auto && PH1, auto && PH2) {return heuristic_(std::forward<decltype(PH1)>(PH1),
-                                                          std::forward<decltype(PH2)>(PH2));};
+    m_heuristic = [p_heuristic](auto && PH1, auto && PH2) {return p_heuristic(std::forward<decltype(PH1)>(PH1),
+                                                                              std::forward<decltype(PH2)>(PH2));};
+}
+
+/**
+ * Reset state feet configuration to
+ * the initial source feet configuration
+ * (i.e. when robot was idle and not yet
+ * moving).
+ *
+ * @param p_sourceFeetConfiguration
+ * @param p_idleFeetConfiguration
+ */
+void AStar::Search::setIdleFeetConfiguration(const FeetConfiguration &p_sourceFeetConfiguration,
+                                             FeetConfiguration &p_idleFeetConfiguration)
+{
+    p_idleFeetConfiguration = p_sourceFeetConfiguration;
 }
 
 /**
@@ -247,7 +277,10 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     Node *l_currentNode = nullptr;
 
     // Push to initial open set the source node
-    l_openSet.push_back(new Node(l_sourceGridCoordinates, p_sourceWorldCoordinates, p_sourceFeetConfiguration));
+    l_openSet.push_back(new Node(Action{0, 0, 0},
+                                 l_sourceGridCoordinates,
+                                 p_sourceWorldCoordinates,
+                                 p_sourceFeetConfiguration));
 
     // Search process
     while (!l_openSet.empty())
@@ -279,55 +312,88 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 
         for (double & l_velocity : m_velocities)
         {
-             for (unsigned int i = 0; i < m_numberOfActions; ++i)
-             {
-                // Propagate CoM using current action and velocity
-                World2D l_propagatedWorldCoordinatesCoM{};
-                m_model.propagateCoM(l_velocity,
-                                     m_actions[i],
-                                     l_currentNode->worldCoordinates,
-                                     l_propagatedWorldCoordinatesCoM);
+            for (unsigned int i = 0; i < m_numberOfActions; ++i)
+            {
+                // Start feet configuration
+                FeetConfiguration l_currentFeetConfiguration;
+
+                ROS_INFO_STREAM("AStar: Action: " << m_actions[i].x * l_velocity << ", "
+                                                       << m_actions[i].y * l_velocity<< ", "
+                                                       << m_actions[i].theta * l_velocity);
+
+                // If different action than previous one
+                // (and not starting node) start from an
+                // idle configuration as the robot has to
+                // come to a stop first and then start the
+                // new action
+                if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0})
+                {
+                    ROS_INFO_STREAM("AStar: Different action being applied. Start with idle config.");
+                    setIdleFeetConfiguration(p_sourceFeetConfiguration, l_currentFeetConfiguration);
+                }
+                else
+                {
+                    l_currentFeetConfiguration = l_currentNode->feetConfiguration;
+                }
+
+                ROS_INFO_STREAM("AStar: Current world coordinates: " << l_currentNode->worldCoordinates.x << ", "
+                                                                     << l_currentNode->worldCoordinates.y);
+
+                // Predict new CoM and feet configuration
+                World2D l_newWorldCoordinatesCoM{};
+                FeetConfiguration l_newFeetConfiguration;
+                m_model.predictNewConfiguration(l_velocity,
+                                                m_actions[i],
+                                                l_currentNode->worldCoordinates,
+                                                l_currentFeetConfiguration,
+                                                l_newFeetConfiguration,
+                                                l_newWorldCoordinatesCoM);
+
+                ROS_INFO_STREAM("AStar: New world coordinates: " << l_newWorldCoordinatesCoM.x << ", "
+                                                                      << l_newWorldCoordinatesCoM.y);
 
                 // Convert propagated CoM to grid indexes
-                Vec2D l_propagatedGridCoordinatesCoM{};
+                Vec2D l_newGridCoordinatesCoM{};
                 AStar::worldToGrid(m_gridOriginX,
                                    m_gridOriginY,
-                                   l_propagatedWorldCoordinatesCoM,
-                                   l_propagatedGridCoordinatesCoM);
+                                   l_newWorldCoordinatesCoM,
+                                   l_newGridCoordinatesCoM);
 
                 // Check if obtained CoM was already visited
                 // or is outside the grid map boundaries
-                if (detectCollision(l_propagatedGridCoordinatesCoM) ||
-                    findNodeOnList(l_closedSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q)) {
+                if (detectCollision(l_newGridCoordinatesCoM) || findNodeOnList(l_closedSet,
+                                                                               m_actions[i],
+                                                                               l_velocity,
+                                                                               l_newGridCoordinatesCoM,
+                                                                               l_newWorldCoordinatesCoM.q))
+                {
                     continue;
                 }
 
-                // Compute feet configuration for new state
-                FeetConfiguration l_predictedFeetConfiguration;
-                m_model.predictFeetConfiguration(l_velocity,
-                                                 m_actions[i],
-                                                 l_currentNode->feetConfiguration,
-                                                 l_predictedFeetConfiguration);
-
                 ROS_DEBUG_STREAM("Current velocity: " << l_velocity);
                 ROS_DEBUG_STREAM("Current action: " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_DEBUG_STREAM("New CoM (x,y,theta): " << l_propagatedGridCoordinatesCoM.x << ", " << l_propagatedGridCoordinatesCoM.y << ", " << getYawFromQuaternion(l_propagatedWorldCoordinatesCoM.q));
+                ROS_DEBUG_STREAM("New CoM (x,y,theta): " << l_newGridCoordinatesCoM.x << ", " << l_newGridCoordinatesCoM.y << ", " << getYawFromQuaternion(l_newWorldCoordinatesCoM.q));
 
                 unsigned int totalCost = l_currentNode->G + ((i < 4) ? 10 : 14);
 
-                Node *successor = findNodeOnList(l_openSet, l_propagatedGridCoordinatesCoM, l_propagatedWorldCoordinatesCoM.q);
+                Node *successor = findNodeOnList(l_openSet,
+                                                 m_actions[i],
+                                                 l_velocity,
+                                                 l_newGridCoordinatesCoM,
+                                                 l_newWorldCoordinatesCoM.q);
                 if (successor == nullptr)
                 {
-                    successor = new Node(l_propagatedGridCoordinatesCoM,
-                                         l_propagatedWorldCoordinatesCoM,
-                                         l_predictedFeetConfiguration,
+                    successor = new Node(m_actions[i],
+                                         l_newGridCoordinatesCoM,
+                                         l_newWorldCoordinatesCoM,
+                                         l_newFeetConfiguration,
                                          l_currentNode);
                     successor->G = totalCost;
                     successor->velocity = l_velocity;
-                    successor->action = m_actions[i];
-                    successor->H = m_heuristic(*successor, Node{l_targetGridCoordinates,
+                    successor->H = m_heuristic(*successor, Node{Action{0, 0, 0},
+                                                                l_targetGridCoordinates,
                                                                 p_targetWorldCoordinates,
-                                                                l_predictedFeetConfiguration});
+                                                                l_newFeetConfiguration});
                     l_openSet.push_back(successor);
                 }
                 else if (totalCost < successor->G)
@@ -336,8 +402,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     successor->velocity = l_velocity;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
-                    successor->worldCoordinates = l_propagatedWorldCoordinatesCoM;
-//                    successor->feetConfiguration = l_predictedFeetConfiguration;
+                    successor->worldCoordinates = l_newWorldCoordinatesCoM;
+                    successor->feetConfiguration = l_newFeetConfiguration;
                 }
 
                 ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");

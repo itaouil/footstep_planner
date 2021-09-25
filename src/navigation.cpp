@@ -117,7 +117,6 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
         l_pathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
 
         // Populate messages
-        int j = 0;
         for (auto &l_node: l_path)
         {
             // Feet configuration array
@@ -130,6 +129,15 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             l_poseStamped.pose.position.x = l_node.worldCoordinates.x;
             l_poseStamped.pose.position.y = l_node.worldCoordinates.y;
             l_pathMsg.poses.push_back(l_poseStamped);
+        }
+        m_pathPublisher.publish(l_pathMsg);
+
+        int j = 0;
+        for (auto &l_node: l_path)
+        {
+            // Feet configuration array
+            // for visualization purposes
+            visualization_msgs::MarkerArray l_pathFeetConfiguration;
 
             // Node in map frame
             geometry_msgs::PointStamped l_CoMMapFrame;
@@ -168,26 +176,26 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             geometry_msgs::PointStamped l_flFootConfiguration;
             l_flFootConfiguration.header.stamp = ros::Time::now();
             l_flFootConfiguration.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-            l_flFootConfiguration.point.x = l_node.feetConfiguration.fl.x;
-            l_flFootConfiguration.point.y = l_node.feetConfiguration.fl.y;
+            l_flFootConfiguration.point.x = l_node.feetConfiguration.flCoM.x;
+            l_flFootConfiguration.point.y = l_node.feetConfiguration.flCoM.y;
             l_flFootConfiguration.point.z = 0;
 
             geometry_msgs::PointStamped l_frFootConfiguration;
             l_frFootConfiguration.header = l_flFootConfiguration.header;
-            l_frFootConfiguration.point.x = l_node.feetConfiguration.fr.x;
-            l_frFootConfiguration.point.y = l_node.feetConfiguration.fr.y;
+            l_frFootConfiguration.point.x = l_node.feetConfiguration.frCoM.x;
+            l_frFootConfiguration.point.y = l_node.feetConfiguration.frCoM.y;
             l_frFootConfiguration.point.z = 0;
 
             geometry_msgs::PointStamped l_rlFootConfiguration;
             l_rlFootConfiguration.header = l_flFootConfiguration.header;
-            l_rlFootConfiguration.point.x = l_node.feetConfiguration.rl.x;
-            l_rlFootConfiguration.point.y = l_node.feetConfiguration.rl.y;
+            l_rlFootConfiguration.point.x = l_node.feetConfiguration.rlCoM.x;
+            l_rlFootConfiguration.point.y = l_node.feetConfiguration.rlCoM.y;
             l_rlFootConfiguration.point.z = 0;
 
             geometry_msgs::PointStamped l_rrFootConfiguration;
             l_rrFootConfiguration.header = l_flFootConfiguration.header;
-            l_rrFootConfiguration.point.x = l_node.feetConfiguration.rr.x;
-            l_rrFootConfiguration.point.y = l_node.feetConfiguration.rr.y;
+            l_rrFootConfiguration.point.x = l_node.feetConfiguration.rrCoM.x;
+            l_rrFootConfiguration.point.y = l_node.feetConfiguration.rrCoM.y;
             l_rrFootConfiguration.point.z = 0;
 
             geometry_msgs::PointStamped l_flFootConfigurationRotated;
@@ -199,17 +207,17 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             tf2::doTransform(l_rlFootConfiguration, l_rlFootConfigurationRotated, l_rotationTransform);
             tf2::doTransform(l_rrFootConfiguration, l_rrFootConfigurationRotated, l_rotationTransform);
 
-            ROS_INFO_STREAM("Action: " << l_node.action.x * l_node.velocity << ", "
-                                            << l_node.action.y * l_node.velocity << ", "
-                                            << l_node.action.theta * l_node.velocity);
-            ROS_INFO_STREAM("Predicted FL position: " << l_node.feetConfiguration.fl.x << ", "
-                                                           << l_node.feetConfiguration.fl.y);
-            ROS_INFO_STREAM("Predicted FR position: " << l_node.feetConfiguration.fr.x << ", "
-                                                           << l_node.feetConfiguration.fr.y);
-            ROS_INFO_STREAM("Predicted RL position: " << l_node.feetConfiguration.rl.x << ", "
-                                                           << l_node.feetConfiguration.rl.y);
-            ROS_INFO_STREAM("Predicted RR position: " << l_node.feetConfiguration.rr.x << ", "
-                                                           << l_node.feetConfiguration.rr.y << "\n");
+//            ROS_INFO_STREAM("Action: " << l_node.action.x * l_node.velocity << ", "
+//                                            << l_node.action.y * l_node.velocity << ", "
+//                                            << l_node.action.theta * l_node.velocity);
+//            ROS_INFO_STREAM("Predicted FL position: " << l_node.feetConfiguration.flCoM.x << ", "
+//                                                      << l_node.feetConfiguration.flCoM.y);
+//            ROS_INFO_STREAM("Predicted FR position: " << l_node.feetConfiguration.frCoM.x << ", "
+//                                                      << l_node.feetConfiguration.frCoM.y);
+//            ROS_INFO_STREAM("Predicted RL position: " << l_node.feetConfiguration.rlCoM.x << ", "
+//                                                      << l_node.feetConfiguration.rlCoM.y);
+//            ROS_INFO_STREAM("Predicted RR position: " << l_node.feetConfiguration.rrCoM.x << ", "
+//                                                      << l_node.feetConfiguration.rrCoM.y << "\n");
 
             // Populate array
             visualization_msgs::Marker l_footCommonMarker;
@@ -217,7 +225,7 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             l_footCommonMarker.header.frame_id = ROBOT_REFERENCE_FRAME;
             l_footCommonMarker.type = 2;
             l_footCommonMarker.action = 0;
-            l_footCommonMarker.lifetime = ros::Duration(1);
+            l_footCommonMarker.lifetime = ros::Duration(0.4);
             l_footCommonMarker.pose.orientation.x = 0;
             l_footCommonMarker.pose.orientation.y = 0;
             l_footCommonMarker.pose.orientation.z = 0;
@@ -267,10 +275,8 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
             m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-            ros::Duration(1).sleep();
+            ros::Duration(0.5).sleep();
         }
-
-        m_pathPublisher.publish(l_pathMsg);
 
         ROS_INFO("Navigation: Path obtained and published.");
     }

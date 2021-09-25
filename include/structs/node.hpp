@@ -8,6 +8,9 @@
 
 #pragma once
 
+// Structs
+#include <structs/vec2D.hpp>
+#include <structs/action.hpp>
 #include <structs/feetConfiguration.hpp>
 
 /**
@@ -33,7 +36,7 @@ struct Node
     //! (x,y) (continuous) coordinates in the world
     World2D worldCoordinates;
 
-    //! Feet configuration of the state
+    //! Feet configuration of the state (CoM frame)
     FeetConfiguration feetConfiguration;
 
     /**
@@ -43,16 +46,18 @@ struct Node
      * @param p_worldCoordinates
      * @param p_parent
      */
-    explicit Node(Vec2D p_gridCoordinates,
+    explicit Node(Action p_action,
+                  Vec2D p_gridCoordinates,
                   World2D p_worldCoordinates,
                   FeetConfiguration feetConfiguration,
                   Node *p_parent = nullptr):
-        parent(p_parent),
-        G(0),
-        H(0),
-        gridCoordinates(p_gridCoordinates),
-        worldCoordinates(p_worldCoordinates),
-        feetConfiguration(feetConfiguration)
+            parent(p_parent),
+            action(p_action),
+            G(0),
+            H(0),
+            gridCoordinates(p_gridCoordinates),
+            worldCoordinates(p_worldCoordinates),
+            feetConfiguration(feetConfiguration)
     {}
 
     /**

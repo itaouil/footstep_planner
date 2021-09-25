@@ -42,6 +42,6 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 // Planner parameters
 const double TIMESTAMP(0.325);
 const bool SET_DIAGONAL_MOVEMENT(false);
-const double HEIGHT_MAP_RESOLUTION(0.07);
+const double HEIGHT_MAP_RESOLUTION(0.04);
 const int HEIGHT_MAP_GRID_SIZE_X(static_cast<int>(HEIGHT_MAP_LENGTH_X / HEIGHT_MAP_RESOLUTION) + 1);
 const int HEIGHT_MAP_GRID_SIZE_Y(static_cast<int>(HEIGHT_MAP_LENGTH_Y / HEIGHT_MAP_RESOLUTION) + 1);

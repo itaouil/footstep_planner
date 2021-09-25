@@ -16,15 +16,22 @@
   */
 struct FeetConfiguration
 {
+    //! Which set of feet is swinging
+    bool fr_rl_swinging;
+
     //! FL foot
-    World2D fl;
+    World2D flCoM;
+    World2D flMap;
 
     //! FR foot
-    World2D fr;
+    World2D frCoM;
+    World2D frMap;
 
     //! RL foot
-    World2D rl;
+    World2D rlCoM;
+    World2D rlMap;
 
     //! RR foot
-    World2D rr;
+    World2D rrCoM;
+    World2D rrMap;
 };

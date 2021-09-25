@@ -50,34 +50,55 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
     l_footPoseFootFrame.pose.orientation.w = 1;
 
     // FL configuration
+    geometry_msgs::PoseStamped l_flFootPoseMapFrame;
     geometry_msgs::PoseStamped l_flFootPoseCoMFrame;
     l_footPoseFootFrame.header.frame_id = "FL_foot";
     getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_flFootPoseCoMFrame);
+    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_flFootPoseMapFrame);
 
     // FR configuration
+    geometry_msgs::PoseStamped l_frFootPoseMapFrame;
     geometry_msgs::PoseStamped l_frFootPoseCoMFrame;
     l_footPoseFootFrame.header.frame_id = "FR_foot";
     getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_frFootPoseCoMFrame);
+    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_frFootPoseMapFrame);
 
     // RL configuration
+    geometry_msgs::PoseStamped l_rlFootPoseMapFrame;
     geometry_msgs::PoseStamped l_rlFootPoseCoMFrame;
     l_footPoseFootFrame.header.frame_id = "RL_foot";
     getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_rlFootPoseCoMFrame);
+    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_rlFootPoseMapFrame);
 
     // RR configuration
+    geometry_msgs::PoseStamped l_rrFootPoseMapFrame;
     geometry_msgs::PoseStamped l_rrFootPoseCoMFrame;
     l_footPoseFootFrame.header.frame_id = "RR_foot";
     getSourceToTargetPoseTransform(ROBOT_REFERENCE_FRAME, l_footPoseFootFrame, l_rrFootPoseCoMFrame);
+    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_rrFootPoseMapFrame);
 
-    // Populate feet configuration structure
-    p_feetConfiguration.fl.x = l_flFootPoseCoMFrame.pose.position.x;
-    p_feetConfiguration.fl.y = l_flFootPoseCoMFrame.pose.position.y;
-    p_feetConfiguration.fr.x = l_frFootPoseCoMFrame.pose.position.x;
-    p_feetConfiguration.fr.y = l_frFootPoseCoMFrame.pose.position.y;
-    p_feetConfiguration.rl.x = l_rlFootPoseCoMFrame.pose.position.x;
-    p_feetConfiguration.rl.y = l_rlFootPoseCoMFrame.pose.position.y;
-    p_feetConfiguration.rr.x = l_rrFootPoseCoMFrame.pose.position.x;
-    p_feetConfiguration.rr.y = l_rrFootPoseCoMFrame.pose.position.y;
+    // Populate feet CoM configuration
+    p_feetConfiguration.flCoM.x = l_flFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.flCoM.y = l_flFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.frCoM.x = l_frFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.frCoM.y = l_frFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.rlCoM.x = l_rlFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.rlCoM.y = l_rlFootPoseCoMFrame.pose.position.y;
+    p_feetConfiguration.rrCoM.x = l_rrFootPoseCoMFrame.pose.position.x;
+    p_feetConfiguration.rrCoM.y = l_rrFootPoseCoMFrame.pose.position.y;
+
+    // Populate feet Map configuration
+    p_feetConfiguration.flMap.x = l_flFootPoseMapFrame.pose.position.x;
+    p_feetConfiguration.flMap.y = l_flFootPoseMapFrame.pose.position.y;
+    p_feetConfiguration.frMap.x = l_frFootPoseMapFrame.pose.position.x;
+    p_feetConfiguration.frMap.y = l_frFootPoseMapFrame.pose.position.y;
+    p_feetConfiguration.rlMap.x = l_rlFootPoseMapFrame.pose.position.x;
+    p_feetConfiguration.rlMap.y = l_rlFootPoseMapFrame.pose.position.y;
+    p_feetConfiguration.rrMap.x = l_rrFootPoseMapFrame.pose.position.x;
+    p_feetConfiguration.rrMap.y = l_rrFootPoseMapFrame.pose.position.y;
+
+    // FR/RL always swing first
+    p_feetConfiguration.fr_rl_swinging = true;
 }
 
 /**
@@ -207,21 +228,26 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     ROS_INFO_STREAM("Time took for target pose conversion: " << duration_cast<microseconds>(t5 - t4).count() << "micros");
 
     // Compute initial feet configuration
-    FeetConfiguration l_feetConfigurationCoMFrame;
-    getFeetConfiguration(l_feetConfigurationCoMFrame);
+    FeetConfiguration l_feetConfiguration;
+    getFeetConfiguration(l_feetConfiguration);
     auto t6 = high_resolution_clock::now();
 
     ROS_INFO_STREAM("Time took to compute feet configuration: " << duration_cast<milliseconds>(t6 - t5).count() << "millis");
 
-    ROS_INFO_STREAM("Fl Configuration: " << l_feetConfigurationCoMFrame.fl.x << ", " << l_feetConfigurationCoMFrame.fl.y);
-    ROS_INFO_STREAM("FR Configuration: " << l_feetConfigurationCoMFrame.fr.x << ", " << l_feetConfigurationCoMFrame.fr.y);
-    ROS_INFO_STREAM("RL Configuration: " << l_feetConfigurationCoMFrame.rl.x << ", " << l_feetConfigurationCoMFrame.rl.y);
-    ROS_INFO_STREAM("RR Configuration: " << l_feetConfigurationCoMFrame.rr.x << ", " << l_feetConfigurationCoMFrame.rr.y);
+    ROS_INFO_STREAM("Fl CoM Configuration: " << l_feetConfiguration.flCoM.x << ", " << l_feetConfiguration.flCoM.y);
+    ROS_INFO_STREAM("FR CoM Configuration: " << l_feetConfiguration.frCoM.x << ", " << l_feetConfiguration.frCoM.y);
+    ROS_INFO_STREAM("RL CoM Configuration: " << l_feetConfiguration.rlCoM.x << ", " << l_feetConfiguration.rlCoM.y);
+    ROS_INFO_STREAM("RR CoM Configuration: " << l_feetConfiguration.rrCoM.x << ", " << l_feetConfiguration.rrCoM.y);
 
+    ROS_INFO_STREAM("Fl Map Configuration: " << l_feetConfiguration.flMap.x << ", " << l_feetConfiguration.flMap.y);
+    ROS_INFO_STREAM("FR Map Configuration: " << l_feetConfiguration.frMap.x << ", " << l_feetConfiguration.frMap.y);
+    ROS_INFO_STREAM("RL Map Configuration: " << l_feetConfiguration.rlMap.x << ", " << l_feetConfiguration.rlMap.y);
+    ROS_INFO_STREAM("RR Map Configuration: " << l_feetConfiguration.rrMap.x << ", " << l_feetConfiguration.rrMap.y);
+    
     // Call A* search algorithm
     std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,
                                                  l_worldGoalPosition,
-                                                 l_feetConfigurationCoMFrame);
+                                                 l_feetConfiguration);
 
     auto t7 = high_resolution_clock::now();
     ROS_INFO_STREAM("Time took to plan the path: " << duration_cast<milliseconds>(t7 - t6).count() << "millis");
@@ -229,5 +255,3 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     // Copy over path
     std::copy(l_path.begin(), l_path.end(), std::back_inserter(p_path));
 }
-
-

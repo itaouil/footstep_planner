@@ -129,20 +129,35 @@ namespace AStar
          * Find if given node is in a vector (open/closed set).
          *
          * @param p_nodes
+         * @param p_action
+         * @param p_velocity
          * @param p_gridCoordinates
          * @param p_quaternion
          * @return the requested node or a nullptr
          */
-        Node* findNodeOnList(const std::vector<Node*>& p_nodes,
+        Node* findNodeOnList(const std::vector<Node*> &p_nodes,
+                             const Action &p_action,
+                             double p_velocity,
                              const Vec2D &p_gridCoordinates,
                              const tf2::Quaternion &p_quaternion);
 
         /**
          * Sets heuristic to be used for the H cost.
          *
-         * @param heuristic_
+         * @param p_heuristic
          */
-        void setHeuristic(const std::function<unsigned int(Node, Node)>& heuristic_);
+        void setHeuristic(const std::function<unsigned int(Node, Node)>& p_heuristic);
+
+        /**
+         * Compute idle feet configuration when
+         * a new motion command is applied to the
+         * state.
+         *
+         * @param p_currentFeetConfiguration
+         * @param p_idleFeetConfiguration
+         */
+        void setIdleFeetConfiguration(const FeetConfiguration &p_currentFeetConfiguration,
+                                      FeetConfiguration &p_idleFeetConfiguration);
 
         //! Robot model
         Model m_model;
@@ -150,10 +165,11 @@ namespace AStar
         //! Grid map size
         Vec2D m_gridSize;
 
+
         //! Grid map origin
         double m_gridOriginX;
-        double m_gridOriginY;
 
+        double m_gridOriginY;
         //! Allowed actions in the search
         std::vector<Action> m_actions;
 

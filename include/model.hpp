@@ -18,9 +18,11 @@
 
 // ROS messages
 #include <geometry_msgs/PointStamped.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <aliengo_navigation/FootstepPrediction.h>
 
 // Structs
+#include <structs/node.hpp>
 #include <structs/vec2D.hpp>
 #include <structs/action.hpp>
 #include <structs/world2D.hpp>
@@ -45,41 +47,87 @@ public:
     virtual ~Model();
 
     /**
-     * Populates command to displacement map.
+     * Transform absolute footstep sizes
+     * from CoM reference frame to map frame.
+     *
+     * @param p_rotation
+     * @param p_predictionsCoMFrame
+     * @param p_predictionsMapFrame
      */
-    void populateDisplacementMap();
+    void transformPredictionsToMapFrame(const tf2::Quaternion &p_rotation,
+                                        const std::vector<float> &p_predictionsCoMFrame,
+                                        std::vector<double> &p_predictionsMapFrame);
 
     /**
-     * Compute next CoM (Centre of Mass) given
-     * the action and velocity applied.
+     * Compute new (map) feet configuration
+     * using the predicted footsteps.
      *
-     * @param p_velocity
-     * @param p_action
-     * @param p_currentCoM
-     * @param p_propagateCoM
-     */
-    void propagateCoM(double p_velocity, const Action &p_action, const World2D &p_currentCoM, World2D &p_propagatedCoM);
-
-    /**
-     * Footsteps prediction using
-     * learnt models.
-     *
-     * @param p_velocity
-     * @param p_action
+     * @param l_predictionsMapFrame
      * @param p_currentFeetConfiguration
-     * @param p_predictedFeetConfiguration
+     * @param p_newFeetConfiguration
      */
-    void predictFeetConfiguration(double p_velocity,
-                                  const Action &p_action,
-                                  const FeetConfiguration &p_currentFeetConfiguration,
-                                  FeetConfiguration &p_predictedFeetConfiguration);
+    void computeMapFeetConfiguration(const std::vector<double> &l_predictionsMapFrame,
+                                     const FeetConfiguration &p_currentFeetConfiguration,
+                                     FeetConfiguration &p_newFeetConfiguration);
+
+    /**
+     * Compute new CoM in world coordinates.
+     *
+     * @param p_angularVelocity
+     * @param p_predictedCoMDisplacementX
+     * @param p_predictedCoMDisplacementY
+     * @param p_currentWorldCoordinatesCoM
+     * @param p_newWorldCoordinatesCoM
+     */
+    void computeNewCoM(double p_angularVelocity,
+                       double p_predictedCoMDisplacementX,
+                       double p_predictedCoMDisplacementY,
+                       const World2D &p_currentWorldCoordinatesCoM,
+                       World2D &p_newWorldCoordinatesCoM);
+
+    /**
+     * Compute new (CoM) feet configuration
+     * using the newly computed map feet
+     * configuration and CoM.
+     *
+     * @param l_relativeStepPredictions
+     * @param p_currentFeetConfiguration
+     * @param p_newFeetConfiguration
+     */
+    void computeNewCoMFeetConfiguration(const std::vector<double> &l_relativeStepPredictions,
+                                        const FeetConfiguration &p_currentFeetConfiguration,
+                                        FeetConfiguration &p_newFeetConfiguration);
+
+    /**
+     * Predicts new feet configuration using
+     * the learnt models and extracts new CoM
+     * from them.
+     *
+     * @param p_velocity
+     * @param p_action
+     * @param p_currentWorldCoordinatesCoM
+     * @param p_currentFeetConfiguration
+     * @param p_newFeetConfiguration
+     * @param p_newWorldCoordinatesCoM
+     */
+    void predictNewConfiguration(double p_velocity,
+                                 const Action &p_action,
+                                 const World2D &p_currentWorldCoordinatesCoM,
+                                 const FeetConfiguration &p_currentFeetConfiguration,
+                                 FeetConfiguration &p_newFeetConfiguration,
+                                 World2D &p_newWorldCoordinatesCoM);
 private:
     //! ROS node handle
     ros::NodeHandle m_nh;
 
+    //! TF2 buffer
+    tf2_ros::Buffer m_buffer;
+
+    //! TF2 listener
+    tf2_ros::TransformListener m_listener;
+
+    ros::Publisher m_feetConfigurationPublisher;
+
     //! ROS height map service request
     ros::ServiceClient m_footstepPredictionServiceClient;
-
-    //! Dictionary containing displacements for each velocity
-    std::map<VelocityCmd, Displacement> m_displacementMap;
 };

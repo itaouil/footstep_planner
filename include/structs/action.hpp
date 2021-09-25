@@ -21,4 +21,16 @@ struct Action
 
     //! If Rotational velocity is enabled
     int theta;
+
+    //! Inequality operator for the struct
+    inline bool operator != (const Action& p_action) const
+    {
+        return (x != p_action.x || y != p_action.y || theta != p_action.theta);
+    }
+
+    //! Equality operator for the struct
+    inline bool operator == (const Action& p_action) const
+    {
+        return (x == p_action.x && y == p_action.y && theta == p_action.theta);
+    }
 };
