@@ -10,6 +10,7 @@
 
 // C++ general
 #include <map>
+#include <iostream>
 
 // ROS general
 #include <ros/ros.h>
@@ -30,6 +31,9 @@
 #include <structs/displacement.hpp>
 #include <structs/feetConfiguration.hpp>
 
+// Eigen
+#include <Eigen/Dense>
+
 // Config
 #include <config.hpp>
 
@@ -47,28 +51,28 @@ public:
     virtual ~Model();
 
     /**
-     * Transform absolute footstep sizes
-     * from CoM reference frame to map frame.
-     *
-     * @param p_rotation
-     * @param p_predictionsCoMFrame
-     * @param p_predictionsMapFrame
+     * Populates the respective model
+     * coefficients vectors required for
+     * the prediction process.
      */
-    void transformPredictionsToMapFrame(const tf2::Quaternion &p_rotation,
-                                        const std::vector<float> &p_predictionsCoMFrame,
-                                        std::vector<double> &p_predictionsMapFrame);
+    void setModelsCoefficients();
 
     /**
-     * Compute new (map) feet configuration
-     * using the predicted footsteps.
+     * Compute CoM and feet displacements
+     * predictions using the learnt model
+     * coefficients.
      *
-     * @param l_predictionsMapFrame
+     * @param p_velocityX
+     * @param p_velocityY
+     * @param p_angularVelocity
      * @param p_currentFeetConfiguration
-     * @param p_newFeetConfiguration
+     * @param p_predictions
      */
-    void computeMapFeetConfiguration(const std::vector<double> &l_predictionsMapFrame,
-                                     const FeetConfiguration &p_currentFeetConfiguration,
-                                     FeetConfiguration &p_newFeetConfiguration);
+    void computePredictedDisplacements(double p_velocityX,
+                                       double p_velocityY,
+                                       double p_angularVelocity,
+                                       const FeetConfiguration &p_currentFeetConfiguration,
+                                       std::vector<double> &p_predictions);
 
     /**
      * Compute new CoM in world coordinates.
@@ -128,6 +132,33 @@ private:
 
     ros::Publisher m_feetConfigurationPublisher;
 
-    //! ROS height map service request
-    ros::ServiceClient m_footstepPredictionServiceClient;
+    //! CoM models' coefficients
+    Eigen::RowVectorXd m_fr_rl_com_x;
+    Eigen::RowVectorXd m_fr_rl_com_y;
+    Eigen::RowVectorXd m_fl_rr_com_x;
+    Eigen::RowVectorXd m_fl_rr_com_y;
+
+    //! FL models' coefficients
+    Eigen::RowVectorXd m_fl_support_x;
+    Eigen::RowVectorXd m_fl_support_y;
+    Eigen::RowVectorXd m_fl_swinging_x;
+    Eigen::RowVectorXd m_fl_swinging_y;
+
+    //! FR models' coefficients
+    Eigen::RowVectorXd m_fr_support_x;
+    Eigen::RowVectorXd m_fr_support_y;
+    Eigen::RowVectorXd m_fr_swinging_x;
+    Eigen::RowVectorXd m_fr_swinging_y;
+
+    //! RL models' coefficients
+    Eigen::RowVectorXd m_rl_support_x;
+    Eigen::RowVectorXd m_rl_support_y;
+    Eigen::RowVectorXd m_rl_swinging_x;
+    Eigen::RowVectorXd m_rl_swinging_y;
+
+    //! RR models' coefficients
+    Eigen::RowVectorXd m_rr_support_x;
+    Eigen::RowVectorXd m_rr_support_y;
+    Eigen::RowVectorXd m_rr_swinging_x;
+    Eigen::RowVectorXd m_rr_swinging_y;
 };

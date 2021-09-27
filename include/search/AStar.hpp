@@ -159,6 +159,18 @@ namespace AStar
         void setIdleFeetConfiguration(const FeetConfiguration &p_currentFeetConfiguration,
                                       FeetConfiguration &p_idleFeetConfiguration);
 
+        /**
+         * Check if current node coordinates
+         * are within the target tolerance
+         * distance.
+         *
+         * @param p_nodeGridCoordinates
+         * @param p_targetGridCoordinates
+         * @return if coordinates within distance tolerance
+         */
+        bool withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
+                                   const Vec2D &p_targetGridCoordinates);
+
         //! Robot model
         Model m_model;
 

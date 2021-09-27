@@ -129,6 +129,9 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
             l_poseStamped.pose.position.x = l_node.worldCoordinates.x;
             l_poseStamped.pose.position.y = l_node.worldCoordinates.y;
             l_pathMsg.poses.push_back(l_poseStamped);
+
+            ROS_INFO_STREAM("Velocity; " << l_node.velocity);
+            ROS_INFO_STREAM("Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
         }
         m_pathPublisher.publish(l_pathMsg);
 

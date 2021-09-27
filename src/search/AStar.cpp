@@ -99,7 +99,7 @@ AStar::Search::Search(ros::NodeHandle& p_nh): m_model(p_nh)
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.3, 0.5, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.5, 0.7};
 }
 
 /**
@@ -245,6 +245,21 @@ void AStar::Search::setIdleFeetConfiguration(const FeetConfiguration &p_sourceFe
 }
 
 /**
+ * Check if current node coordinates
+ * are within the target tolerance
+ * distance.
+ *
+ * @param p_nodeGridCoordinates
+ * @param p_targetGridCoordinates
+ * @return if coordinates within distance tolerance
+ */
+bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
+                                          const Vec2D &p_targetGridCoordinates)
+{
+    return (p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 1) && (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 1);
+}
+
+/**
  * Find path from source to target
  * in a given height map.
  *
@@ -306,6 +321,12 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
             ROS_INFO("Search: Target goal found");
             break;
         }
+
+//        if (withinTargetTolerance(l_currentNode->gridCoordinates, l_targetGridCoordinates))
+//        {
+//            ROS_INFO("Search: Target goal found");
+//            break;
+//        }
 
         l_closedSet.push_back(l_currentNode);
         l_openSet.erase(l_iterator);
@@ -497,7 +518,7 @@ unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
 
     // Euclidean distance
-    auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 1000000);
+    auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 1000);
     auto l_distanceHeuristic = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
 
     ROS_INFO_STREAM("Angle Delta: " << l_angleDelta);
