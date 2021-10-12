@@ -8,6 +8,9 @@
 
 #pragma once
 
+// C++
+#include <queue>
+
 // ROS general
 #include <chrono>
 #include <ros/ros.h>
@@ -107,6 +110,5 @@ private:
 
     //! Robot pose cache
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
-    boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> m_latestRobotPose;
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
 };

@@ -104,7 +104,7 @@ def cmdVelPublisher():
     while not rospy.is_shutdown():
         for velocity in np.arange(0.1, 0.8, 0.1):
         # for velocity in [0.1]:
-            # # Forward walking
+            # Forward walking
             cmd = Twist()
             cmd.linear.x = velocity
             cmd.linear.y = 0
@@ -112,10 +112,10 @@ def cmdVelPublisher():
             cmd.angular.x = 0
             cmd.angular.y = 0
             cmd.angular.z = 0
-            print("Publishing stutter forward command")
-            publishCmdVelStutter(cmd, pub)
-            print("Publishing acceleration forward command")
-            publishCmdVelAccelerations(cmd, pub, velocity)
+            # print("Publishing stutter forward command")
+            # publishCmdVelStutter(cmd, pub)
+            # print("Publishing acceleration forward command")
+            # publishCmdVelAccelerations(cmd, pub, velocity)
             print("Publishing continuous forward command")
             publishCmdVelContinuous(cmd, pub)
 
@@ -126,10 +126,10 @@ def cmdVelPublisher():
             cmd.angular.x = 0
             cmd.angular.y = 0
             cmd.angular.z = -velocity
-            print("Publishing stutter clockwise command")
-            publishCmdVelStutter(cmd, pub)
-            print("Publishing acceleration clockwise command")
-            publishCmdVelAccelerations(cmd, pub, -velocity)
+            # print("Publishing stutter clockwise command")
+            # publishCmdVelStutter(cmd, pub)
+            # print("Publishing acceleration clockwise command")
+            # publishCmdVelAccelerations(cmd, pub, -velocity)
             print("Publishing continuous clockwise command")
             publishCmdVelContinuous(cmd, pub)
 
@@ -140,10 +140,10 @@ def cmdVelPublisher():
             cmd.angular.x = 0
             cmd.angular.y = 0
             cmd.angular.z = velocity
-            print("Publishing stutter counterclockwise command")
-            publishCmdVelStutter(cmd, pub)
-            print("Publishing acceleration counterclockwise command")
-            publishCmdVelAccelerations(cmd, pub, velocity)
+            # print("Publishing stutter counterclockwise command")
+            # publishCmdVelStutter(cmd, pub)
+            # print("Publishing acceleration counterclockwise command")
+            # publishCmdVelAccelerations(cmd, pub, velocity)
             print("Publishing continuous counterclockwise command")
             publishCmdVelContinuous(cmd, pub)
 
@@ -154,10 +154,10 @@ def cmdVelPublisher():
             cmd.angular.x = 0
             cmd.angular.y = 0
             cmd.angular.z = 0
-            print("Publishing stutter right command")
-            publishCmdVelStutter(cmd, pub)
-            print("Publishing acceleration right command")
-            publishCmdVelAccelerations(cmd, pub, -velocity)
+            # print("Publishing stutter right command")
+            # publishCmdVelStutter(cmd, pub)
+            # print("Publishing acceleration right command")
+            # publishCmdVelAccelerations(cmd, pub, -velocity)
             print("Publishing continuous right command")
             publishCmdVelContinuous(cmd, pub)
 
@@ -168,10 +168,10 @@ def cmdVelPublisher():
             cmd.angular.x = 0
             cmd.angular.y = 0
             cmd.angular.z = 0
-            print("Publishing stutter left command")
-            publishCmdVelStutter(cmd, pub)
-            print("Publishing acceleration left command")
-            publishCmdVelAccelerations(cmd, pub, velocity)
+            # print("Publishing stutter left command")
+            # publishCmdVelStutter(cmd, pub)
+            # print("Publishing acceleration left command")
+            # publishCmdVelAccelerations(cmd, pub, velocity)
             print("Publishing continuous left command")
             publishCmdVelContinuous(cmd, pub)
 

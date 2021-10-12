@@ -13,20 +13,21 @@
 #include <iostream>
 
 // Publisher topics
-const std::string PATH_TOPIC("/path");
 const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
-const std::string FEET_CONFIGURATION_MARKERS_TOPIC("/feet_configuration");
+const std::string TARGET_PATH_TOPIC("/target_path");
+const std::string REAL_PATH_TOPIC("/performed_path");
+const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
+const std::string TARGET_FEET_CONFIGURATION_MARKERS_TOPIC("/target_feet_configuration");
 
 // Subscriber topics
+const std::string ODOM_TOPIC("/odom");
 const std::string ROBOT_POSE_TOPIC("/base_to_footprint_pose");
-const std::string FEET_CONFIGURATION_TOPIC("/foot");
 
 // Services
-const std::string FOOTSTEP_PREDICTION_SERVICE_TOPIC("/footstep_prediction");
 const std::string HEIGHT_MAP_SERVICE_TOPIC("/elevation_mapping/get_raw_submap");
 
 // TF reference frames
-const std::string HEIGHT_MAP_REFERENCE_FRAME("map");
+const std::string HEIGHT_MAP_REFERENCE_FRAME("odom");
 const std::string ROBOT_REFERENCE_FRAME("base_footprint");
 
 // Cache size for the robot pose

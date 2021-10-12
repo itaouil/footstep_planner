@@ -99,7 +99,7 @@ AStar::Search::Search(ros::NodeHandle& p_nh): m_model(p_nh)
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.5, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
 }
 
 /**
@@ -272,6 +272,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                           const World2D &p_targetWorldCoordinates,
                                           const FeetConfiguration &p_sourceFeetConfiguration)
 {
+    int l_expandedNodes = 0;
+
     // Convert source and target world
     // coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
@@ -300,6 +302,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     // Search process
     while (!l_openSet.empty())
     {
+        l_expandedNodes += 1;
+
         auto l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
 
@@ -446,6 +450,8 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     // Release resources
     releaseNodes(l_openSet);
     releaseNodes(l_closedSet);
+
+    ROS_INFO_STREAM("Number of expanded nodes: " << l_expandedNodes);
 
     return path;
 }

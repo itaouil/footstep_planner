@@ -15,7 +15,7 @@ Model::Model(ros::NodeHandle& p_nh):
     m_nh(p_nh), m_listener(m_buffer)
 {
     // Feet configuration marker array publisher
-    m_feetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(FEET_CONFIGURATION_MARKERS_TOPIC, 1);
+    m_feetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(TARGET_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 
     // Set models coefficients
     setModelsCoefficients();
@@ -387,7 +387,7 @@ void Model::predictNewConfiguration(double p_velocity,
 //    l_footCommonMarker.header.frame_id = ROBOT_REFERENCE_FRAME;
 //    l_footCommonMarker.type = 2;
 //    l_footCommonMarker.action = 0;
-//    l_footCommonMarker.lifetime = ros::Duration(0.05);
+//    l_footCommonMarker.lifetime = ros::Duration(4);
 //    l_footCommonMarker.pose.orientation.x = 0;
 //    l_footCommonMarker.pose.orientation.y = 0;
 //    l_footCommonMarker.pose.orientation.z = 0;
@@ -441,5 +441,5 @@ void Model::predictNewConfiguration(double p_velocity,
 //    l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 //
 //    m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-//    ros::Duration(0.1).sleep();
+//    ros::Duration(5).sleep();
 }

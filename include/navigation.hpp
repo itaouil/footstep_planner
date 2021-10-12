@@ -9,6 +9,7 @@
 #pragma once
 
 // C++ general
+#include <queue>
 #include <cmath>
 
 // ROS general
@@ -21,6 +22,7 @@
 
 // ROS messages
 #include <nav_msgs/Path.h>
+#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -43,25 +45,68 @@ public:
     virtual ~Navigation();
 
 private:
+    /**
+     * Initial publisher, subscriber,
+     * and services initialization.
+     */
     void initialize();
-    void buildInitialHeightMap();
-    void planHeightMapPath(const geometry_msgs::PoseStamped&);
 
-    // ROS node handle
+    /**
+     * Perform rotation movement to
+     * build initial height map if
+     * required.
+     */
+    void buildInitialHeightMap();
+
+    /**
+     * Plans a path to a target goal
+     * using an elevation map (2.5D).
+     *
+     * @param p_goalMsg
+     */
+    void planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg);
+
+    /**
+     * Publish predicted CoM and
+     * footstep sequence.
+     *
+     * @param p_path
+     */
+    void publishPredictedFootstepSequence(const std::vector<Node> &p_path);
+
+    //! ROS node handle
     ros::NodeHandle m_nh;
 
-    // TF variables
+    //! ROS rate
+    ros::Rate m_rate;
+
+    //! TF variables
     tf2_ros::TransformListener &m_tf2;
     tf2_ros::Buffer &m_buffer;
 
-    // Planner object
+    //! Planner object
     Planner m_planner;
 
-    // ROS publishers
-    ros::Publisher m_pathPublisher;
-    ros::Publisher m_velocityPublisher;
-    ros::Publisher m_feetConfigurationPublisher;
-
-    // ROS subscribers
+    //! ROS subscribers
     ros::Subscriber m_goalSubscriber;
+
+    //! ROS publishers
+    ros::Publisher m_velocityPublisher;
+    ros::Publisher m_realPathPublisher;
+    ros::Publisher m_targetPathPublisher;
+    ros::Publisher m_realFeetConfigurationPublisher;
+    ros::Publisher m_targetFeetConfigurationPublisher;
+
+    //! Odometry cache
+    message_filters::Cache<nav_msgs::Odometry> m_odomCache;
+    message_filters::Subscriber<nav_msgs::Odometry> m_odomSubscriber;
+
+    //! Planned motion commands
+    std::queue<geometry_msgs::Twist> m_motionCommands;
+
+    //! Transformed CoM
+    std::vector<geometry_msgs::PointStamped> m_transCoM;
+
+    //! Feet transformed
+    std::vector<visualization_msgs::MarkerArray> m_targetFootsteps;
 };
