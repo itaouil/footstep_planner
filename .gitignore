@@ -3,7 +3,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=cmake,ros,visualstudiocode,clion,python,c++,linux,macos,jupyternotebooks
 
 # Datasets
-data
+data/dataset*
 
 # Models
 models

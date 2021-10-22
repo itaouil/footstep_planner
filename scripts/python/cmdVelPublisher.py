@@ -32,9 +32,10 @@ def publishCmdVelAccelerations(msg, pub, curr_velocity):
         next_velocity_correct_direction = next_velocity * -1 if curr_velocity < 0 else next_velocity
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ", next_velocity_correct_direction)
 
-        for x in range(10):
+        for x in range(20):
             startTime = rospy.Time.now()
-            secondsToWait = rospy.Duration(3)
+            #secondsToWait = rospy.Duration(2)
+            secondsToWait = rospy.Duration.from_sec(1.5)
             endTime = startTime + secondsToWait
 
             # Apply current velocity
@@ -44,7 +45,8 @@ def publishCmdVelAccelerations(msg, pub, curr_velocity):
                 rate.sleep()
 
             startTime = rospy.Time.now()
-            secondsToWait = rospy.Duration(3)
+            #secondsToWait = rospy.Duration(2)
+            secondsToWait = rospy.Duration.from_sec(1.5)
             endTime = startTime + secondsToWait
 
             # Apply superior velocity (acceleration)
@@ -64,10 +66,10 @@ def publishCmdVelAccelerations(msg, pub, curr_velocity):
 
 
 def publishCmdVelStutter(msg, pub):
-    for x in range(20):
+    for x in range(120):
         startTime = rospy.Time.now()
-        secondsToWait = rospy.Duration.from_sec(random.uniform(0.5, 2))
-        #secondsToWait = rospy.Duration(2)
+        secondsToWait = rospy.Duration.from_sec(random.uniform(0.5, 1))
+        #secondsToWait = rospy.Duration(1)
         endTime = startTime + secondsToWait
 
         rate = rospy.Rate(100)
@@ -80,7 +82,7 @@ def publishCmdVelStutter(msg, pub):
 
 def publishCmdVelContinuous(msg, pub):
     startTime = rospy.Time.now()
-    secondsToWait = rospy.Duration(60)
+    secondsToWait = rospy.Duration(600)
     endTime = startTime + secondsToWait
 
     rate = rospy.Rate(100)
@@ -103,7 +105,6 @@ def cmdVelPublisher():
 
     while not rospy.is_shutdown():
         for velocity in np.arange(0.1, 0.8, 0.1):
-        # for velocity in [0.1]:
             # Forward walking
             cmd = Twist()
             cmd.linear.x = velocity

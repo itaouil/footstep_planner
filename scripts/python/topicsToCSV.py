@@ -28,7 +28,7 @@ from geometry_msgs.msg import WrenchStamped, PoseArray, Twist
 # Global variables
 # listener = None
 path = "/home/itaouil/workspace/aliengo_ws/src/aliengo_navigation/data/dataset3"
-file_object = open(path + "/com_data/odom_full.csv", "a")
+file_object = open(path + "/com_data/odom_full_acceleration_10minutes.csv", "a")
 
 
 def odomCallback(cmd_vel_msg, foot_msg, odom_msg):
@@ -188,9 +188,9 @@ def main():
     #force_rl_sub = message_filters.Subscriber("/visual/RL_foot_contact/the_force", WrenchStamped)
     #force_rr_sub = message_filters.Subscriber("/visual/RR_foot_contact/the_force", WrenchStamped)
 
-    # ts = message_filters.ApproximateTimeSynchronizer(
-    #      [cmd_vel_sub, foot_sub, force_fl_sub, force_fr_sub, force_rl_sub, force_rr_sub, odom_sub], 10, 0.01, allow_headerless=True)
-    # ts.registerCallback(callback)
+    #ts = message_filters.ApproximateTimeSynchronizer(
+    #     [cmd_vel_sub, foot_sub, force_fl_sub, force_fr_sub, force_rl_sub, force_rr_sub, odom_sub], 10, 0.01, allow_headerless=True)
+    #ts.registerCallback(callback)
 
     ts = message_filters.ApproximateTimeSynchronizer(
         [cmd_vel_sub, foot_sub, odom_sub], 10, 0.01, allow_headerless=True)
