@@ -24,7 +24,8 @@ const std::string ODOM_TOPIC("/odom");
 const std::string ROBOT_POSE_TOPIC("/base_to_footprint_pose");
 
 // Services
-const std::string HEIGHT_MAP_SERVICE_TOPIC("/elevation_mapping/get_raw_submap");
+const std::string HEIGHT_MAP_TOPIC("/elevation_mapping/elevation_map_raw");
+const std::string HEIGHT_MAP_SERVICE_TOPIC("/elevation_mapping/elevation_map_raw");
 
 // TF reference frames
 const std::string HEIGHT_MAP_REFERENCE_FRAME("odom");

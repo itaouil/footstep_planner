@@ -6,7 +6,7 @@
  *   Institute: University of Bonn, AIS lab
  */
 
-#include "search/AStar.hpp"
+#include "aStar.hpp"
 
 /**
  * Obtain yaw angle (in degrees) from

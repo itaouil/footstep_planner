@@ -24,13 +24,9 @@
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
-#include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-
-// ROS services
-#include <grid_map_msgs/GetGridMap.h>
 
 // Planner
 #include "planner.hpp"

@@ -29,7 +29,7 @@
 #include <grid_map_msgs/GetGridMap.h>
 
 // A*
-#include <search/AStar.hpp>
+#include <aStar.hpp>
 
 // Structs
 #include <structs/node.hpp>

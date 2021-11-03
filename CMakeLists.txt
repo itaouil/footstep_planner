@@ -67,7 +67,7 @@ include_directories(
         ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(navigation src/navigation.cpp src/planner.cpp src/search/AStar.cpp src/model.cpp
+add_executable(navigation src/navigation.cpp src/planner.cpp src/aStar.cpp src/model.cpp src/elevationMapProcessor.cpp
         )
 
 target_link_libraries(navigation ${catkin_LIBRARIES}

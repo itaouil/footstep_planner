@@ -10,7 +10,10 @@
 
 /**
  * Constructor
- * @param nh
+ *
+ * @param p_nh
+ * @param p_buffer
+ * @param p_tf2
  */
 Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros::TransformListener &p_tf2):
         m_nh(p_nh),
