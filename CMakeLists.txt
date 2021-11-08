@@ -23,6 +23,7 @@ find_package(catkin REQUIRED
         ${CATKIN_PACKAGE_DEPENDENCIES}
         )
 
+find_package(OpenCV 3.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 ################################################
@@ -65,12 +66,13 @@ include_directories(
         SYSTEM
         ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(navigation src/navigation.cpp src/planner.cpp src/aStar.cpp src/model.cpp src/elevationMapProcessor.cpp
         )
 
-target_link_libraries(navigation ${catkin_LIBRARIES}
+target_link_libraries(navigation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
         )
 
 ###########

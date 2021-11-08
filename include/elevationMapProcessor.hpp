@@ -25,6 +25,8 @@
 // Config file
 #include "config.hpp"
 
+using namespace std::chrono;
+
 class ElevationMapProcessor
 {
 public:
@@ -37,32 +39,34 @@ public:
      * Destructor.
      */
     virtual ~ElevationMapProcessor();
-private:
-    /**
-     * Elevation map callback.
-     *
-     * @param p_elevationMap
-     */
-    void elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMap);
 
     /**
-     * Post process elevation map
-     * in order to compute cost map.
+     * Obtain the latest processed foot costmap
+     * and the latest acquired elevation map.
      */
-    void processElevationMap();
+    std::tuple<cv::Mat, grid_map::Matrix> getCostmaps();
+private:
+    /**
+     * Elevation map callback that processes
+     * the incoming elevation map and computes
+     * the costmap.
+     *
+     * @param p_elevationMapMsg
+     */
+    void elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMapMsg);
 
     //! ROS node handle
     ros::NodeHandle m_nh;
+
+    //! ROS publishers
+    ros::Publisher m_elevationMapProcessedPublisher;
 
     //! ROS subscribers
     ros::Subscriber m_elevationMapSubscriber;
 
     //! Elevation map caches
-    std::queue<grid_map_msgs::GridMap> m_elevationMapQueue;
-    std::queue<grid_map_msgs::GridMap> m_processedElevationMapQueue;
-
-    //! Elevation map thread processor
-    std::thread m_workerThread;
+    std::queue<cv::Mat> m_footCostmaps;
+    std::queue<grid_map::Matrix> m_elevationMaps;
 
     //! Mutex for processed elevation maps queue
     std::mutex m_mutex;

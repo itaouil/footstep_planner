@@ -20,7 +20,8 @@ Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_rate(100),
         m_tf2(p_tf2),
         m_buffer(p_buffer),
-        m_planner(p_nh)
+        m_planner(p_nh),
+        m_elevationMapProcessor(p_nh)
 {
     initialize();
 }
@@ -466,8 +467,12 @@ int main(int argc, char **argv) {
     // Start navigation
     Navigation navigation(nodeHandle, l_buffer, l_tf);
 
-    // Spin
-    ros::spin();
+    // Use two threads
+    ros::AsyncSpinner l_spinner(2);
+    l_spinner.start();
+
+    ros::waitForShutdown();
+
     return 0;
 }
 

@@ -31,6 +31,12 @@ const std::string HEIGHT_MAP_SERVICE_TOPIC("/elevation_mapping/elevation_map_raw
 const std::string HEIGHT_MAP_REFERENCE_FRAME("odom");
 const std::string ROBOT_REFERENCE_FRAME("base_footprint");
 
+// Whether to publish data
+const bool PUBLISH(true);
+
+// Gradient threshold
+const unsigned short GRADIENT_THRESHOLD(90);
+
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
 

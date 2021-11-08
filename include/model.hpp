@@ -20,7 +20,6 @@
 // ROS messages
 #include <geometry_msgs/PointStamped.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <aliengo_navigation/FootstepPrediction.h>
 
 // Structs
 #include <structs/node.hpp>

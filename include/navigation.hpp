@@ -31,6 +31,9 @@
 // Planner
 #include "planner.hpp"
 
+// Elevation map processor
+#include "elevationMapProcessor.hpp"
+
 // Config file
 #include "config.hpp"
 
@@ -82,6 +85,9 @@ private:
 
     //! Planner object
     Planner m_planner;
+
+    //! Elevation map processor object
+    ElevationMapProcessor m_elevationMapProcessor;
 
     //! ROS subscribers
     ros::Subscriber m_goalSubscriber;
