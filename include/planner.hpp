@@ -83,16 +83,6 @@ private:
      */
     void getFeetConfiguration(FeetConfiguration &p_feetConfiguration);
 
-    /**
-     * Requests height elevation map from
-     * the elevation map package and populates
-     * a reference with the obtained grid map.
-     *
-     * @param p_heightMap
-     * @return if height map request was successful
-     */
-    bool getHeightMap(grid_map_msgs::GridMap &p_heightMap, const geometry_msgs::PoseStamped &p_robotPoseMapFrame);
-
     //! ROS node handle
     ros::NodeHandle m_nh;
 
@@ -104,9 +94,6 @@ private:
 
     //! TF2 listener
     tf2_ros::TransformListener m_listener;
-
-    //! ROS height map service request
-    ros::ServiceClient m_heightMapServiceClient;
 
     //! Robot pose cache
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;

@@ -22,9 +22,6 @@ Planner::Planner(ros::NodeHandle& p_nh):
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
-
-    // Height map service client
-    m_heightMapServiceClient = m_nh.serviceClient<grid_map_msgs::GetGridMap>(HEIGHT_MAP_SERVICE_TOPIC);
 }
 
 Planner::~Planner() = default;
@@ -125,37 +122,6 @@ void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
 }
 
 /**
- * Requests height elevation map from
- * the elevation map package and populates
- * a reference with the obtained grid map.
- *
- * @param p_heightMap
- * @return if height map request was successful
- */
-bool Planner::getHeightMap(grid_map_msgs::GridMap &p_heightMap, const geometry_msgs::PoseStamped &p_robotPoseMapFrame)
-{
-    // Service message passed to height map service
-    grid_map_msgs::GetGridMap l_heightMapSrv;
-    l_heightMapSrv.request.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_heightMapSrv.request.position_x = p_robotPoseMapFrame.pose.position.x;
-    l_heightMapSrv.request.position_y = p_robotPoseMapFrame.pose.position.y;
-    l_heightMapSrv.request.length_x = HEIGHT_MAP_LENGTH_X;
-    l_heightMapSrv.request.length_y = HEIGHT_MAP_LENGTH_Y;
-    l_heightMapSrv.request.layers.push_back(std::string("elevation"));
-
-    // Call height map service request
-    if (m_heightMapServiceClient.call(l_heightMapSrv))
-    {
-        p_heightMap = l_heightMapSrv.response.map;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-/**
  * Plans path from start to goal.
  *
  * @param std
@@ -186,23 +152,6 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     ROS_INFO_STREAM("Time took to transform robot pose: " << duration_cast<microseconds>(t2 - t1).count() << "micros");
 
     ROS_DEBUG_STREAM("Robot pose in map frame: " << l_robotPoseMapFrame);
-
-    // Request height map
-    grid_map_msgs::GridMap l_heightMap;
-    if (!getHeightMap(l_heightMap, l_robotPoseMapFrame))
-    {
-        ROS_WARN("Planner: Height map request failed. Skipping planning request");
-        return;
-    }
-    else
-    {
-        // Set grid origin for the search conversion
-        m_search.setGridOrigin(l_heightMap.info.pose.position.x, l_heightMap.info.pose.position.y);
-
-        //TODO: Set remaining search parameters (grid size, etc)
-
-        ROS_INFO("Planner: Height map request succeeded. Initial search parameters set.");
-    }
 
     auto t3 = high_resolution_clock::now();
     ROS_INFO_STREAM("Time took to request grid map: " << duration_cast<milliseconds>(t3 - t2).count() << "millis");

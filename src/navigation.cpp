@@ -45,17 +45,17 @@ void Navigation::initialize()
     m_odomCache.setCacheSize(CACHE_SIZE);
 
     // Path publishers
-    m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(TARGET_PATH_TOPIC, 1);
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_PATH_TOPIC, 1);
+    m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(TARGET_PATH_TOPIC, 1);
 
     // Velocity command publisher
     m_velocityPublisher = m_nh.advertise<geometry_msgs::Twist>(VELOCITY_CMD_TOPIC, 10);
 
-    // Feet configuration marker array publisher
-    m_targetFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(TARGET_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
-
     // Target goal subscriber
     m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::planHeightMapPath, this);
+
+    // Feet configuration marker array publisher
+    m_targetFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(TARGET_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 }
 
 /**
@@ -366,17 +366,21 @@ void Navigation::publishPredictedFootstepSequence(const std::vector<Node> &p_pat
         tf2::doTransform(l_rlFootConfiguration, l_rlFootConfigurationRotated, l_rotationTransform);
         tf2::doTransform(l_rrFootConfiguration, l_rrFootConfigurationRotated, l_rotationTransform);
 
-//            ROS_INFO_STREAM("Action: " << l_node.action.x * l_node.velocity << ", "
-//                                            << l_node.action.y * l_node.velocity << ", "
-//                                            << l_node.action.theta * l_node.velocity);
-//            ROS_INFO_STREAM("Predicted FL position: " << l_node.feetConfiguration.flCoM.x << ", "
-//                                                      << l_node.feetConfiguration.flCoM.y);
-//            ROS_INFO_STREAM("Predicted FR position: " << l_node.feetConfiguration.frCoM.x << ", "
-//                                                      << l_node.feetConfiguration.frCoM.y);
-//            ROS_INFO_STREAM("Predicted RL position: " << l_node.feetConfiguration.rlCoM.x << ", "
-//                                                      << l_node.feetConfiguration.rlCoM.y);
-//            ROS_INFO_STREAM("Predicted RR position: " << l_node.feetConfiguration.rrCoM.x << ", "
-//                                                      << l_node.feetConfiguration.rrCoM.y << "\n");
+        ROS_DEBUG_STREAM("Action: " << l_node.action.x * l_node.velocity << ", "
+                                         << l_node.action.y * l_node.velocity << ", "
+                                         << l_node.action.theta * l_node.velocity);
+
+        ROS_DEBUG_STREAM("Predicted FL position: " << l_node.feetConfiguration.flCoM.x << ", "
+                                                        << l_node.feetConfiguration.flCoM.y);
+
+        ROS_DEBUG_STREAM("Predicted FR position: " << l_node.feetConfiguration.frCoM.x << ", "
+                                                        << l_node.feetConfiguration.frCoM.y);
+
+        ROS_DEBUG_STREAM("Predicted RL position: " << l_node.feetConfiguration.rlCoM.x << ", "
+                                                        << l_node.feetConfiguration.rlCoM.y);
+
+        ROS_DEBUG_STREAM("Predicted RR position: " << l_node.feetConfiguration.rrCoM.x << ", "
+                                                        << l_node.feetConfiguration.rrCoM.y << "\n");
 
         // Populate array
         visualization_msgs::Marker l_footCommonMarker;

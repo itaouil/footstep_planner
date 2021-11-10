@@ -14,7 +14,8 @@
  * @param p_nh
  */
 ElevationMapProcessor::ElevationMapProcessor(ros::NodeHandle &p_nh):
-    m_nh(p_nh)
+    m_nh(p_nh),
+    m_setElevationMapParameters(false)
 {
     // Processed elevation map publisher
     m_elevationMapProcessedPublisher = m_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
@@ -38,6 +39,26 @@ ElevationMapProcessor::~ElevationMapProcessor() = default;
  */
 void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMapMsg)
 {
+    // Only set the resolution and the
+    // map grid sizes once as these are
+    // static and don't change at runtime
+    if (!m_setElevationMapParameters)
+    {
+        m_elevationMapGridResolution = p_elevationMapMsg.info.resolution;
+        m_elevationMapGridSizeX = static_cast<unsigned int>(
+                p_elevationMapMsg.info.length_x / m_elevationMapGridResolution);
+        m_elevationMapGridSizeY = static_cast<unsigned int>(
+                p_elevationMapMsg.info.length_y / m_elevationMapGridResolution);
+
+        m_setElevationMapParameters = true;
+    }
+
+    // Always reset the grid map origin
+    // as it keeps changing while the
+    // robot moves
+    m_elevationMapGridOriginX = p_elevationMapMsg.info.pose.position.x;
+    m_elevationMapGridOriginY = p_elevationMapMsg.info.pose.position.y;
+
     // Convert grid_map_msgs to grid_map
     auto t0 = high_resolution_clock::now();
     grid_map::GridMap l_elevationMap;
@@ -177,6 +198,26 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
 }
 
 /**
+ * Check if predicted feet configuration
+ * is valid (i.e. stepping on valid terrain).
+ *
+ * @param p_row
+ * @param p_col
+ * @return true if valid, otherwise false
+ */
+bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p_col)
+{
+    // Obtain latest costmap
+    cv::Mat l_latestCostmap;
+    {
+        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        l_latestCostmap = m_footCostmaps.back();
+    }
+
+    return static_cast<bool>(l_latestCostmap.at<float>(p_row, p_col));
+}
+
+/**
  * Obtain latest processed costmap.
  */
 std::tuple<cv::Mat, grid_map::Matrix> ElevationMapProcessor::getCostmaps()
@@ -184,5 +225,50 @@ std::tuple<cv::Mat, grid_map::Matrix> ElevationMapProcessor::getCostmaps()
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         return std::make_tuple(m_footCostmaps.back(), m_elevationMaps.back());
+    }
+}
+
+/**
+ * Obtain the elevation map parameters,
+ * including the grid resolution and its
+ * sizes.
+ *
+ * @param p_elevationMapGridOriginX
+ * @param p_elevationMapGridOriginY
+ * @param p_elevationMapGridResolution
+ * @param p_elevationMapGridSizeX
+ * @param p_elevationMapGridSizeY
+ */
+void ElevationMapProcessor::getElevationMapParameters(double &p_elevationMapGridOriginX,
+                                                      double &p_elevationMapGridOriginY,
+                                                      double &p_elevationMapGridResolution,
+                                                      unsigned int &p_elevationMapGridSizeX,
+                                                      unsigned int &p_elevationMapGridSizeY)
+{
+    {
+        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        p_elevationMapGridOriginX = m_elevationMapGridOriginX;
+        p_elevationMapGridOriginY = m_elevationMapGridOriginY;
+        p_elevationMapGridResolution = m_elevationMapGridResolution;
+        p_elevationMapGridSizeX = m_elevationMapGridSizeX;
+        p_elevationMapGridSizeY = m_elevationMapGridSizeY;
+    }
+}
+
+/**
+ * Obtain the latest grid map origin
+ * as it updates upon every robot
+ * displacement.
+ *
+ * @param p_elevationMapGridOriginX
+ * @param p_elevationMapGridOriginY
+ */
+void ElevationMapProcessor::getUpdatedElevationMapGridOrigin(double &p_elevationMapGridOriginX,
+                                                             double &p_elevationMapGridOriginY)
+{
+    {
+        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        p_elevationMapGridOriginX = m_elevationMapGridOriginX;
+        p_elevationMapGridOriginY = m_elevationMapGridOriginY;
     }
 }

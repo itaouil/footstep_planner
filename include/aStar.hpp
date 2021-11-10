@@ -17,6 +17,9 @@
 // Robot model
 #include <model.hpp>
 
+// Elevation map processor
+#include <elevationMapProcessor.hpp>
+
 // Structs
 #include <structs/node.hpp>
 #include <structs/vec2D.hpp>
@@ -29,34 +32,13 @@
 namespace AStar
 {
     /**
-     * Obtain yaw angle from
-     * respective quaternion rotation.
-     *
-     * @param p_quaternion
-     * @return yaw angle from quaternion
-     */
+      * Obtain yaw angle from
+      * respective quaternion rotation.
+      *
+      * @param p_quaternion
+      * @return yaw angle from quaternion
+      */
     double getYawFromQuaternion(const tf2::Quaternion &p_quaternion);
-
-    /**
-     * Convert from grid coordinates to world coordinates.
-     *
-     * @param p_originX
-     * @param p_originY
-     * @param p_gridCoordinates
-     * @param p_worldCoordinates
-     */
-    void gridToWorld(double p_originX, double p_originY, const Vec2D &p_gridCoordinates, World2D &p_worldCoordinates);
-
-    /**
-     * Convert from world coordinates to grid coordinates.
-     *
-     * @param p_originX
-     * @param p_originY
-     * @param p_worldCoordinates
-     * @param p_gridCoordinates
-     * @return if conversion is successful
-     */
-    bool worldToGrid(double p_originX, double p_originY, const World2D &p_worldCoordinates, Vec2D &p_gridCoordinates);
 
     class Search
     {
@@ -72,14 +54,6 @@ namespace AStar
         virtual ~Search();
 
         /**
-         * Sets grid origin in static reference frame.
-         *
-         * @param p_originX
-         * @param origin_y
-         */
-        void setGridOrigin(double p_originX, double p_originY);
-
-        /**
          * Find path from source to target
          * in a given height map.
          *
@@ -92,14 +66,6 @@ namespace AStar
                                    const World2D &p_targetWorldCoordinates,
                                    const FeetConfiguration &p_sourceFeetConfiguration);
     private:
-        /**
-         * Set grid map size.
-         *
-         * @param p_dimensionX
-         * @param p_dimensionY
-         */
-        void setGridSize(unsigned int p_dimensionX, unsigned int p_dimensionY);
-
         /**
          * Sets whether the search uses a 4
          * or 8 neighbor expansion of the nodes.
@@ -171,22 +137,59 @@ namespace AStar
         bool withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
                                    const Vec2D &p_targetGridCoordinates);
 
+        /**
+         * Convert from grid coordinates to world coordinates.
+         *
+         * @param p_gridCoordinates
+         * @param p_worldCoordinates
+         */
+        void gridToWorld(const Vec2D &p_gridCoordinates, World2D &p_worldCoordinates);
+
+        /**
+         * Convert from world coordinates to grid coordinates.
+         *
+         * @param p_worldCoordinates
+         * @param p_gridCoordinates
+         * @return if conversion is successful
+         */
+        bool worldToGrid(const World2D &p_worldCoordinates, Vec2D &p_gridCoordinates) const;
+
+        /**
+         * Transform feet configuration
+         * from CoM frame to map frame.
+         *
+         * @param p_newFeetConfiguration
+         */
+        void transformCoMFeetConfigurationToMap(const FeetConfiguration &p_newFeetConfigurationCoM,
+                                                FeetConfiguration &p_newFeetConfigurationMap);
+
         //! Robot model
         Model m_model;
 
-        //! Grid map size
-        Vec2D m_gridSize;
+        //! TF2 buffer
+        tf2_ros::Buffer m_buffer;
 
+        //! TF2 listener
+        tf2_ros::TransformListener m_listener;
 
-        //! Grid map origin
-        double m_gridOriginX;
+        //! Elevation map processor (collisions, foothold validity)
+        ElevationMapProcessor m_elevationMapProcessor;
 
-        double m_gridOriginY;
+        //! Elevation map parameters
+        double m_elevationMapGridOriginX{};
+        double m_elevationMapGridOriginY{};
+        double m_elevationMapGridResolution{};
+        unsigned int m_elevationMapGridSizeX{};
+        unsigned int m_elevationMapGridSizeY{};
+
         //! Allowed actions in the search
         std::vector<Action> m_actions;
 
         //! Number of available actions
-        unsigned int m_numberOfActions;
+        unsigned int m_numberOfActions{};
+
+        //! Number of footsteps to plan for
+        const unsigned int m_footstepHorizon{};
 
         //! Velocities
         std::vector<double> m_velocities;

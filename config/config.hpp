@@ -40,16 +40,12 @@ const unsigned short GRADIENT_THRESHOLD(90);
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
 
-// Grid map service parameters
-const unsigned int HEIGHT_MAP_LENGTH_X(7);
-const unsigned int HEIGHT_MAP_LENGTH_Y(7);
-
 // Height map acquiring flag
 const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 
 // Planner parameters
 const double TIMESTAMP(0.325);
 const bool SET_DIAGONAL_MOVEMENT(false);
-const double HEIGHT_MAP_RESOLUTION(0.04);
-const int HEIGHT_MAP_GRID_SIZE_X(static_cast<int>(HEIGHT_MAP_LENGTH_X / HEIGHT_MAP_RESOLUTION) + 1);
-const int HEIGHT_MAP_GRID_SIZE_Y(static_cast<int>(HEIGHT_MAP_LENGTH_Y / HEIGHT_MAP_RESOLUTION) + 1);
+
+// Footstep horizon
+const unsigned int FOOTSTEP_HORIZON(5);
