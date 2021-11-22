@@ -13,10 +13,9 @@
  *
  * @param p_nh
  */
-ElevationMapProcessor::ElevationMapProcessor(ros::NodeHandle &p_nh):
-    m_nh(p_nh),
-    m_setElevationMapParameters(false)
-{
+ElevationMapProcessor::ElevationMapProcessor(ros::NodeHandle &p_nh) :
+        m_nh(p_nh),
+        m_setElevationMapParameters(false) {
     // Publishers
     m_elevationMapPublisher = m_nh.advertise<grid_map_msgs::GridMap>("elevation_processed", 1);
     m_costmapPublisher = m_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1);
@@ -38,13 +37,11 @@ ElevationMapProcessor::~ElevationMapProcessor() = default;
  *
  * @param p_elevationMap
  */
-void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMapMsg)
-{
+void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMapMsg) {
     // Only set the resolution and the
     // map grid sizes once as these are
     // static and don't change at runtime
-    if (!m_setElevationMapParameters)
-    {
+    if (!m_setElevationMapParameters) {
         m_elevationMapGridResolution = p_elevationMapMsg.info.resolution;
         m_elevationMapGridSizeX = static_cast<unsigned int>(
                 p_elevationMapMsg.info.length_x / m_elevationMapGridResolution);
@@ -61,34 +58,27 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     m_elevationMapGridOriginY = p_elevationMapMsg.info.pose.position.y;
 
     // Convert grid_map_msgs to grid_map
-    auto t0 = high_resolution_clock::now();
     grid_map::GridMap l_elevationMap;
-    if (!grid_map::GridMapRosConverter::fromMessage(p_elevationMapMsg, l_elevationMap))
-    {
+    if (!grid_map::GridMapRosConverter::fromMessage(p_elevationMapMsg, l_elevationMap)) {
         ROS_ERROR("ElevationMapProcessor: Could not convert grid_map_msgs to grid_map.");
     }
-    auto t1 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to convert grid_map_msgs to grid_map: " << duration_cast<microseconds>(t1 - t0).count() << "micros");
 
     // Convert elevation map to OpenCV
     cv::Mat l_elevationMapImage;
     if (!grid_map::GridMapCvConverter::toImage<unsigned char, 1>(l_elevationMap,
                                                                  "elevation_inpainted",
                                                                  CV_8UC1,
-                                                                 l_elevationMap.get("elevation_inpainted").minCoeffOfFinites(),
-                                                                 l_elevationMap.get("elevation_inpainted").maxCoeffOfFinites(),
-                                                                 l_elevationMapImage))
-    {
+                                                                 l_elevationMap.get(
+                                                                         "elevation_inpainted").minCoeffOfFinites(),
+                                                                 l_elevationMap.get(
+                                                                         "elevation_inpainted").maxCoeffOfFinites(),
+                                                                 l_elevationMapImage)) {
         ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
     }
-    auto t2 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to convert grid_map to opencv mat: " << duration_cast<microseconds>(t2 - t1).count() << "micros");
 
     // Blur elevation map image to reduce noise
     cv::Mat l_elevationMapBlurred;
-    cv::GaussianBlur(l_elevationMapImage, l_elevationMapBlurred, cv::Size(3,3), 0, 0);
-    auto t3 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to blur image: " << duration_cast<microseconds>(t3 - t2).count() << "micros");
+    cv::GaussianBlur(l_elevationMapImage, l_elevationMapBlurred, cv::Size(3, 3), 0, 0);
 
 //    cv::imshow("Original Image", l_elevationMapImage);
 //    cv::imshow("Blurred Image", l_elevationMapBlurred);
@@ -119,20 +109,14 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     cv::Mat l_sobelX, l_sobelY;
     cv::Sobel(l_elevationMapImage, l_sobelX, CV_32F, 1, 0, 3);
     cv::Sobel(l_elevationMapImage, l_sobelY, CV_32F, 0, 1, 3);
-    auto t4 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to compute x and y gradients: " << duration_cast<microseconds>(t4 - t3).count() << "micros");
 
     // Build overall filter result by combining the previous results
     cv::Mat l_sobelMagnitude;
     cv::magnitude(l_sobelX, l_sobelY, l_sobelMagnitude);
-    auto t5 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to compute gradients magnitude: " << duration_cast<microseconds>(t5 - t4).count() << "micros");
 
     // Set costmap traversability based on computed gradients
     cv::Mat l_costmap;
     cv::threshold(l_sobelMagnitude, l_costmap, GRADIENT_THRESHOLD, 1, cv::THRESH_BINARY);
-    auto t6 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to compute costmap: " << duration_cast<microseconds>(t6 - t5).count() << "micros");
 
     // Flip costmap around the horizontal
     // axis and subsequently rotate it to
@@ -142,16 +126,13 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     cv::Mat l_costmapRotated;
     cv::flip(l_costmap, l_costmapFlipped, 1);
     cv::rotate(l_costmapFlipped, l_costmapRotated, cv::ROTATE_90_CLOCKWISE);
-    auto t7 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to flip and rotate costmap: " << duration_cast<microseconds>(t7 - t6).count() << "micros");
 
     // Add new costmaps and the relative
     // elevation map eigen matrix
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
 
-        if (m_footCostmaps.size() > 4)
-        {
+        if (m_footCostmaps.size() > 4) {
             m_footCostmaps.pop();
             m_elevationMaps.pop();
         }
@@ -160,18 +141,15 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         m_elevationMaps.push(l_elevationMap.get("elevation_inpainted"));
     }
 
-    auto t8 = high_resolution_clock::now();
-//    ROS_INFO_STREAM("Time took to push costmap and clean queue: " << duration_cast<microseconds>(t8 - t7).count() << "micros");
-//    ROS_INFO_STREAM("Overall time took for costmap computation: " << duration_cast<microseconds>(t8 - t0).count() << "micros");
-
-    if (PUBLISH)
-    {
+    if (PUBLISH) {
         std::vector<float> l_data;
         if (l_costmapRotated.isContinuous()) {
-            l_data.assign((float*)l_costmapRotated.data, (float*)l_costmapRotated.data + l_costmapRotated.total()*l_costmapRotated.channels());
+            l_data.assign((float *) l_costmapRotated.data,
+                          (float *) l_costmapRotated.data + l_costmapRotated.total() * l_costmapRotated.channels());
         } else {
             for (int i = 0; i < l_sobelMagnitude.rows; ++i) {
-                l_data.insert(l_data.end(), l_costmapRotated.ptr<float>(i), l_costmapRotated.ptr<float>(i)+l_costmapRotated.cols*l_costmapRotated.channels());
+                l_data.insert(l_data.end(), l_costmapRotated.ptr<float>(i),
+                              l_costmapRotated.ptr<float>(i) + l_costmapRotated.cols * l_costmapRotated.channels());
             }
         }
 
@@ -179,24 +157,23 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         nav_msgs::OccupancyGrid l_occupancyGrid;
         l_occupancyGrid.header = p_elevationMapMsg.info.header;
         l_occupancyGrid.info.resolution = static_cast<float>(p_elevationMapMsg.info.resolution);
-        l_occupancyGrid.info.width = static_cast<int>(p_elevationMapMsg.info.length_x / l_occupancyGrid.info.resolution);
-        l_occupancyGrid.info.height = static_cast<int>(p_elevationMapMsg.info.length_y / l_occupancyGrid.info.resolution);
-        l_occupancyGrid.info.origin.position.x = p_elevationMapMsg.info.pose.position.x - p_elevationMapMsg.info.length_x/2;
-        l_occupancyGrid.info.origin.position.y = p_elevationMapMsg.info.pose.position.y - p_elevationMapMsg.info.length_y/2;
+        l_occupancyGrid.info.width = static_cast<int>(p_elevationMapMsg.info.length_x /
+                                                      l_occupancyGrid.info.resolution);
+        l_occupancyGrid.info.height = static_cast<int>(p_elevationMapMsg.info.length_y /
+                                                       l_occupancyGrid.info.resolution);
+        l_occupancyGrid.info.origin.position.x =
+                p_elevationMapMsg.info.pose.position.x - p_elevationMapMsg.info.length_x / 2;
+        l_occupancyGrid.info.origin.position.y =
+                p_elevationMapMsg.info.pose.position.y - p_elevationMapMsg.info.length_y / 2;
         l_occupancyGrid.info.origin.position.z = 0.0;
 
         // Populate occupancy grid (for visualization purposes only)
-        for (auto i : l_data) {
+        for (auto &i: l_data) {
             if (static_cast<int>(i) > 0)
                 l_occupancyGrid.data.push_back(100);
             else
                 l_occupancyGrid.data.push_back(0);
         }
-
-        ROS_INFO_STREAM("Elevation map in_painted layer size: " << l_elevationMap.get("elevation_inpainted").rows() << ", "  << l_elevationMap.get("elevation_inpainted").cols());
-        ROS_INFO_STREAM("Elevation map color layer size: " << l_elevationMap.get("color").rows() << ", "  << l_elevationMap.get("color").cols());
-        ROS_INFO_STREAM("Orig costmap size: " << l_costmap.rows << ", " << l_costmap.cols);
-        ROS_INFO_STREAM("Rotate and flipped costmap size: " << l_costmapRotated.rows << ", " << l_costmapRotated.cols);
 
         // Create color layer to visualize
         // costmap on the elevation layer
@@ -209,7 +186,7 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
-                // Unsteppable cell
+                    // Unsteppable cell
                 else {
                     l_colorLayerBGR(i, j)[0] = 0;
                     l_colorLayerBGR(i, j)[1] = 172;
@@ -218,16 +195,14 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
             }
         }
 
-        // Add color layer to elevation map
-        // based on the costmap value
-        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR, "color", l_elevationMap);
-//        ROS_INFO_STREAM("Color layer: " << l_elevationMap.get("color"));
+        // Add color layer
+        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR, "color",
+                                                                               l_elevationMap);
 
         // Publish occupancy grid
         m_costmapPublisher.publish(l_occupancyGrid);
 
-        // Publish colored elevation map based
-        // on computed foot costmap
+        // Publish elevation map with colored layer
         grid_map_msgs::GridMap l_newElevationMapMsg;
         grid_map::GridMapRosConverter::toMessage(l_elevationMap, l_newElevationMapMsg);
         m_elevationMapPublisher.publish(l_newElevationMapMsg);
@@ -242,8 +217,7 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
  * @param p_col
  * @return true if valid, otherwise false
  */
-bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p_col)
-{
+bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p_col) {
     // Obtain latest costmap
     cv::Mat l_latestCostmap;
     {
@@ -257,8 +231,7 @@ bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p
 /**
  * Obtain latest processed costmap.
  */
-std::tuple<cv::Mat, grid_map::Matrix> ElevationMapProcessor::getCostmaps()
-{
+std::tuple<cv::Mat, grid_map::Matrix> ElevationMapProcessor::getCostmaps() {
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         return std::make_tuple(m_footCostmaps.back(), m_elevationMaps.back());
@@ -280,8 +253,7 @@ void ElevationMapProcessor::getElevationMapParameters(double &p_elevationMapGrid
                                                       double &p_elevationMapGridOriginY,
                                                       double &p_elevationMapGridResolution,
                                                       unsigned int &p_elevationMapGridSizeX,
-                                                      unsigned int &p_elevationMapGridSizeY)
-{
+                                                      unsigned int &p_elevationMapGridSizeY) {
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         p_elevationMapGridOriginX = m_elevationMapGridOriginX;
@@ -301,8 +273,7 @@ void ElevationMapProcessor::getElevationMapParameters(double &p_elevationMapGrid
  * @param p_elevationMapGridOriginY
  */
 void ElevationMapProcessor::getUpdatedElevationMapGridOrigin(double &p_elevationMapGridOriginX,
-                                                             double &p_elevationMapGridOriginY)
-{
+                                                             double &p_elevationMapGridOriginY) {
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         p_elevationMapGridOriginX = m_elevationMapGridOriginX;
