@@ -118,5 +118,6 @@ private:
     ros::Subscriber m_elevationMapSubscriber;
 
     //! ROS publishers
-    ros::Publisher m_elevationMapProcessedPublisher;
+    ros::Publisher m_costmapPublisher;
+    ros::Publisher m_elevationMapPublisher;
 };

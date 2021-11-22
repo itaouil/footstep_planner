@@ -17,8 +17,9 @@ ElevationMapProcessor::ElevationMapProcessor(ros::NodeHandle &p_nh):
     m_nh(p_nh),
     m_setElevationMapParameters(false)
 {
-    // Processed elevation map publisher
-    m_elevationMapProcessedPublisher = m_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
+    // Publishers
+    m_elevationMapPublisher = m_nh.advertise<grid_map_msgs::GridMap>("elevation_processed", 1);
+    m_costmapPublisher = m_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1);
 
     // Elevation map subscriber
     m_elevationMapSubscriber = m_nh.subscribe(HEIGHT_MAP_TOPIC,
@@ -192,8 +193,44 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
                 l_occupancyGrid.data.push_back(0);
         }
 
+        ROS_INFO_STREAM("Elevation map in_painted layer size: " << l_elevationMap.get("elevation_inpainted").rows() << ", "  << l_elevationMap.get("elevation_inpainted").cols());
+        ROS_INFO_STREAM("Elevation map color layer size: " << l_elevationMap.get("color").rows() << ", "  << l_elevationMap.get("color").cols());
+        ROS_INFO_STREAM("Orig costmap size: " << l_costmap.rows << ", " << l_costmap.cols);
+        ROS_INFO_STREAM("Rotate and flipped costmap size: " << l_costmapRotated.rows << ", " << l_costmapRotated.cols);
+
+        // Create color layer to visualize
+        // costmap on the elevation layer
+        cv::Mat3b l_colorLayerBGR(l_costmap.rows, l_costmap.cols, CV_8UC3);
+        for (int i = 0; i < l_costmap.rows; i++) {
+            for (int j = 0; j < l_costmap.cols; j++) {
+                // Steppable cell
+                if (static_cast<int>(l_costmap.at<float>(i, j)) == 1) {
+                    l_colorLayerBGR(i, j)[0] = 172;
+                    l_colorLayerBGR(i, j)[1] = 0;
+                    l_colorLayerBGR(i, j)[2] = 0;
+                }
+                // Unsteppable cell
+                else {
+                    l_colorLayerBGR(i, j)[0] = 0;
+                    l_colorLayerBGR(i, j)[1] = 172;
+                    l_colorLayerBGR(i, j)[2] = 0;
+                }
+            }
+        }
+
+        // Add color layer to elevation map
+        // based on the costmap value
+        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR, "color", l_elevationMap);
+//        ROS_INFO_STREAM("Color layer: " << l_elevationMap.get("color"));
+
         // Publish occupancy grid
-        m_elevationMapProcessedPublisher.publish(l_occupancyGrid);
+        m_costmapPublisher.publish(l_occupancyGrid);
+
+        // Publish colored elevation map based
+        // on computed foot costmap
+        grid_map_msgs::GridMap l_newElevationMapMsg;
+        grid_map::GridMapRosConverter::toMessage(l_elevationMap, l_newElevationMapMsg);
+        m_elevationMapPublisher.publish(l_newElevationMapMsg);
     }
 }
 

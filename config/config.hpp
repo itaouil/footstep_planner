@@ -35,7 +35,7 @@ const std::string ROBOT_REFERENCE_FRAME("base_footprint");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const unsigned short GRADIENT_THRESHOLD(90);
+const unsigned short GRADIENT_THRESHOLD(70);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
