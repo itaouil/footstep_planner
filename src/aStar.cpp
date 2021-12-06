@@ -390,7 +390,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
             }
         }
 
-        // Target is the expanded node break condition
+        // Stop search if target node has been expanded
         if (l_currentNode->gridCoordinates == l_targetGridCoordinates)
         {
             ROS_INFO("Search: Target goal found");
@@ -403,6 +403,9 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 //            break;
 //        }
 
+        // Push to closed set the currently
+        // expanded node delete its iterator
+        // from the open set
         l_closedSet.push_back(l_currentNode);
         l_openSet.erase(l_iterator);
 
@@ -471,7 +474,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     FeetConfiguration l_newFeetConfigurationMap;
                     transformCoMFeetConfigurationToMap(l_newFeetConfigurationCoM, l_newFeetConfigurationMap);
 
-                    // Convert footholds to grid indeces
+                    // Convert footholds to grid indices
                     Vec2D l_flGridPose{};
                     Vec2D l_frGridPose{};
                     Vec2D l_rlGridPose{};
