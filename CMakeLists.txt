@@ -26,22 +26,6 @@ find_package(catkin REQUIRED
 find_package(OpenCV 3.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## Generate services in the 'srv' folder
-add_service_files(
-        FILES
-        FootstepPrediction.srv
-)
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-        DEPENDENCIES
-        std_msgs
-)
-
 ###################################
 ## catkin specific configuration ##
 ###################################

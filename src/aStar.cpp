@@ -345,8 +345,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     // Number of expanded nodes so far
     unsigned int l_expandedNodes = 0;
 
-    // Convert source and target world
-    // coordinates to grid coordinates
+    // Convert source and target world coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
     Vec2D l_targetGridCoordinates{};
     worldToGrid(p_sourceWorldCoordinates,l_sourceGridCoordinates);
@@ -355,8 +354,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     ROS_DEBUG_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", " << l_sourceGridCoordinates.y);
     ROS_DEBUG_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", " << l_targetGridCoordinates.y);
 
-    // Create open and closed sets
-    // for the search process
+    // Create open and closed sets for the search process
     std::vector<Node*> l_openSet, l_closedSet;
     l_openSet.reserve(100);
     l_closedSet.reserve(100);
@@ -403,22 +401,21 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 //            break;
 //        }
 
-        // Push to closed set the currently
-        // expanded node delete its iterator
-        // from the open set
+        // Push to closed set the currently expanded
+        // node and delete its iterator from the open set
         l_closedSet.push_back(l_currentNode);
         l_openSet.erase(l_iterator);
 
-        for (double & l_velocity : m_velocities)
+        for (double & l_nextVelocity : m_velocities)
         {
             for (unsigned int i = 0; i < m_numberOfActions; ++i)
             {
-                // Start feet configuration
+                // Next robot state
                 FeetConfiguration l_currentFeetConfiguration;
 
-                ROS_DEBUG_STREAM("AStar: Action: " << m_actions[i].x * l_velocity << ", "
-                                                        << m_actions[i].y * l_velocity<< ", "
-                                                        << m_actions[i].theta * l_velocity);
+                ROS_DEBUG_STREAM("AStar: Action: " << m_actions[i].x * l_nextVelocity << ", "
+                                                   << m_actions[i].y * l_nextVelocity<< ", "
+                                                   << m_actions[i].theta * l_nextVelocity);
 
                 // If different action than previous one
                 // (and not starting node) start from an
@@ -441,12 +438,14 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                 // Predict new CoM and feet configuration
                 World2D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfigurationCoM;
-                m_model.predictNewConfiguration(l_velocity,
-                                                m_actions[i],
-                                                l_currentNode->worldCoordinates,
-                                                l_currentFeetConfiguration,
-                                                l_newFeetConfigurationCoM,
-                                                l_newWorldCoordinatesCoM);
+                m_model.predictNextState(l_currentNode->velocity != l_nextVelocity,
+                                         l_currentNode->velocity,
+                                         l_nextVelocity,
+                                         m_actions[i],
+                                         l_currentNode->worldCoordinates,
+                                         l_currentFeetConfiguration,
+                                         l_newFeetConfigurationCoM,
+                                         l_newWorldCoordinatesCoM);
 
                 ROS_DEBUG_STREAM("AStar: New world coordinates: " << l_newWorldCoordinatesCoM.x << ", "
                                                                        << l_newWorldCoordinatesCoM.y);
@@ -459,7 +458,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                 // or is outside the grid map boundaries
                 if (detectCollision(l_newGridCoordinatesCoM) || findNodeOnList(l_closedSet,
                                                                                m_actions[i],
-                                                                               l_velocity,
+                                                                               l_nextVelocity,
                                                                                l_newGridCoordinatesCoM,
                                                                                l_newWorldCoordinatesCoM.q))
                 {
@@ -493,7 +492,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     }
                 }
 
-                ROS_DEBUG_STREAM("Current velocity: " << l_velocity);
+                ROS_DEBUG_STREAM("Current velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Current action: " << m_actions[i].x << ", "
                                                     << m_actions[i].y << ", "
                                                     << m_actions[i].theta);
@@ -505,7 +504,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 
                 Node *successor = findNodeOnList(l_openSet,
                                                  m_actions[i],
-                                                 l_velocity,
+                                                 l_nextVelocity,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
                 if (successor == nullptr)
@@ -516,7 +515,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                          l_newFeetConfigurationCoM,
                                          l_currentNode);
                     successor->G = totalCost;
-                    successor->velocity = l_velocity;
+                    successor->velocity = l_nextVelocity;
                     successor->H = m_heuristic(*successor, Node{Action{0, 0, 0},
                                                                 l_targetGridCoordinates,
                                                                 p_targetWorldCoordinates,
@@ -526,7 +525,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                 else if (totalCost < successor->G)
                 {
                     successor->G = totalCost;
-                    successor->velocity = l_velocity;
+                    successor->velocity = l_nextVelocity;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;

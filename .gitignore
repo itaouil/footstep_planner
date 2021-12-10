@@ -5,6 +5,9 @@
 # Datasets
 data/dataset*
 
+# Stupid idea
+.idea
+
 # Models
 models
 
