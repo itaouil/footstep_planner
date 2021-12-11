@@ -76,39 +76,18 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
     }
 
-    // Blur elevation map image to reduce noise
-    cv::Mat l_elevationMapBlurred;
-    cv::GaussianBlur(l_elevationMapImage, l_elevationMapBlurred, cv::Size(3, 3), 0, 0);
-
-//    cv::imshow("Original Image", l_elevationMapImage);
-//    cv::imshow("Blurred Image", l_elevationMapBlurred);
-//    cv::waitKey(0);
-
-    // Change possible NaN values in the map to 0
-//    cv::patchNaNs(l_elevationMapImage, 0.0);
-
-//    cv::imshow("Elevation Map OpenCV image (nans patched)", l_elevationMapImage);
-//    cv::waitKey(0);
-
     // Dilate elevation map image to fill sparse regions
-//    cv::Mat l_elevationMapImageDilated;
-//    cv::dilate(l_elevationMapImage, l_elevationMapImageDilated, cv::Mat());
-//
-//    cv::imshow("Elevation Map OpenCV image (dilated)", l_elevationMapImageDilated);
-//    cv::waitKey(0);
+    cv::Mat l_elevationMapImageDilated;
+    cv::dilate(l_elevationMapImage, l_elevationMapImageDilated, cv::Mat());
 
     // Erode elevation map to eliminate extraneous sensor returns
-//    cv::Mat l_elevationMapImageEroded;
-//    cv::dilate(l_elevationMapImageDilated, l_elevationMapImageEroded, cv::Mat());
-//
-//    cv::imshow("Elevation Map OpenCV image (eroded)", l_elevationMapImageEroded);
-//    cv::waitKey(0);
-//
+    cv::Mat l_elevationMapImageEroded;
+    cv::erode(l_elevationMapImageDilated, l_elevationMapImageEroded, cv::Mat());
 
     // Apply sobel filter to elevation map image
     cv::Mat l_sobelX, l_sobelY;
-    cv::Sobel(l_elevationMapImage, l_sobelX, CV_32F, 1, 0, 3);
-    cv::Sobel(l_elevationMapImage, l_sobelY, CV_32F, 0, 1, 3);
+    cv::Sobel(l_elevationMapImageEroded, l_sobelX, CV_32F, 1, 0, 3);
+    cv::Sobel(l_elevationMapImageEroded, l_sobelY, CV_32F, 0, 1, 3);
 
     // Build overall filter result by combining the previous results
     cv::Mat l_sobelMagnitude;
@@ -180,13 +159,13 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         cv::Mat3b l_colorLayerBGR(l_costmap.rows, l_costmap.cols, CV_8UC3);
         for (int i = 0; i < l_costmap.rows; i++) {
             for (int j = 0; j < l_costmap.cols; j++) {
-                // Steppable cell
+                // Unsteppable cell
                 if (static_cast<int>(l_costmap.at<float>(i, j)) == 1) {
                     l_colorLayerBGR(i, j)[0] = 172;
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
-                    // Unsteppable cell
+                // Steppable cell
                 else {
                     l_colorLayerBGR(i, j)[0] = 0;
                     l_colorLayerBGR(i, j)[1] = 172;
@@ -196,7 +175,8 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         }
 
         // Add color layer
-        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR, "color",
+        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR,
+                                                                               "color",
                                                                                l_elevationMap);
 
         // Publish occupancy grid
@@ -207,6 +187,25 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         grid_map::GridMapRosConverter::toMessage(l_elevationMap, l_newElevationMapMsg);
         m_elevationMapPublisher.publish(l_newElevationMapMsg);
     }
+}
+
+/**
+ * Returns the height of a
+ * given cell index.
+ *
+ * @param p_row
+ * @param p_col
+ * @return true if access was successful, otherwise false
+ */
+double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) {
+    // Obtain latest costmap
+    grid_map::Matrix l_latestElevationMap;
+    {
+        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        l_latestElevationMap = m_elevationMaps.back();
+    }
+
+    return l_latestElevationMap.coeff(p_row, p_col);
 }
 
 /**

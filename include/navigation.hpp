@@ -86,9 +86,6 @@ private:
     //! Planner object
     Planner m_planner;
 
-    //! Elevation map processor object
-    ElevationMapProcessor m_elevationMapProcessor;
-
     //! ROS subscribers
     ros::Subscriber m_goalSubscriber;
 
@@ -100,8 +97,8 @@ private:
     ros::Publisher m_targetFeetConfigurationPublisher;
 
     //! Odometry cache
-    message_filters::Cache<nav_msgs::Odometry> m_odomCache;
-    message_filters::Subscriber<nav_msgs::Odometry> m_odomSubscriber;
+    message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
+    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
 
     //! Planned motion commands
     std::queue<geometry_msgs::Twist> m_motionCommands;

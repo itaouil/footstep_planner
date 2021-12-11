@@ -23,6 +23,7 @@
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
+#include <wb_controller/CartesianTask.h>
 #include <visualization_msgs/MarkerArray.h>
 
 // ROS services
@@ -34,7 +35,7 @@
 // Structs
 #include <structs/node.hpp>
 #include <structs/vec2D.hpp>
-#include <structs/world2D.hpp>
+#include <structs/world3D.hpp>
 #include <structs/quaternion.hpp>
 
 // Config
@@ -98,4 +99,20 @@ private:
     //! Robot pose cache
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
+
+    //! FL foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_flFootPoseSubscriber;
+
+    //! FR foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_frFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_frFootPoseSubscriber;
+
+    //! RL foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_rlFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_rlFootPoseSubscriber;
+
+    //! RR foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
 };

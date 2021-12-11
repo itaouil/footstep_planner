@@ -20,22 +20,22 @@ const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuratio
 const std::string TARGET_FEET_CONFIGURATION_MARKERS_TOPIC("/target_feet_configuration");
 
 // Subscriber topics
-const std::string ODOM_TOPIC("/odom");
-const std::string ROBOT_POSE_TOPIC("/base_to_footprint_pose");
-
-// Services
+const std::string ROBOT_POSE_TOPIC("/pose");
+const std::string FL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lf_foot");
+const std::string FR_FOOT_POSE_TOPIC("/aliengo/wb_controller/rf_foot");
+const std::string RL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lh_foot");
+const std::string RR_FOOT_POSE_TOPIC("/aliengo/wb_controller/rh_foot");
 const std::string HEIGHT_MAP_TOPIC("/elevation_mapping/elevation_map_raw");
-const std::string HEIGHT_MAP_SERVICE_TOPIC("/elevation_mapping/elevation_map_raw");
 
 // TF reference frames
-const std::string HEIGHT_MAP_REFERENCE_FRAME("odom");
-const std::string ROBOT_REFERENCE_FRAME("base_footprint");
+const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
+const std::string ROBOT_REFERENCE_FRAME("trunk");
 
-// Whether to publish data
+// Publish processed elevation map
 const bool PUBLISH(true);
 
 // Gradient threshold
-const unsigned short GRADIENT_THRESHOLD(70);
+const unsigned short GRADIENT_THRESHOLD(700);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -48,4 +48,10 @@ const double TIMESTAMP(0.325);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(2);
+
+// Foot frames
+const std::string FL_FOOT_FRAME("lf_foot");
+const std::string FR_FOOT_FRAME("rf_foot");
+const std::string RL_FOOT_FRAME("lh_foot");
+const std::string RR_FOOT_FRAME("rh_foot");

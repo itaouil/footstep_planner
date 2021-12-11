@@ -15,8 +15,7 @@
  * @param p_quaternion
  * @return yaw angle from quaternion
  */
-double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion)
-{
+double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion) {
     double l_roll, l_pitch, l_yaw;
     tf2::Matrix3x3 l_rotationMatrix(p_quaternion);
     l_rotationMatrix.getRPY(l_roll, l_pitch, l_yaw);
@@ -30,10 +29,10 @@ double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion)
  * @param p_worldCoordinates
  */
 void AStar::Search::gridToWorld(const Vec2D &p_mapCoordinates,
-                                World2D &p_worldCoordinates)
-{
+                                World3D &p_worldCoordinates) {
     p_worldCoordinates.x = m_elevationMapGridOriginX + p_mapCoordinates.x * m_elevationMapGridResolution;
     p_worldCoordinates.y = m_elevationMapGridOriginX + p_mapCoordinates.y * m_elevationMapGridResolution;
+    p_worldCoordinates.z = m_elevationMapProcessor.getCellHeight(p_mapCoordinates.x, p_mapCoordinates.y);
 }
 
 /**
@@ -43,12 +42,13 @@ void AStar::Search::gridToWorld(const Vec2D &p_mapCoordinates,
  * @param p_gridCoordinates
  * @return if conversion is successful
  */
-bool AStar::Search::worldToGrid(const World2D &p_worldCoordinates,
-                                Vec2D &p_gridCoordinates) const
-{
+bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
+                                Vec2D &p_gridCoordinates) const {
     // Compute top left corner world coordinates of the height map
-    double l_topLeftCornerWorldX = m_elevationMapGridOriginX + m_elevationMapGridResolution * ((static_cast<double>(m_elevationMapGridSizeX) / 2));
-    double l_topLeftCornerWorldY = m_elevationMapGridOriginX + m_elevationMapGridResolution * ((static_cast<double>(m_elevationMapGridSizeY) / 2));
+    double l_topLeftCornerWorldX = m_elevationMapGridOriginX +
+                                   m_elevationMapGridResolution * ((static_cast<double>(m_elevationMapGridSizeX) / 2));
+    double l_topLeftCornerWorldY = m_elevationMapGridOriginX +
+                                   m_elevationMapGridResolution * ((static_cast<double>(m_elevationMapGridSizeY) / 2));
 
     ROS_DEBUG_STREAM("Offset: " << m_elevationMapGridResolution * ((static_cast<double>(m_elevationMapGridSizeX) / 2)));
     ROS_DEBUG_STREAM("Top left corner: " << l_topLeftCornerWorldX << ", " << l_topLeftCornerWorldY);
@@ -60,8 +60,8 @@ bool AStar::Search::worldToGrid(const World2D &p_worldCoordinates,
     ROS_DEBUG_STREAM("Distances: " << l_distanceX << ", " << l_distanceY);
 
     // Compute relative grid position
-    p_gridCoordinates.x = (int)(l_distanceX / m_elevationMapGridResolution);
-    p_gridCoordinates.y = (int)(l_distanceY / m_elevationMapGridResolution);
+    p_gridCoordinates.x = (int) (l_distanceX / m_elevationMapGridResolution);
+    p_gridCoordinates.y = (int) (l_distanceY / m_elevationMapGridResolution);
 
     ROS_DEBUG_STREAM("Coordinates: " << p_gridCoordinates.x << ", " << p_gridCoordinates.y);
 
@@ -71,34 +71,26 @@ bool AStar::Search::worldToGrid(const World2D &p_worldCoordinates,
 /**
  * A* search class constructor
  */
-AStar::Search::Search(ros::NodeHandle& p_nh):
-    m_model(p_nh),
-    m_listener(m_buffer),
-    m_elevationMapProcessor(p_nh),
-    m_footstepHorizon(FOOTSTEP_HORIZON)
-{
+AStar::Search::Search(ros::NodeHandle &p_nh) :
+        m_model(p_nh),
+        m_listener(m_buffer),
+        m_elevationMapProcessor(p_nh),
+        m_footstepHorizon(FOOTSTEP_HORIZON) {
     // Set cost heuristics: manhattan, euclidean, octagonal
     setHeuristic(&Heuristic::euclidean);
 
     // Set if diagonal movements are allowed
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
-    // Set elevation map parameters
-    m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
-                                                      m_elevationMapGridOriginY,
-                                                      m_elevationMapGridResolution,
-                                                      m_elevationMapGridSizeX,
-                                                      m_elevationMapGridSizeY);
-
     // Available actions
     m_actions = {
-            { 1, 0, 0 }, // Forward
-            { 0, -1, 0 }, // Right
-            { 0, 1, 0 }, // Left
-            { 0, 0, -1 }, // Clockwise
-            { 0, 0, 1 }, // Counterclockwise
-            { 1, 0, -1 }, // Forward + Counterclockwise
-            { 1, 0, 1 } // Forward + Counterclockwise
+            {1, 0,  0}, // Forward
+            {0, -1, 0}, // Right
+            {0, 1,  0}, // Left
+            {0, 0,  -1}, // Clockwise
+            {0, 0,  1}, // Counterclockwise
+            {1, 0,  -1}, // Forward + Counterclockwise
+            {1, 0,  1} // Forward + Counterclockwise
     };
 
     // Available velocities
@@ -116,8 +108,7 @@ AStar::Search::~Search() = default;
  *
  * @param p_enable
  */
-void AStar::Search::setDiagonalMovement(bool p_enable)
-{
+void AStar::Search::setDiagonalMovement(bool p_enable) {
     m_numberOfActions = (p_enable ? 7 : 5);
 }
 
@@ -129,8 +120,7 @@ void AStar::Search::setDiagonalMovement(bool p_enable)
  * @param p_gridCoordinates
  * @return if grid cell without bounds
  */
-bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const
-{
+bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const {
     //TODO: add height check
     if (p_gridCoordinates.x < 0 || p_gridCoordinates.x >= static_cast<int>(m_elevationMapGridSizeX) ||
         p_gridCoordinates.y < 0 || p_gridCoordinates.y >= static_cast<int>(m_elevationMapGridSizeY)) {
@@ -147,8 +137,7 @@ bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const
  *
  * @param p_nodes
  */
-void AStar::Search::releaseNodes(std::vector<Node*> &p_nodes)
-{
+void AStar::Search::releaseNodes(std::vector<Node *> &p_nodes) {
     for (auto it = p_nodes.begin(); it != p_nodes.end();) {
         delete *it;
         it = p_nodes.erase(it);
@@ -165,14 +154,12 @@ void AStar::Search::releaseNodes(std::vector<Node*> &p_nodes)
  * @param p_quaternion
  * @return the requested node or a nullptr
  */
-Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
+Node *AStar::Search::findNodeOnList(const std::vector<Node *> &p_nodes,
                                     const Action &p_action,
                                     const double p_velocity,
                                     const Vec2D &p_gridCoordinates,
-                                    const tf2::Quaternion &p_quaternion)
-{
-    for (auto &node : p_nodes)
-    {
+                                    const tf2::Quaternion &p_quaternion) {
+    for (auto &node: p_nodes) {
         // Compute heading angle between the nodes
         double l_yaw1 = getYawFromQuaternion(p_quaternion);
         double l_yaw2 = getYawFromQuaternion(node->worldCoordinates.q);
@@ -183,14 +170,13 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
         if (node->gridCoordinates == p_gridCoordinates &&
             node->action == p_action &&
             node->velocity == p_velocity &&
-            l_yawDifference < 0.1)
-        {
+            l_yawDifference < 0.1) {
             ROS_DEBUG_STREAM("Same node: " << node->gridCoordinates.x << ", "
-                                                << node->gridCoordinates.y << ", "
-                                                << p_gridCoordinates.x << ", "
-                                                << p_gridCoordinates.y << ", "
-                                                << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
-                                                << l_yawDifference << "\n");
+                                           << node->gridCoordinates.y << ", "
+                                           << p_gridCoordinates.x << ", "
+                                           << p_gridCoordinates.y << ", "
+                                           << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
+                                           << l_yawDifference << "\n");
             return node;
         }
     }
@@ -202,10 +188,11 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node*> &p_nodes,
   *
   * @param p_heuristic
   */
-void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& p_heuristic)
-{
-    m_heuristic = [p_heuristic](auto && PH1, auto && PH2) {return p_heuristic(std::forward<decltype(PH1)>(PH1),
-                                                                              std::forward<decltype(PH2)>(PH2));};
+void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)> &p_heuristic) {
+    m_heuristic = [p_heuristic](auto &&PH1, auto &&PH2) {
+        return p_heuristic(std::forward<decltype(PH1)>(PH1),
+                           std::forward<decltype(PH2)>(PH2));
+    };
 }
 
 /**
@@ -218,8 +205,7 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)>& 
  * @param p_idleFeetConfiguration
  */
 void AStar::Search::setIdleFeetConfiguration(const FeetConfiguration &p_sourceFeetConfiguration,
-                                             FeetConfiguration &p_idleFeetConfiguration)
-{
+                                             FeetConfiguration &p_idleFeetConfiguration) {
     p_idleFeetConfiguration = p_sourceFeetConfiguration;
 }
 
@@ -233,9 +219,9 @@ void AStar::Search::setIdleFeetConfiguration(const FeetConfiguration &p_sourceFe
  * @return if coordinates within distance tolerance
  */
 bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
-                                          const Vec2D &p_targetGridCoordinates)
-{
-    return (p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 1) && (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 1);
+                                          const Vec2D &p_targetGridCoordinates) {
+    return (p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 1) &&
+           (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 1);
 }
 
 /**
@@ -245,8 +231,7 @@ bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
  * @param p_newFeetConfiguration
  */
 void AStar::Search::transformCoMFeetConfigurationToMap(const FeetConfiguration &p_newFeetConfigurationCoM,
-                                                       FeetConfiguration &p_newFeetConfigurationMap)
-{
+                                                       FeetConfiguration &p_newFeetConfigurationMap) {
     // Foot poses in map frame
     geometry_msgs::PoseStamped l_flPoseMapFrame;
     geometry_msgs::PoseStamped l_frPoseMapFrame;
@@ -301,15 +286,13 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const FeetConfiguration &
     l_rrPoseCoMFrame.pose.orientation.w = p_newFeetConfigurationCoM.rrCoM.q.w();
 
     // Transform foot poses
-    try
-    {
+    try {
         m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
         m_buffer.transform(l_frPoseCoMFrame, l_frPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
         m_buffer.transform(l_rlPoseCoMFrame, l_rlPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
         m_buffer.transform(l_rrPoseCoMFrame, l_rrPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
     }
-    catch (tf2::TransformException &ex)
-    {
+    catch (tf2::TransformException &ex) {
         ROS_WARN("Planner: Could not transform source pose to target one. Skipping this iteration.");
         return;
     }
@@ -334,13 +317,15 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const FeetConfiguration &
  * @param p_sourceFeetConfiguration
  * @return sequence of 2D points (world coordinates)
  */
-std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinates,
-                                          const World2D &p_targetWorldCoordinates,
-                                          const FeetConfiguration &p_sourceFeetConfiguration)
-{
-    // Update elevation map grid origin
-    m_elevationMapProcessor.getUpdatedElevationMapGridOrigin(m_elevationMapGridOriginX,
-                                                             m_elevationMapGridOriginY);
+std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinates,
+                                          const World3D &p_targetWorldCoordinates,
+                                          const FeetConfiguration &p_sourceFeetConfiguration) {
+    // Update elevation map parameters
+    m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
+                                                      m_elevationMapGridOriginY,
+                                                      m_elevationMapGridResolution,
+                                                      m_elevationMapGridSizeX,
+                                                      m_elevationMapGridSizeY);
 
     // Number of expanded nodes so far
     unsigned int l_expandedNodes = 0;
@@ -348,14 +333,16 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
     // Convert source and target world coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
     Vec2D l_targetGridCoordinates{};
-    worldToGrid(p_sourceWorldCoordinates,l_sourceGridCoordinates);
-    worldToGrid(p_targetWorldCoordinates,l_targetGridCoordinates);
+    worldToGrid(p_sourceWorldCoordinates, l_sourceGridCoordinates);
+    worldToGrid(p_targetWorldCoordinates, l_targetGridCoordinates);
 
-    ROS_DEBUG_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", " << l_sourceGridCoordinates.y);
-    ROS_DEBUG_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", " << l_targetGridCoordinates.y);
+    ROS_DEBUG_STREAM("A* start search called with given source: " << l_sourceGridCoordinates.x << ", "
+                                                                  << l_sourceGridCoordinates.y);
+    ROS_DEBUG_STREAM("A* start search called with given target: " << l_targetGridCoordinates.x << ", "
+                                                                  << l_targetGridCoordinates.y);
 
     // Create open and closed sets for the search process
-    std::vector<Node*> l_openSet, l_closedSet;
+    std::vector<Node *> l_openSet, l_closedSet;
     l_openSet.reserve(100);
     l_closedSet.reserve(100);
 
@@ -369,8 +356,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                  p_sourceFeetConfiguration));
 
     // Search process
-    while (!l_openSet.empty())
-    {
+    while (!l_openSet.empty()) {
         l_expandedNodes += 1;
 
         auto l_iterator = l_openSet.begin();
@@ -378,19 +364,16 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 
         // Find which node in the open
         // set to expand based on cost
-        for (auto it = l_openSet.begin(); it != l_openSet.end(); it++)
-        {
+        for (auto it = l_openSet.begin(); it != l_openSet.end(); it++) {
             auto l_iteratorNode = *it;
-            if (l_iteratorNode->getScore() <= l_currentNode->getScore())
-            {
+            if (l_iteratorNode->getScore() <= l_currentNode->getScore()) {
                 l_currentNode = l_iteratorNode;
                 l_iterator = it;
             }
         }
 
         // Stop search if target node has been expanded
-        if (l_currentNode->gridCoordinates == l_targetGridCoordinates)
-        {
+        if (l_currentNode->gridCoordinates == l_targetGridCoordinates) {
             ROS_INFO("Search: Target goal found");
             break;
         }
@@ -406,37 +389,25 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
         l_closedSet.push_back(l_currentNode);
         l_openSet.erase(l_iterator);
 
-        for (double & l_nextVelocity : m_velocities)
-        {
-            for (unsigned int i = 0; i < m_numberOfActions; ++i)
-            {
+        for (double &l_nextVelocity: m_velocities) {
+            for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 // Next robot state
                 FeetConfiguration l_currentFeetConfiguration;
-
-                ROS_DEBUG_STREAM("AStar: Action: " << m_actions[i].x * l_nextVelocity << ", "
-                                                   << m_actions[i].y * l_nextVelocity<< ", "
-                                                   << m_actions[i].theta * l_nextVelocity);
 
                 // If different action than previous one
                 // (and not starting node) start from an
                 // idle configuration as the robot has to
                 // come to a stop first and then start the
                 // new action
-                if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0})
-                {
+                if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0}) {
                     ROS_DEBUG_STREAM("AStar: Different action being applied. Start with idle config.");
                     setIdleFeetConfiguration(p_sourceFeetConfiguration, l_currentFeetConfiguration);
-                }
-                else
-                {
+                } else {
                     l_currentFeetConfiguration = l_currentNode->feetConfiguration;
                 }
 
-                ROS_DEBUG_STREAM("AStar: Current world coordinates: " << l_currentNode->worldCoordinates.x << ", "
-                                                                           << l_currentNode->worldCoordinates.y);
-
-                // Predict new CoM and feet configuration
-                World2D l_newWorldCoordinatesCoM{};
+                // Predict new robot state (CoM and Feet)
+                World3D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfigurationCoM;
                 m_model.predictNextState(l_currentNode->velocity != l_nextVelocity,
                                          l_currentNode->velocity,
@@ -447,28 +418,21 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                          l_newFeetConfigurationCoM,
                                          l_newWorldCoordinatesCoM);
 
-                ROS_DEBUG_STREAM("AStar: New world coordinates: " << l_newWorldCoordinatesCoM.x << ", "
-                                                                       << l_newWorldCoordinatesCoM.y);
-
-                // Convert propagated CoM to grid indexes
+                // Convert new world CoM to grid indexes
                 Vec2D l_newGridCoordinatesCoM{};
-                AStar::Search::worldToGrid(l_newWorldCoordinatesCoM,l_newGridCoordinatesCoM);
+                AStar::Search::worldToGrid(l_newWorldCoordinatesCoM, l_newGridCoordinatesCoM);
 
-                // Check if obtained CoM was already visited
-                // or is outside the grid map boundaries
+                // Check if new CoM was already visited or outside the boundaries
                 if (detectCollision(l_newGridCoordinatesCoM) || findNodeOnList(l_closedSet,
                                                                                m_actions[i],
                                                                                l_nextVelocity,
                                                                                l_newGridCoordinatesCoM,
-                                                                               l_newWorldCoordinatesCoM.q))
-                {
+                                                                               l_newWorldCoordinatesCoM.q)) {
                     continue;
                 }
 
-                // Perform foothold validity and
-                // collision checking for horizon
-                if (l_expandedNodes <= FOOTSTEP_HORIZON)
-                {
+                // Perform foothold validity for pre-defined horizon
+                if (l_expandedNodes <= FOOTSTEP_HORIZON) {
                     // Transform feet configuration from CoM to Map frame
                     FeetConfiguration l_newFeetConfigurationMap;
                     transformCoMFeetConfigurationToMap(l_newFeetConfigurationCoM, l_newFeetConfigurationMap);
@@ -478,27 +442,23 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                     Vec2D l_frGridPose{};
                     Vec2D l_rlGridPose{};
                     Vec2D l_rrGridPose{};
-                    worldToGrid(l_newFeetConfigurationMap.flMap,l_flGridPose);
-                    worldToGrid(l_newFeetConfigurationMap.frMap,l_frGridPose);
-                    worldToGrid(l_newFeetConfigurationMap.rlMap,l_rlGridPose);
-                    worldToGrid(l_newFeetConfigurationMap.rrMap,l_rrGridPose);
+                    worldToGrid(l_newFeetConfigurationMap.flMap, l_flGridPose);
+                    worldToGrid(l_newFeetConfigurationMap.frMap, l_frGridPose);
+                    worldToGrid(l_newFeetConfigurationMap.rlMap, l_rlGridPose);
+                    worldToGrid(l_newFeetConfigurationMap.rrMap, l_rrGridPose);
 
                     if (!m_elevationMapProcessor.checkFootholdValidity(l_flGridPose.x, l_flGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_frGridPose.x, l_frGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_rlGridPose.x, l_rlGridPose.y) ||
-                        !m_elevationMapProcessor.checkFootholdValidity(l_rrGridPose.x, l_rrGridPose.y))
-                    {
+                        !m_elevationMapProcessor.checkFootholdValidity(l_rrGridPose.x, l_rrGridPose.y)) {
                         continue;
                     }
                 }
 
-                ROS_DEBUG_STREAM("Current velocity: " << l_nextVelocity);
-                ROS_DEBUG_STREAM("Current action: " << m_actions[i].x << ", "
-                                                    << m_actions[i].y << ", "
-                                                    << m_actions[i].theta);
-                ROS_DEBUG_STREAM("New CoM (x,y,theta): " << l_newGridCoordinatesCoM.x << ", "
-                                                         << l_newGridCoordinatesCoM.y << ", "
-                                                         << getYawFromQuaternion(l_newWorldCoordinatesCoM.q));
+                // Set new CoM world height
+                l_newWorldCoordinatesCoM.z =
+                        p_sourceWorldCoordinates.z + m_elevationMapProcessor.getCellHeight(l_newGridCoordinatesCoM.x,
+                                                                                           l_newGridCoordinatesCoM.y);
 
                 unsigned int totalCost = l_currentNode->G + ((i < 4) ? 10 : 14);
 
@@ -507,8 +467,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                                  l_nextVelocity,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
-                if (successor == nullptr)
-                {
+                if (successor == nullptr) {
                     successor = new Node(m_actions[i],
                                          l_newGridCoordinatesCoM,
                                          l_newWorldCoordinatesCoM,
@@ -521,9 +480,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
                                                                 p_targetWorldCoordinates,
                                                                 l_newFeetConfigurationCoM});
                     l_openSet.push_back(successor);
-                }
-                else if (totalCost < successor->G)
-                {
+                } else if (totalCost < successor->G) {
                     successor->G = totalCost;
                     successor->velocity = l_nextVelocity;
                     successor->action = m_actions[i];
@@ -539,8 +496,7 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
 
     // Populate path
     std::vector<Node> path;
-    while (l_currentNode != nullptr)
-    {
+    while (l_currentNode != nullptr) {
         path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
     }
@@ -566,9 +522,9 @@ std::vector<Node> AStar::Search::findPath(const World2D &p_sourceWorldCoordinate
  * @return points' coordinate difference
  */
 Vec2D AStar::Heuristic::getDistanceDelta(const Vec2D &p_sourceGridCoordinates,
-                                         const Vec2D &p_targetGridCoordinates)
-{
-    return{abs(p_sourceGridCoordinates.x - p_targetGridCoordinates.x), abs(p_sourceGridCoordinates.y - p_targetGridCoordinates.y) };
+                                         const Vec2D &p_targetGridCoordinates) {
+    return {abs(p_sourceGridCoordinates.x - p_targetGridCoordinates.x),
+            abs(p_sourceGridCoordinates.y - p_targetGridCoordinates.y)};
 }
 
 /**
@@ -579,9 +535,8 @@ Vec2D AStar::Heuristic::getDistanceDelta(const Vec2D &p_sourceGridCoordinates,
  * @param p_targetWorldCoordinates
  * @return relative yaw rotation between robot and goal
  */
-double AStar::Heuristic::getHeadingDelta(const World2D &p_sourceWorldCoordinates,
-                                         const World2D &p_targetWorldCoordinates)
-{
+double AStar::Heuristic::getHeadingDelta(const World3D &p_sourceWorldCoordinates,
+                                         const World3D &p_targetWorldCoordinates) {
     // Compute map to target quaternion
     tf2::Quaternion l_mapToTargetQuaternion;
     l_mapToTargetQuaternion.setRPY(0, 0, std::atan2(p_targetWorldCoordinates.y, p_targetWorldCoordinates.x));
@@ -604,8 +559,7 @@ double AStar::Heuristic::getHeadingDelta(const World2D &p_sourceWorldCoordinates
  * @param p_targetNode
  * @return manhattan distance
  */
-unsigned int AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p_targetNode)
-{
+unsigned int AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p_targetNode) {
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
     return static_cast<unsigned int>(10 * (l_distanceDelta.x + l_distanceDelta.y));
 }
@@ -618,15 +572,15 @@ unsigned int AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p
  * @param p_targetNode
  * @return euclidean distance
  */
-unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_targetNode)
-{
+unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_targetNode) {
     // Angle and distance differences
     auto l_angleDelta = getHeadingDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
 
     // Euclidean distance
     auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 1000);
-    auto l_distanceHeuristic = static_cast<unsigned int>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
+    auto l_distanceHeuristic = static_cast<unsigned int>(10 *
+                                                         sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
 
     ROS_DEBUG_STREAM("Angle Delta: " << l_angleDelta);
     ROS_DEBUG_STREAM("Angle heuristic: " << l_angleHeuristic);
@@ -643,8 +597,7 @@ unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p
  * @param p_targetNode
  * @return octagonal distance
  */
-unsigned int AStar::Heuristic::octagonal(const Node &p_sourceNode, const Node &p_targetNode)
-{
+unsigned int AStar::Heuristic::octagonal(const Node &p_sourceNode, const Node &p_targetNode) {
     auto delta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }

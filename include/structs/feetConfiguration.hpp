@@ -1,5 +1,5 @@
 /*
- * world2D.hpp
+ * feetConfiguration.hpp
  *
  *  Created on: Sep 02, 2021
  *      Author: Ilyass Taouil
@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <structs/world2D.hpp>
+#include <structs/world3D.hpp>
 
 /**
   * World (continuous) coordinates
@@ -20,18 +20,18 @@ struct FeetConfiguration
     bool fr_rl_swinging;
 
     //! FL foot
-    World2D flCoM;
-    World2D flMap;
+    World3D flCoM;
+    World3D flMap;
 
     //! FR foot
-    World2D frCoM;
-    World2D frMap;
+    World3D frCoM;
+    World3D frMap;
 
     //! RL foot
-    World2D rlCoM;
-    World2D rlMap;
+    World3D rlCoM;
+    World3D rlMap;
 
     //! RR foot
-    World2D rrCoM;
-    World2D rrMap;
+    World3D rrCoM;
+    World3D rrMap;
 };

@@ -25,7 +25,7 @@
 #include <structs/node.hpp>
 #include <structs/vec2D.hpp>
 #include <structs/action.hpp>
-#include <structs/world2D.hpp>
+#include <structs/world3D.hpp>
 #include <structs/velocityCmd.hpp>
 #include <structs/displacement.hpp>
 #include <structs/feetConfiguration.hpp>
@@ -63,7 +63,7 @@ public:
      * the prediction process of discontinuous
      * velocity commands.
      */
-    void setAccelerationModelsCoefficients();
+    void setDiscontinuousModelsCoefficients();
 
     /**
      * Compute CoM and feet displacements
@@ -117,8 +117,8 @@ public:
     void computeNewCoM(double p_angularVelocity,
                        double p_predictedCoMDisplacementX,
                        double p_predictedCoMDisplacementY,
-                       const World2D &p_currentWorldCoordinatesCoM,
-                       World2D &p_newWorldCoordinatesCoM);
+                       const World3D &p_currentWorldCoordinatesCoM,
+                       World3D &p_newWorldCoordinatesCoM);
 
     /**
      * Compute new (CoM) feet configuration
@@ -151,10 +151,10 @@ public:
                           double p_previousVelocity,
                           double p_currentVelocity,
                           const Action &p_action,
-                          const World2D &p_currentWorldCoordinatesCoM,
+                          const World3D &p_currentWorldCoordinatesCoM,
                           const FeetConfiguration &p_currentFeetConfiguration,
                           FeetConfiguration &p_newFeetConfiguration,
-                          World2D &p_newWorldCoordinatesCoM);
+                          World3D &p_newWorldCoordinatesCoM);
 private:
     //! ROS node handle
     ros::NodeHandle m_nh;

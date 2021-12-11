@@ -20,8 +20,7 @@ Navigation::Navigation(ros::NodeHandle& p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_rate(100),
         m_tf2(p_tf2),
         m_buffer(p_buffer),
-        m_planner(p_nh),
-        m_elevationMapProcessor(p_nh)
+        m_planner(p_nh)
 {
     initialize();
 }
@@ -40,9 +39,9 @@ void Navigation::initialize()
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
     // Robot pose subscriber and cache setup
-    m_odomSubscriber.subscribe(m_nh, ODOM_TOPIC, 1);
-    m_odomCache.connectInput(m_odomSubscriber);
-    m_odomCache.setCacheSize(CACHE_SIZE);
+    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
+    m_robotPoseCache.connectInput(m_robotPoseSubscriber);
+    m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
     // Path publishers
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_PATH_TOPIC, 1);
@@ -158,128 +157,128 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg)
         publishPredictedFootstepSequence(l_path);
 
         // Real path message to be published
-        nav_msgs::Path l_realPathMsg;
-        l_realPathMsg.header.stamp = ros::Time::now();
-        l_realPathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-
-        int count = 0;
-        Action l_prevAction{};
-        for (auto &l_node: l_path)
-        {
-            if (count == 0)
-            {
-                l_prevAction = l_node.action;
-            }
-
-            // Create twist command
-            geometry_msgs::Twist l_velocityMsg;
-            l_velocityMsg.linear.x = l_node.action.x * l_node.velocity;
-            l_velocityMsg.linear.y = l_node.action.y * l_node.velocity;
-            l_velocityMsg.linear.z = 0;
-            l_velocityMsg.angular.x = 0;
-            l_velocityMsg.angular.y = 0;
-            l_velocityMsg.angular.z = l_node.action.theta * l_node.velocity;
-
-            // Get the latest feet poses
-            ros::Time l_latestTime = ros::Time::now();
-            boost::shared_ptr<nav_msgs::Odometry const> l_latestOdomPose =
-                    m_odomCache.getElemBeforeTime(l_latestTime);
-
-            // Get target yaw
-            double l_roll, l_pitch, l_yaw;
-            tf2::Matrix3x3 l_rotationMatrix(l_node.worldCoordinates.q);
-            l_rotationMatrix.getRPY(l_roll, l_pitch, l_yaw);
-            double l_targetYaw = ((l_yaw * 180) / M_PI);
-
-            // Get current yaw
-            tf2::Quaternion q(l_latestOdomPose->pose.pose.orientation.x,
-                              l_latestOdomPose->pose.pose.orientation.y,
-                              l_latestOdomPose->pose.pose.orientation.z,
-                              l_latestOdomPose->pose.pose.orientation.w);
-            tf2::Matrix3x3 l_rotationMatrix2(q);
-            l_rotationMatrix2.getRPY(l_roll, l_pitch, l_yaw);
-            double l_currentYaw = ((l_yaw * 180) / M_PI);
-
-            ROS_INFO_STREAM("Command: " << count << "/" << l_path.size());
-
-            if (count != 0 && l_prevAction != l_node.action)
-                ros::Duration(0.5).sleep();
-
-            // Amount of time for time execution
-            double l_stopTime = ros::Time::now().toSec() + ros::Duration(0.55).toSec();
-
-            // Execute command for rotation motions
-            if (l_node.action == Action{0, 0, 1} || l_node.action == Action{0, 0, -1})
-            {
-                while (std::abs(l_currentYaw - l_targetYaw) > 5 && ros::Time::now().toSec() < l_stopTime)
-                {
-                    // Publish motion command
-                    m_velocityPublisher.publish(l_velocityMsg);
-
-                    // Update foot pose from cache
-                    l_latestTime = ros::Time::now();
-                    l_latestOdomPose = m_odomCache.getElemBeforeTime(l_latestTime);
-
-                    // World coordinates for the path
-                    geometry_msgs::PoseStamped l_realPoseStamped;
-                    l_realPoseStamped.header = l_realPathMsg.header;
-                    l_realPoseStamped.pose.position.x = l_latestOdomPose->pose.pose.position.x;
-                    l_realPoseStamped.pose.position.y = l_latestOdomPose->pose.pose.position.y;
-                    l_realPathMsg.poses.push_back(l_realPoseStamped);
-
-                    // Update current yaw
-                    tf2::Quaternion q_t(l_latestOdomPose->pose.pose.orientation.x,
-                                        l_latestOdomPose->pose.pose.orientation.y,
-                                        l_latestOdomPose->pose.pose.orientation.z,
-                                        l_latestOdomPose->pose.pose.orientation.w);
-                    tf2::Matrix3x3 l_rotationMatrix_t(q_t);
-                    l_rotationMatrix_t.getRPY(l_roll, l_pitch, l_yaw);
-                    l_currentYaw = ((l_yaw * 180) / M_PI);
-
-                    m_realPathPublisher.publish(l_realPathMsg);
-                    m_targetFeetConfigurationPublisher.publish(m_targetFootsteps[count]);
-
-                    // Get callback data
-                    ros::spinOnce();
-
-//                    // Sleep
-//                    m_rate.sleep();
-                }
-            }
-            else
-            {
-                while ((std::abs(l_latestOdomPose->pose.pose.position.x - l_node.worldCoordinates.x) > 0.005 ||
-                       std::abs(l_latestOdomPose->pose.pose.position.y - l_node.worldCoordinates.y) > 0.005) &&
-                       ros::Time::now().toSec() < l_stopTime)
-                {
-                    // Publish motion command
-                    m_velocityPublisher.publish(l_velocityMsg);
-
-//                    // Sleep
-//                    m_rate.sleep();
-
-                    // Update foot pose from cache
-                    l_latestTime = ros::Time::now();
-                    l_latestOdomPose = m_odomCache.getElemBeforeTime(l_latestTime);
-
-                    // World coordinates for the path
-                    geometry_msgs::PoseStamped l_realPoseStamped;
-                    l_realPoseStamped.header = l_realPathMsg.header;
-                    l_realPoseStamped.pose.position.x = l_latestOdomPose->pose.pose.position.x;
-                    l_realPoseStamped.pose.position.y = l_latestOdomPose->pose.pose.position.y;
-                    l_realPathMsg.poses.push_back(l_realPoseStamped);
-
-                    m_realPathPublisher.publish(l_realPathMsg);
-                    m_targetFeetConfigurationPublisher.publish(m_targetFootsteps[count]);
-
-                    // Get callback data
-                    ros::spinOnce();
-                }
-            }
-
-            count += 1;
-            l_prevAction = l_node.action;
-        }
+//        nav_msgs::Path l_realPathMsg;
+//        l_realPathMsg.header.stamp = ros::Time::now();
+//        l_realPathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+//
+//        int count = 0;
+//        Action l_prevAction{};
+//        for (auto &l_node: l_path)
+//        {
+//            if (count == 0)
+//            {
+//                l_prevAction = l_node.action;
+//            }
+//
+//            // Create twist command
+//            geometry_msgs::Twist l_velocityMsg;
+//            l_velocityMsg.linear.x = l_node.action.x * l_node.velocity;
+//            l_velocityMsg.linear.y = l_node.action.y * l_node.velocity;
+//            l_velocityMsg.linear.z = 0;
+//            l_velocityMsg.angular.x = 0;
+//            l_velocityMsg.angular.y = 0;
+//            l_velocityMsg.angular.z = l_node.action.theta * l_node.velocity;
+//
+//            // Get the latest feet poses
+//            ros::Time l_latestTime = ros::Time::now();
+//            boost::shared_ptr<nav_msgs::Odometry const> l_latestOdomPose =
+//                    m_robotPoseCache.getElemBeforeTime(l_latestTime);
+//
+//            // Get target yaw
+//            double l_roll, l_pitch, l_yaw;
+//            tf2::Matrix3x3 l_rotationMatrix(l_node.worldCoordinates.q);
+//            l_rotationMatrix.getRPY(l_roll, l_pitch, l_yaw);
+//            double l_targetYaw = ((l_yaw * 180) / M_PI);
+//
+//            // Get current yaw
+//            tf2::Quaternion q(l_latestOdomPose->pose.pose.orientation.x,
+//                              l_latestOdomPose->pose.pose.orientation.y,
+//                              l_latestOdomPose->pose.pose.orientation.z,
+//                              l_latestOdomPose->pose.pose.orientation.w);
+//            tf2::Matrix3x3 l_rotationMatrix2(q);
+//            l_rotationMatrix2.getRPY(l_roll, l_pitch, l_yaw);
+//            double l_currentYaw = ((l_yaw * 180) / M_PI);
+//
+//            ROS_INFO_STREAM("Command: " << count << "/" << l_path.size());
+//
+//            if (count != 0 && l_prevAction != l_node.action)
+//                ros::Duration(0.5).sleep();
+//
+//            // Amount of time for time execution
+//            double l_stopTime = ros::Time::now().toSec() + ros::Duration(0.55).toSec();
+//
+//            // Execute command for rotation motions
+//            if (l_node.action == Action{0, 0, 1} || l_node.action == Action{0, 0, -1})
+//            {
+//                while (std::abs(l_currentYaw - l_targetYaw) > 5 && ros::Time::now().toSec() < l_stopTime)
+//                {
+//                    // Publish motion command
+//                    m_velocityPublisher.publish(l_velocityMsg);
+//
+//                    // Update foot pose from cache
+//                    l_latestTime = ros::Time::now();
+//                    l_latestOdomPose = m_robotPoseCache.getElemBeforeTime(l_latestTime);
+//
+//                    // World coordinates for the path
+//                    geometry_msgs::PoseStamped l_realPoseStamped;
+//                    l_realPoseStamped.header = l_realPathMsg.header;
+//                    l_realPoseStamped.pose.position.x = l_latestOdomPose->pose.pose.position.x;
+//                    l_realPoseStamped.pose.position.y = l_latestOdomPose->pose.pose.position.y;
+//                    l_realPathMsg.poses.push_back(l_realPoseStamped);
+//
+//                    // Update current yaw
+//                    tf2::Quaternion q_t(l_latestOdomPose->pose.pose.orientation.x,
+//                                        l_latestOdomPose->pose.pose.orientation.y,
+//                                        l_latestOdomPose->pose.pose.orientation.z,
+//                                        l_latestOdomPose->pose.pose.orientation.w);
+//                    tf2::Matrix3x3 l_rotationMatrix_t(q_t);
+//                    l_rotationMatrix_t.getRPY(l_roll, l_pitch, l_yaw);
+//                    l_currentYaw = ((l_yaw * 180) / M_PI);
+//
+//                    m_realPathPublisher.publish(l_realPathMsg);
+//                    m_targetFeetConfigurationPublisher.publish(m_targetFootsteps[count]);
+//
+//                    // Get callback data
+//                    ros::spinOnce();
+//
+////                    // Sleep
+////                    m_rate.sleep();
+//                }
+//            }
+//            else
+//            {
+//                while ((std::abs(l_latestOdomPose->pose.pose.position.x - l_node.worldCoordinates.x) > 0.005 ||
+//                       std::abs(l_latestOdomPose->pose.pose.position.y - l_node.worldCoordinates.y) > 0.005) &&
+//                       ros::Time::now().toSec() < l_stopTime)
+//                {
+//                    // Publish motion command
+//                    m_velocityPublisher.publish(l_velocityMsg);
+//
+////                    // Sleep
+////                    m_rate.sleep();
+//
+//                    // Update foot pose from cache
+//                    l_latestTime = ros::Time::now();
+//                    l_latestOdomPose = m_robotPoseCache.getElemBeforeTime(l_latestTime);
+//
+//                    // World coordinates for the path
+//                    geometry_msgs::PoseStamped l_realPoseStamped;
+//                    l_realPoseStamped.header = l_realPathMsg.header;
+//                    l_realPoseStamped.pose.position.x = l_latestOdomPose->pose.pose.position.x;
+//                    l_realPoseStamped.pose.position.y = l_latestOdomPose->pose.pose.position.y;
+//                    l_realPathMsg.poses.push_back(l_realPoseStamped);
+//
+//                    m_realPathPublisher.publish(l_realPathMsg);
+//                    m_targetFeetConfigurationPublisher.publish(m_targetFootsteps[count]);
+//
+//                    // Get callback data
+//                    ros::spinOnce();
+//                }
+//            }
+//
+//            count += 1;
+//            l_prevAction = l_node.action;
+//        }
     }
     else
     {

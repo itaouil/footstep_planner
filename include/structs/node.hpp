@@ -34,7 +34,7 @@ struct Node
     Vec2D gridCoordinates;
 
     //! (x,y) (continuous) coordinates in the world
-    World2D worldCoordinates;
+    World3D worldCoordinates;
 
     //! Feet configuration of the state (CoM frame)
     FeetConfiguration feetConfiguration;
@@ -48,7 +48,7 @@ struct Node
      */
     explicit Node(Action p_action,
                   Vec2D p_gridCoordinates,
-                  World2D p_worldCoordinates,
+                  World3D p_worldCoordinates,
                   FeetConfiguration feetConfiguration,
                   Node *p_parent = nullptr):
             parent(p_parent),

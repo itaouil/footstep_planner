@@ -1,5 +1,5 @@
 /*
- * world2D.hpp
+ * world3D.hpp
  *
  *  Created on: Aug 26, 2021
  *      Author: Ilyass Taouil
@@ -11,13 +11,16 @@
 /**
   * World (continuous) coordinates
   */
-struct World2D
+struct World3D
 {
     //! X position in the world
-    double x{};
+    double x;
 
     //! Y position in the world
-    double y{};
+    double y;
+
+    //! Z position in the world
+    double z;
 
     //! Robot rotation w.r.t to map frame
     tf2::Quaternion q;

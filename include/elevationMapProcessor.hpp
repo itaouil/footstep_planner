@@ -45,6 +45,16 @@ public:
     virtual ~ElevationMapProcessor();
 
     /**
+     * Returns the height of a
+     * given cell index.
+     *
+     * @param p_row
+     * @param p_col
+     * @return true if access was successful, otherwise false
+     */
+    double getCellHeight(const int &p_row, const int &p_col);
+
+    /**
      * Check if predicted feet configuration
      * is valid (i.e. stepping on valid terrain).
      *

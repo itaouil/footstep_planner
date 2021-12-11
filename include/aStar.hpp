@@ -24,7 +24,7 @@
 #include <structs/node.hpp>
 #include <structs/vec2D.hpp>
 #include <structs/action.hpp>
-#include <structs/world2D.hpp>
+#include <structs/world3D.hpp>
 
 // Config
 #include <config.hpp>
@@ -62,8 +62,8 @@ namespace AStar
          * @param p_sourceFeetConfiguration
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<Node> findPath(const World2D &p_sourceWorldCoordinates,
-                                   const World2D &p_targetWorldCoordinates,
+        std::vector<Node> findPath(const World3D &p_sourceWorldCoordinates,
+                                   const World3D &p_targetWorldCoordinates,
                                    const FeetConfiguration &p_sourceFeetConfiguration);
     private:
         /**
@@ -143,7 +143,7 @@ namespace AStar
          * @param p_gridCoordinates
          * @param p_worldCoordinates
          */
-        void gridToWorld(const Vec2D &p_gridCoordinates, World2D &p_worldCoordinates);
+        void gridToWorld(const Vec2D &p_gridCoordinates, World3D &p_worldCoordinates);
 
         /**
          * Convert from world coordinates to grid coordinates.
@@ -152,7 +152,7 @@ namespace AStar
          * @param p_gridCoordinates
          * @return if conversion is successful
          */
-        bool worldToGrid(const World2D &p_worldCoordinates, Vec2D &p_gridCoordinates) const;
+        bool worldToGrid(const World3D &p_worldCoordinates, Vec2D &p_gridCoordinates) const;
 
         /**
          * Transform feet configuration
@@ -219,7 +219,7 @@ namespace AStar
          * @param p_targetWorldCoordinates
          * @return theta distance
          */
-        static double getHeadingDelta(const World2D &p_sourceWorldCoordinates, const World2D &p_targetWorldCoordinates);
+        static double getHeadingDelta(const World3D &p_sourceWorldCoordinates, const World3D &p_targetWorldCoordinates);
 
         /**
          * A* Heuristic class routine that computes
