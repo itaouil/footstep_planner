@@ -224,7 +224,7 @@ bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p
         l_latestCostmap = m_footCostmaps.back();
     }
 
-    return static_cast<bool>(l_latestCostmap.at<float>(p_row, p_col));
+    return !static_cast<bool>(l_latestCostmap.at<float>(p_row, p_col));
 }
 
 /**

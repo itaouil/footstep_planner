@@ -73,9 +73,9 @@ bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
  */
 AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_model(p_nh),
+        m_footstepsChecked(0),
         m_listener(m_buffer),
-        m_elevationMapProcessor(p_nh),
-        m_footstepHorizon(FOOTSTEP_HORIZON) {
+        m_elevationMapProcessor(p_nh) {
     // Set cost heuristics: manhattan, euclidean, octagonal
     setHeuristic(&Heuristic::euclidean);
 
@@ -94,7 +94,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5};
 }
 
 /**
@@ -109,7 +109,7 @@ AStar::Search::~Search() = default;
  * @param p_enable
  */
 void AStar::Search::setDiagonalMovement(bool p_enable) {
-    m_numberOfActions = (p_enable ? 7 : 5);
+    m_numberOfActions = (p_enable ? 7 : 1);
 }
 
 /**
@@ -196,20 +196,6 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)> &
 }
 
 /**
- * Reset state feet configuration to
- * the initial source feet configuration
- * (i.e. when robot was idle and not yet
- * moving).
- *
- * @param p_sourceFeetConfiguration
- * @param p_idleFeetConfiguration
- */
-void AStar::Search::setIdleFeetConfiguration(const FeetConfiguration &p_sourceFeetConfiguration,
-                                             FeetConfiguration &p_idleFeetConfiguration) {
-    p_idleFeetConfiguration = p_sourceFeetConfiguration;
-}
-
-/**
  * Check if current node coordinates
  * are within the target tolerance
  * distance.
@@ -287,13 +273,16 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const FeetConfiguration &
 
     // Transform foot poses
     try {
-        m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
-        m_buffer.transform(l_frPoseCoMFrame, l_frPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
-        m_buffer.transform(l_rlPoseCoMFrame, l_rlPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
-        m_buffer.transform(l_rrPoseCoMFrame, l_rrPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME, ros::Duration(1.0));
+        m_buffer.canTransform(HEIGHT_MAP_REFERENCE_FRAME, ROBOT_REFERENCE_FRAME, ros::Time::now(), ros::Duration(1.0));
+        m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
+        m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
+        m_buffer.transform(l_frPoseCoMFrame, l_frPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
+        m_buffer.transform(l_rlPoseCoMFrame, l_rlPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
+        m_buffer.transform(l_rrPoseCoMFrame, l_rrPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
     }
     catch (tf2::TransformException &ex) {
-        ROS_WARN("Planner: Could not transform source pose to target one. Skipping this iteration.");
+        ROS_WARN("AStar: Could not transform source pose to target one. Skipping this iteration.");
+        ROS_INFO_STREAM(ex.what());
         return;
     }
 
@@ -400,8 +389,8 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                 // come to a stop first and then start the
                 // new action
                 if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0}) {
-                    ROS_DEBUG_STREAM("AStar: Different action being applied. Start with idle config.");
-                    setIdleFeetConfiguration(p_sourceFeetConfiguration, l_currentFeetConfiguration);
+                    ROS_INFO_STREAM("AStar: Different action being applied. Start with idle config.");
+                    l_currentFeetConfiguration = p_sourceFeetConfiguration;
                 } else {
                     l_currentFeetConfiguration = l_currentNode->feetConfiguration;
                 }
@@ -432,7 +421,7 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                 }
 
                 // Perform foothold validity for pre-defined horizon
-                if (l_expandedNodes <= FOOTSTEP_HORIZON) {
+                if (m_footstepsChecked <= FOOTSTEP_HORIZON) {
                     // Transform feet configuration from CoM to Map frame
                     FeetConfiguration l_newFeetConfigurationMap;
                     transformCoMFeetConfigurationToMap(l_newFeetConfigurationCoM, l_newFeetConfigurationMap);
@@ -447,10 +436,13 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                     worldToGrid(l_newFeetConfigurationMap.rlMap, l_rlGridPose);
                     worldToGrid(l_newFeetConfigurationMap.rrMap, l_rrGridPose);
 
+
+
                     if (!m_elevationMapProcessor.checkFootholdValidity(l_flGridPose.x, l_flGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_frGridPose.x, l_frGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_rlGridPose.x, l_rlGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_rrGridPose.x, l_rrGridPose.y)) {
+                        ROS_INFO("Invalid Footstep.");
                         continue;
                     }
                 }
@@ -488,6 +480,9 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;
                     successor->feetConfiguration = l_newFeetConfigurationCoM;
                 }
+
+                // Increase footsteps validation counter
+                m_footstepsChecked += 1;
 
                 ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");
             }

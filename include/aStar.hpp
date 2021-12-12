@@ -115,17 +115,6 @@ namespace AStar
         void setHeuristic(const std::function<unsigned int(Node, Node)>& p_heuristic);
 
         /**
-         * Compute idle feet configuration when
-         * a new motion command is applied to the
-         * state.
-         *
-         * @param p_currentFeetConfiguration
-         * @param p_idleFeetConfiguration
-         */
-        void setIdleFeetConfiguration(const FeetConfiguration &p_currentFeetConfiguration,
-                                      FeetConfiguration &p_idleFeetConfiguration);
-
-        /**
          * Check if current node coordinates
          * are within the target tolerance
          * distance.
@@ -169,6 +158,9 @@ namespace AStar
         //! TF2 buffer
         tf2_ros::Buffer m_buffer;
 
+        //! Footsteps validated
+        unsigned int m_footstepsChecked;
+
         //! TF2 listener
         tf2_ros::TransformListener m_listener;
 
@@ -187,9 +179,6 @@ namespace AStar
 
         //! Number of available actions
         unsigned int m_numberOfActions{};
-
-        //! Number of footsteps to plan for
-        const unsigned int m_footstepHorizon{};
 
         //! Velocities
         std::vector<double> m_velocities;
