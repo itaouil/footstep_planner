@@ -206,95 +206,30 @@ void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)> &
  */
 bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
                                           const Vec2D &p_targetGridCoordinates) {
-    return (p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 1) &&
-           (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 1);
+    return (p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 2) &&
+           (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 2);
 }
 
 /**
  * Transform feet configuration
  * from CoM frame to map frame.
  *
- * @param p_newFeetConfiguration
+ * @param p_newCoMWorldCoordinates
+ * @param p_newFeetConfigurationCoM
+ * @param p_newFeetConfigurationMap
  */
-void AStar::Search::transformCoMFeetConfigurationToMap(const FeetConfiguration &p_newFeetConfigurationCoM,
+void AStar::Search::transformCoMFeetConfigurationToMap(const World3D &p_newCoMWorldCoordinates,
+                                                       const FeetConfiguration &p_newFeetConfigurationCoM,
                                                        FeetConfiguration &p_newFeetConfigurationMap) {
-    // Foot poses in map frame
-    geometry_msgs::PoseStamped l_flPoseMapFrame;
-    geometry_msgs::PoseStamped l_frPoseMapFrame;
-    geometry_msgs::PoseStamped l_rlPoseMapFrame;
-    geometry_msgs::PoseStamped l_rrPoseMapFrame;
-
-    // Foot poses in CoM frame
-    geometry_msgs::PoseStamped l_flPoseCoMFrame;
-    geometry_msgs::PoseStamped l_frPoseCoMFrame;
-    geometry_msgs::PoseStamped l_rlPoseCoMFrame;
-    geometry_msgs::PoseStamped l_rrPoseCoMFrame;
-
-    // Fill FL pose in CoM frame
-    l_flPoseCoMFrame.header.stamp = ros::Time::now();
-    l_flPoseCoMFrame.header.frame_id = ROBOT_REFERENCE_FRAME;
-    l_flPoseCoMFrame.pose.position.x = p_newFeetConfigurationCoM.flCoM.x;
-    l_flPoseCoMFrame.pose.position.y = p_newFeetConfigurationCoM.flCoM.y;
-    l_flPoseCoMFrame.pose.position.z = 0;
-    l_flPoseCoMFrame.pose.orientation.x = p_newFeetConfigurationCoM.flCoM.q.x();
-    l_flPoseCoMFrame.pose.orientation.y = p_newFeetConfigurationCoM.flCoM.q.y();
-    l_flPoseCoMFrame.pose.orientation.z = p_newFeetConfigurationCoM.flCoM.q.z();
-    l_flPoseCoMFrame.pose.orientation.w = p_newFeetConfigurationCoM.flCoM.q.w();
-
-    // Fill FR pose in CoM frame
-    l_frPoseCoMFrame.header = l_flPoseCoMFrame.header;
-    l_frPoseCoMFrame.pose.position.x = p_newFeetConfigurationCoM.frCoM.x;
-    l_frPoseCoMFrame.pose.position.y = p_newFeetConfigurationCoM.frCoM.y;
-    l_frPoseCoMFrame.pose.position.z = 0;
-    l_frPoseCoMFrame.pose.orientation.x = p_newFeetConfigurationCoM.frCoM.q.x();
-    l_frPoseCoMFrame.pose.orientation.y = p_newFeetConfigurationCoM.frCoM.q.y();
-    l_frPoseCoMFrame.pose.orientation.z = p_newFeetConfigurationCoM.frCoM.q.z();
-    l_frPoseCoMFrame.pose.orientation.w = p_newFeetConfigurationCoM.frCoM.q.w();
-
-    // Fill RL pose in CoM frame
-    l_rlPoseCoMFrame.header = l_flPoseCoMFrame.header;
-    l_rlPoseCoMFrame.pose.position.x = p_newFeetConfigurationCoM.rlCoM.x;
-    l_rlPoseCoMFrame.pose.position.y = p_newFeetConfigurationCoM.rlCoM.y;
-    l_rlPoseCoMFrame.pose.position.z = 0;
-    l_rlPoseCoMFrame.pose.orientation.x = p_newFeetConfigurationCoM.rlCoM.q.x();
-    l_rlPoseCoMFrame.pose.orientation.y = p_newFeetConfigurationCoM.rlCoM.q.y();
-    l_rlPoseCoMFrame.pose.orientation.z = p_newFeetConfigurationCoM.rlCoM.q.z();
-    l_rlPoseCoMFrame.pose.orientation.w = p_newFeetConfigurationCoM.rlCoM.q.w();
-
-    // Fill RR pose in CoM frame
-    l_rrPoseCoMFrame.header = l_flPoseCoMFrame.header;
-    l_rrPoseCoMFrame.pose.position.x = p_newFeetConfigurationCoM.rrCoM.x;
-    l_rrPoseCoMFrame.pose.position.y = p_newFeetConfigurationCoM.rrCoM.y;
-    l_rrPoseCoMFrame.pose.position.z = 0;
-    l_rrPoseCoMFrame.pose.orientation.x = p_newFeetConfigurationCoM.rrCoM.q.x();
-    l_rrPoseCoMFrame.pose.orientation.y = p_newFeetConfigurationCoM.rrCoM.q.y();
-    l_rrPoseCoMFrame.pose.orientation.z = p_newFeetConfigurationCoM.rrCoM.q.z();
-    l_rrPoseCoMFrame.pose.orientation.w = p_newFeetConfigurationCoM.rrCoM.q.w();
-
-    // Transform foot poses
-    try {
-        m_buffer.canTransform(HEIGHT_MAP_REFERENCE_FRAME, ROBOT_REFERENCE_FRAME, ros::Time::now(), ros::Duration(1.0));
-        m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
-        m_buffer.transform(l_flPoseCoMFrame, l_flPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
-        m_buffer.transform(l_frPoseCoMFrame, l_frPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
-        m_buffer.transform(l_rlPoseCoMFrame, l_rlPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
-        m_buffer.transform(l_rrPoseCoMFrame, l_rrPoseMapFrame, HEIGHT_MAP_REFERENCE_FRAME);
-    }
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("AStar: Could not transform source pose to target one. Skipping this iteration.");
-        ROS_INFO_STREAM(ex.what());
-        return;
-    }
-
     // Fill in new map feet configuration (only x and y position)
-    p_newFeetConfigurationMap.flMap.x = l_flPoseMapFrame.pose.position.x;
-    p_newFeetConfigurationMap.flMap.y = l_flPoseMapFrame.pose.position.y;
-    p_newFeetConfigurationMap.frMap.x = l_frPoseMapFrame.pose.position.x;
-    p_newFeetConfigurationMap.frMap.y = l_frPoseMapFrame.pose.position.y;
-    p_newFeetConfigurationMap.rlMap.x = l_rlPoseMapFrame.pose.position.x;
-    p_newFeetConfigurationMap.rlMap.y = l_rlPoseMapFrame.pose.position.y;
-    p_newFeetConfigurationMap.rrMap.x = l_rrPoseMapFrame.pose.position.x;
-    p_newFeetConfigurationMap.rrMap.y = l_rrPoseMapFrame.pose.position.y;
+    p_newFeetConfigurationMap.flMap.x = p_newCoMWorldCoordinates.x + p_newFeetConfigurationCoM.flCoM.x;
+    p_newFeetConfigurationMap.flMap.y = p_newCoMWorldCoordinates.y + p_newFeetConfigurationCoM.flCoM.y;
+    p_newFeetConfigurationMap.frMap.x = p_newCoMWorldCoordinates.x + p_newFeetConfigurationCoM.frCoM.x;
+    p_newFeetConfigurationMap.frMap.y = p_newCoMWorldCoordinates.y + p_newFeetConfigurationCoM.frCoM.y;
+    p_newFeetConfigurationMap.rlMap.x = p_newCoMWorldCoordinates.x + p_newFeetConfigurationCoM.rlCoM.x;
+    p_newFeetConfigurationMap.rlMap.y = p_newCoMWorldCoordinates.y + p_newFeetConfigurationCoM.rlCoM.y;
+    p_newFeetConfigurationMap.rrMap.x = p_newCoMWorldCoordinates.x + p_newFeetConfigurationCoM.rrCoM.x;
+    p_newFeetConfigurationMap.rrMap.y = p_newCoMWorldCoordinates.y + p_newFeetConfigurationCoM.rrCoM.y;
 }
 
 /**
@@ -362,16 +297,16 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
         }
 
         // Stop search if target node has been expanded
-        if (l_currentNode->gridCoordinates == l_targetGridCoordinates) {
-            ROS_INFO("Search: Target goal found");
-            break;
-        }
-
-//        if (withinTargetTolerance(l_currentNode->gridCoordinates, l_targetGridCoordinates))
-//        {
+//        if (l_currentNode->gridCoordinates == l_targetGridCoordinates) {
 //            ROS_INFO("Search: Target goal found");
 //            break;
 //        }
+
+        if (withinTargetTolerance(l_currentNode->gridCoordinates, l_targetGridCoordinates))
+        {
+            ROS_INFO("Search: Target goal found");
+            break;
+        }
 
         // Push to closed set the currently expanded
         // node and delete its iterator from the open set
@@ -396,27 +331,27 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                 }
 
                 // Predict new robot state (CoM and Feet)
-                World3D l_newWorldCoordinatesCoM{};
-                FeetConfiguration l_newFeetConfigurationCoM;
+                World3D l_newCoMWorldCoordinates{};
+                FeetConfiguration l_newFeetConfiguration;
                 m_model.predictNextState(l_currentNode->velocity != l_nextVelocity,
                                          l_currentNode->velocity,
                                          l_nextVelocity,
                                          m_actions[i],
                                          l_currentNode->worldCoordinates,
                                          l_currentFeetConfiguration,
-                                         l_newFeetConfigurationCoM,
-                                         l_newWorldCoordinatesCoM);
+                                         l_newFeetConfiguration,
+                                         l_newCoMWorldCoordinates);
 
                 // Convert new world CoM to grid indexes
                 Vec2D l_newGridCoordinatesCoM{};
-                AStar::Search::worldToGrid(l_newWorldCoordinatesCoM, l_newGridCoordinatesCoM);
+                AStar::Search::worldToGrid(l_newCoMWorldCoordinates, l_newGridCoordinatesCoM);
 
                 // Check if new CoM was already visited or outside the boundaries
                 if (detectCollision(l_newGridCoordinatesCoM) || findNodeOnList(l_closedSet,
                                                                                m_actions[i],
                                                                                l_nextVelocity,
                                                                                l_newGridCoordinatesCoM,
-                                                                               l_newWorldCoordinatesCoM.q)) {
+                                                                               l_newCoMWorldCoordinates.q)) {
                     continue;
                 }
 
@@ -424,7 +359,21 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                 if (m_footstepsChecked <= FOOTSTEP_HORIZON) {
                     // Transform feet configuration from CoM to Map frame
                     FeetConfiguration l_newFeetConfigurationMap;
-                    transformCoMFeetConfigurationToMap(l_newFeetConfigurationCoM, l_newFeetConfigurationMap);
+                    transformCoMFeetConfigurationToMap(l_newCoMWorldCoordinates,
+                                                       l_newFeetConfiguration,
+                                                       l_newFeetConfigurationMap);
+
+                    ROS_DEBUG_STREAM("FL map position: " << l_newFeetConfigurationMap.flMap.x << ", "
+                                                         << l_newFeetConfigurationMap.flMap.y);
+
+                    ROS_DEBUG_STREAM("FR map position: " << l_newFeetConfigurationMap.frMap.x << ", "
+                                                         << l_newFeetConfigurationMap.frMap.y);
+
+                    ROS_DEBUG_STREAM("RL map position: " << l_newFeetConfigurationMap.rlMap.x << ", "
+                                                         << l_newFeetConfigurationMap.rlMap.y);
+
+                    ROS_DEBUG_STREAM("RR map position: " << l_newFeetConfigurationMap.rrMap.x << ", "
+                                                         << l_newFeetConfigurationMap.rrMap.y << "\n");
 
                     // Convert footholds to grid indices
                     Vec2D l_flGridPose{};
@@ -436,8 +385,7 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                     worldToGrid(l_newFeetConfigurationMap.rlMap, l_rlGridPose);
                     worldToGrid(l_newFeetConfigurationMap.rrMap, l_rrGridPose);
 
-
-
+                    // Check if foot grid indexes are in valid terrain
                     if (!m_elevationMapProcessor.checkFootholdValidity(l_flGridPose.x, l_flGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_frGridPose.x, l_frGridPose.y) ||
                         !m_elevationMapProcessor.checkFootholdValidity(l_rlGridPose.x, l_rlGridPose.y) ||
@@ -445,10 +393,26 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                         ROS_INFO("Invalid Footstep.");
                         continue;
                     }
+
+                    // Add map feet poses to feet configuration
+                    l_newFeetConfiguration.flMap = l_newFeetConfigurationMap.flMap;
+                    l_newFeetConfiguration.frMap = l_newFeetConfigurationMap.frMap;
+                    l_newFeetConfiguration.rlMap = l_newFeetConfigurationMap.rlMap;
+                    l_newFeetConfiguration.rrMap = l_newFeetConfigurationMap.rrMap;
+
+                    // Set new feet configuration world height
+                    l_newFeetConfiguration.flMap.z = m_elevationMapProcessor.getCellHeight(l_flGridPose.x,
+                                                                                           l_flGridPose.y);
+                    l_newFeetConfiguration.frMap.z = m_elevationMapProcessor.getCellHeight(l_frGridPose.x,
+                                                                                           l_frGridPose.y);
+                    l_newFeetConfiguration.rlMap.z = m_elevationMapProcessor.getCellHeight(l_rlGridPose.x,
+                                                                                           l_rlGridPose.y);
+                    l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
+                                                                                           l_rrGridPose.y);
                 }
 
                 // Set new CoM world height
-                l_newWorldCoordinatesCoM.z =
+                l_newCoMWorldCoordinates.z =
                         p_sourceWorldCoordinates.z + m_elevationMapProcessor.getCellHeight(l_newGridCoordinatesCoM.x,
                                                                                            l_newGridCoordinatesCoM.y);
 
@@ -458,33 +422,31 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                                                  m_actions[i],
                                                  l_nextVelocity,
                                                  l_newGridCoordinatesCoM,
-                                                 l_newWorldCoordinatesCoM.q);
+                                                 l_newCoMWorldCoordinates.q);
                 if (successor == nullptr) {
                     successor = new Node(m_actions[i],
                                          l_newGridCoordinatesCoM,
-                                         l_newWorldCoordinatesCoM,
-                                         l_newFeetConfigurationCoM,
+                                         l_newCoMWorldCoordinates,
+                                         l_newFeetConfiguration,
                                          l_currentNode);
                     successor->G = totalCost;
                     successor->velocity = l_nextVelocity;
                     successor->H = m_heuristic(*successor, Node{Action{0, 0, 0},
                                                                 l_targetGridCoordinates,
                                                                 p_targetWorldCoordinates,
-                                                                l_newFeetConfigurationCoM});
+                                                                l_newFeetConfiguration});
                     l_openSet.push_back(successor);
                 } else if (totalCost < successor->G) {
                     successor->G = totalCost;
                     successor->velocity = l_nextVelocity;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
-                    successor->worldCoordinates = l_newWorldCoordinatesCoM;
-                    successor->feetConfiguration = l_newFeetConfigurationCoM;
+                    successor->worldCoordinates = l_newCoMWorldCoordinates;
+                    successor->feetConfiguration = l_newFeetConfiguration;
                 }
 
                 // Increase footsteps validation counter
                 m_footstepsChecked += 1;
-
-                ROS_DEBUG_STREAM("Cost: " << successor->H << "\n");
             }
         }
     }

@@ -35,7 +35,7 @@ const std::string ROBOT_REFERENCE_FRAME("trunk");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const unsigned short GRADIENT_THRESHOLD(700);
+const double GRADIENT_THRESHOLD(1.5);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -49,9 +49,3 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
 const unsigned int FOOTSTEP_HORIZON(2);
-
-// Foot frames
-const std::string FL_FOOT_FRAME("lf_foot");
-const std::string FR_FOOT_FRAME("rf_foot");
-const std::string RL_FOOT_FRAME("lh_foot");
-const std::string RR_FOOT_FRAME("rh_foot");

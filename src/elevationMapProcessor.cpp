@@ -65,9 +65,9 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
 
     // Convert elevation map to OpenCV
     cv::Mat l_elevationMapImage;
-    if (!grid_map::GridMapCvConverter::toImage<unsigned char, 1>(l_elevationMap,
+    if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
                                                                  "elevation_inpainted",
-                                                                 CV_8UC1,
+                                                                 CV_32F,
                                                                  l_elevationMap.get(
                                                                          "elevation_inpainted").minCoeffOfFinites(),
                                                                  l_elevationMap.get(

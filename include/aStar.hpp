@@ -147,9 +147,12 @@ namespace AStar
          * Transform feet configuration
          * from CoM frame to map frame.
          *
-         * @param p_newFeetConfiguration
+         * @param p_newCoMWorldCoordinates
+         * @param p_newFeetConfigurationCoM
+         * @param p_newFeetConfigurationMap
          */
-        void transformCoMFeetConfigurationToMap(const FeetConfiguration &p_newFeetConfigurationCoM,
+        void transformCoMFeetConfigurationToMap(const World3D &p_newCoMWorldCoordinates,
+                                                const FeetConfiguration &p_newFeetConfigurationCoM,
                                                 FeetConfiguration &p_newFeetConfigurationMap);
 
         //! Robot model
