@@ -62,13 +62,7 @@ public:
      * @param p_col
      * @return true if valid, otherwise false
      */
-    bool checkFootholdValidity(const int &p_row, const int &p_col);
-
-    /**
-     * Obtain the latest processed foot costmap
-     * and the latest acquired elevation map.
-     */
-    std::tuple<cv::Mat, grid_map::Matrix> getCostmaps();
+    bool validFootstep(const int &p_row, const int &p_col);
 
     /**
      * Obtain the elevation map parameters,
@@ -121,7 +115,8 @@ private:
     unsigned int m_elevationMapGridSizeY;
 
     //! Height and foot costs caches
-    std::queue<cv::Mat> m_footCostmaps;
+    std::queue<cv::Mat> m_distanceTransforms;
+    std::queue<cv::Mat> m_traversabilityCostmaps;
     std::queue<grid_map::Matrix> m_elevationMaps;
 
     //! ROS subscribers

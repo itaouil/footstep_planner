@@ -20,10 +20,15 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+// Dynamic Reconfigure
+#include <dynamic_reconfigure/Config.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/DoubleParameter.h>
+
 // ROS messages
 #include <nav_msgs/Path.h>
+#include <sensor_msgs/Joy.h>
 #include <nav_msgs/Odometry.h>
-#include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -58,12 +63,11 @@ private:
     void buildInitialHeightMap();
 
     /**
-     * Plans a path to a target goal
-     * using an elevation map (2.5D).
+     * Publish predicted CoM path.
      *
-     * @param p_goalMsg
+     * @param p_path
      */
-    void planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg);
+    void publishPredictedCoMPath(const std::vector<Node> &p_path);
 
     /**
      * Publish predicted CoM and
@@ -72,6 +76,21 @@ private:
      * @param p_path
      */
     void publishPredictedFootstepSequence(const std::vector<Node> &p_path);
+
+    /**
+     * Plans a path to a target goal
+     * using an elevation map (2.5D).
+     *
+     * @param p_goalMsg
+     */
+    void planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg);
+
+    /**
+     * Execute planned commands.
+     *
+     * @param p_path
+     */
+    void executePlannedCommands(const std::vector<Node> &p_path);
 
     //! ROS node handle
     ros::NodeHandle m_nh;
@@ -96,16 +115,32 @@ private:
     ros::Publisher m_realFeetConfigurationPublisher;
     ros::Publisher m_targetFeetConfigurationPublisher;
 
+    //! Dynamic reconfigure
+    dynamic_reconfigure::Config m_drConf;
+    dynamic_reconfigure::ReconfigureRequest m_drSrvReq;
+    dynamic_reconfigure::ReconfigureResponse m_drSrvRes;
+    dynamic_reconfigure::DoubleParameter m_drDoubleParam;
+
     //! Odometry cache
     message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
 
-    //! Planned motion commands
-    std::queue<geometry_msgs::Twist> m_motionCommands;
-
-    //! Transformed CoM
-    std::vector<geometry_msgs::PointStamped> m_transCoM;
-
     //! Feet transformed
     std::vector<visualization_msgs::MarkerArray> m_targetFootsteps;
+
+    //! FL foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_flFootPoseSubscriber;
+
+    //! FR foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_frFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_frFootPoseSubscriber;
+
+    //! RL foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_rlFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_rlFootPoseSubscriber;
+
+    //! RR foot pose cache
+    message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
+    message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
 };

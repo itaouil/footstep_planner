@@ -13,9 +13,9 @@
 #include <iostream>
 
 // Publisher topics
-const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
 const std::string TARGET_PATH_TOPIC("/target_path");
 const std::string REAL_PATH_TOPIC("/performed_path");
+const std::string VELOCITY_CMD_TOPIC("/aliengo/wb_controller/joy");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
 const std::string TARGET_FEET_CONFIGURATION_MARKERS_TOPIC("/target_feet_configuration");
 
@@ -35,7 +35,7 @@ const std::string ROBOT_REFERENCE_FRAME("trunk");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(1.5);
+const double GRADIENT_THRESHOLD(0.7);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -48,4 +48,7 @@ const double TIMESTAMP(0.325);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(2);
+const unsigned int FOOTSTEP_HORIZON(100000);
+
+// Minimum distance for cell to be considered traversable
+const double MIN_STAIR_DISTANCE(0.012);

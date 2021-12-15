@@ -363,18 +363,6 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                                                        l_newFeetConfiguration,
                                                        l_newFeetConfigurationMap);
 
-                    ROS_DEBUG_STREAM("FL map position: " << l_newFeetConfigurationMap.flMap.x << ", "
-                                                         << l_newFeetConfigurationMap.flMap.y);
-
-                    ROS_DEBUG_STREAM("FR map position: " << l_newFeetConfigurationMap.frMap.x << ", "
-                                                         << l_newFeetConfigurationMap.frMap.y);
-
-                    ROS_DEBUG_STREAM("RL map position: " << l_newFeetConfigurationMap.rlMap.x << ", "
-                                                         << l_newFeetConfigurationMap.rlMap.y);
-
-                    ROS_DEBUG_STREAM("RR map position: " << l_newFeetConfigurationMap.rrMap.x << ", "
-                                                         << l_newFeetConfigurationMap.rrMap.y << "\n");
-
                     // Convert footholds to grid indices
                     Vec2D l_flGridPose{};
                     Vec2D l_frGridPose{};
@@ -386,11 +374,10 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                     worldToGrid(l_newFeetConfigurationMap.rrMap, l_rrGridPose);
 
                     // Check if foot grid indexes are in valid terrain
-                    if (!m_elevationMapProcessor.checkFootholdValidity(l_flGridPose.x, l_flGridPose.y) ||
-                        !m_elevationMapProcessor.checkFootholdValidity(l_frGridPose.x, l_frGridPose.y) ||
-                        !m_elevationMapProcessor.checkFootholdValidity(l_rlGridPose.x, l_rlGridPose.y) ||
-                        !m_elevationMapProcessor.checkFootholdValidity(l_rrGridPose.x, l_rrGridPose.y)) {
-                        ROS_INFO("Invalid Footstep.");
+                    if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y) ||
+                        !m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y) ||
+                        !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y) ||
+                        !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y)) {
                         continue;
                     }
 

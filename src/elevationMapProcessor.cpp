@@ -66,13 +66,13 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     // Convert elevation map to OpenCV
     cv::Mat l_elevationMapImage;
     if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
-                                                                 "elevation_inpainted",
-                                                                 CV_32F,
-                                                                 l_elevationMap.get(
-                                                                         "elevation_inpainted").minCoeffOfFinites(),
-                                                                 l_elevationMap.get(
-                                                                         "elevation_inpainted").maxCoeffOfFinites(),
-                                                                 l_elevationMapImage)) {
+                                                         "elevation_inpainted",
+                                                         CV_32F,
+                                                         l_elevationMap.get(
+                                                                 "elevation_inpainted").minCoeffOfFinites(),
+                                                         l_elevationMap.get(
+                                                                 "elevation_inpainted").maxCoeffOfFinites(),
+                                                         l_elevationMapImage)) {
         ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
     }
 
@@ -94,40 +94,54 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     cv::magnitude(l_sobelX, l_sobelY, l_sobelMagnitude);
 
     // Set costmap traversability based on computed gradients
+    // such that traversable cells are set to 1 and impassable
+    // ones to 0
     cv::Mat l_costmap;
-    cv::threshold(l_sobelMagnitude, l_costmap, GRADIENT_THRESHOLD, 1, cv::THRESH_BINARY);
+    cv::threshold(l_sobelMagnitude, l_costmap, GRADIENT_THRESHOLD, 1, cv::THRESH_BINARY_INV);
 
-    // Flip costmap around the horizontal
-    // axis and subsequently rotate it to
-    // obtain it in the same orientation as
-    // the original elevation map
-    cv::Mat l_costmapFlipped;
-    cv::Mat l_costmapRotated;
-    cv::flip(l_costmap, l_costmapFlipped, 1);
-    cv::rotate(l_costmapFlipped, l_costmapRotated, cv::ROTATE_90_CLOCKWISE);
+    // Compute distance transform
+    cv::Mat l_distanceTransform;
+    cv::Mat l_converted8UC1Costmap;
+    l_costmap.convertTo(l_converted8UC1Costmap, CV_8UC1);
+    cv::distanceTransform(l_converted8UC1Costmap, l_distanceTransform, cv::DIST_L2, 3);
 
-    // Add new costmaps and the relative
-    // elevation map eigen matrix
+    // Add traversability, elevation and distance
+    // data to the respective queues in a thread safe
+    // manner
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
 
-        if (m_footCostmaps.size() > 4) {
-            m_footCostmaps.pop();
+        if (m_traversabilityCostmaps.size() > 4) {
             m_elevationMaps.pop();
+            m_distanceTransforms.pop();
+            m_traversabilityCostmaps.pop();
         }
 
-        m_footCostmaps.push(l_costmap);
+        m_traversabilityCostmaps.push(l_costmap);
+        m_distanceTransforms.push(l_distanceTransform);
         m_elevationMaps.push(l_elevationMap.get("elevation_inpainted"));
     }
 
+    // Visualize occupancy grid and colored
+    // elevation map based on traversability
     if (PUBLISH) {
-        std::vector<float> l_data;
+        // Flip costmap around the horizontal
+        // axis and subsequently rotate it to
+        // obtain it in the same orientation as
+        // the original elevation map
+        cv::Mat l_costmapFlipped;
+        cv::Mat l_costmapRotated;
+        cv::flip(l_costmap, l_costmapFlipped, 1);
+        cv::rotate(l_costmapFlipped, l_costmapRotated, cv::ROTATE_90_CLOCKWISE);
+
+        // Create vector from traversability costmap
+        std::vector<float> l_traversabilityData;
         if (l_costmapRotated.isContinuous()) {
-            l_data.assign((float *) l_costmapRotated.data,
+            l_traversabilityData.assign((float *) l_costmapRotated.data,
                           (float *) l_costmapRotated.data + l_costmapRotated.total() * l_costmapRotated.channels());
         } else {
             for (int i = 0; i < l_sobelMagnitude.rows; ++i) {
-                l_data.insert(l_data.end(), l_costmapRotated.ptr<float>(i),
+                l_traversabilityData.insert(l_traversabilityData.end(), l_costmapRotated.ptr<float>(i),
                               l_costmapRotated.ptr<float>(i) + l_costmapRotated.cols * l_costmapRotated.channels());
             }
         }
@@ -147,11 +161,13 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         l_occupancyGrid.info.origin.position.z = 0.0;
 
         // Populate occupancy grid (for visualization purposes only)
-        for (auto &i: l_data) {
-            if (static_cast<int>(i) > 0)
-                l_occupancyGrid.data.push_back(100);
-            else
+        for (auto &cellTraversability: l_traversabilityData) {
+            // Empty cell
+            if (static_cast<int>(cellTraversability))
                 l_occupancyGrid.data.push_back(0);
+            // Non-empty cell
+            else
+                l_occupancyGrid.data.push_back(100);
         }
 
         // Create color layer to visualize
@@ -159,16 +175,16 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         cv::Mat3b l_colorLayerBGR(l_costmap.rows, l_costmap.cols, CV_8UC3);
         for (int i = 0; i < l_costmap.rows; i++) {
             for (int j = 0; j < l_costmap.cols; j++) {
-                // Unsteppable cell
-                if (static_cast<int>(l_costmap.at<float>(i, j)) == 1) {
-                    l_colorLayerBGR(i, j)[0] = 172;
-                    l_colorLayerBGR(i, j)[1] = 0;
-                    l_colorLayerBGR(i, j)[2] = 0;
-                }
-                // Steppable cell
-                else {
+                // Traversable cell
+                if (l_distanceTransform.at<float>(i, j) * m_elevationMapGridResolution >= MIN_STAIR_DISTANCE) {
                     l_colorLayerBGR(i, j)[0] = 0;
                     l_colorLayerBGR(i, j)[1] = 172;
+                    l_colorLayerBGR(i, j)[2] = 0;
+                }
+                // Impassable cell
+                else {
+                    l_colorLayerBGR(i, j)[0] = 172;
+                    l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
             }
@@ -216,25 +232,15 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
  * @param p_col
  * @return true if valid, otherwise false
  */
-bool ElevationMapProcessor::checkFootholdValidity(const int &p_row, const int &p_col) {
+bool ElevationMapProcessor::validFootstep(const int &p_row, const int &p_col) {
     // Obtain latest costmap
-    cv::Mat l_latestCostmap;
+    cv::Mat l_latestDistanceTransform;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        l_latestCostmap = m_footCostmaps.back();
+        l_latestDistanceTransform = m_distanceTransforms.back();
     }
 
-    return !static_cast<bool>(l_latestCostmap.at<float>(p_row, p_col));
-}
-
-/**
- * Obtain latest processed costmap.
- */
-std::tuple<cv::Mat, grid_map::Matrix> ElevationMapProcessor::getCostmaps() {
-    {
-        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        return std::make_tuple(m_footCostmaps.back(), m_elevationMaps.back());
-    }
+    return ((l_latestDistanceTransform.at<float>(p_row, p_col) * m_elevationMapGridResolution) >= MIN_STAIR_DISTANCE);
 }
 
 /**

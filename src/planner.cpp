@@ -159,11 +159,9 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
 
     // Transform robot pose to map frame
     geometry_msgs::PoseStamped l_robotPoseMapFrame;
-//    geometry_msgs::PoseStamped l_robotPoseRobotFrame;
     l_robotPoseMapFrame.header = l_latestRobotPose->header;
     l_robotPoseMapFrame.pose.position = l_latestRobotPose->pose.pose.position;
     l_robotPoseMapFrame.pose.orientation = l_latestRobotPose->pose.pose.orientation;
-//    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_robotPoseRobotFrame, l_robotPoseMapFrame);
 
     // Compute grid source coordinates
     tf2::Quaternion l_startPositionQuaternion;
@@ -185,27 +183,14 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(l_feetConfiguration);
 
-//    ROS_INFO_STREAM("Fl CoM Configuration: " << l_feetConfiguration.flCoM.x << ", " << l_feetConfiguration.flCoM.y);
-//    ROS_INFO_STREAM("FR CoM Configuration: " << l_feetConfiguration.frCoM.x << ", " << l_feetConfiguration.frCoM.y);
-//    ROS_INFO_STREAM("RL CoM Configuration: " << l_feetConfiguration.rlCoM.x << ", " << l_feetConfiguration.rlCoM.y);
-//    ROS_INFO_STREAM("RR CoM Configuration: " << l_feetConfiguration.rrCoM.x << ", " << l_feetConfiguration.rrCoM.y);
-//    ROS_INFO_STREAM("FR/RL swinging first: " << l_feetConfiguration.fr_rl_swinging);
-
-//    ROS_INFO_STREAM("Fl Map Configuration: " << l_feetConfiguration.flMap.x << ", " << l_feetConfiguration.flMap.y);
-//    ROS_INFO_STREAM("FR Map Configuration: " << l_feetConfiguration.frMap.x << ", " << l_feetConfiguration.frMap.y);
-//    ROS_INFO_STREAM("RL Map Configuration: " << l_feetConfiguration.rlMap.x << ", " << l_feetConfiguration.rlMap.y);
-//    ROS_INFO_STREAM("RR Map Configuration: " << l_feetConfiguration.rrMap.x << ", " << l_feetConfiguration.rrMap.y);
-
-    auto start = high_resolution_clock::now();
     // Call A* search algorithm
+    auto start = high_resolution_clock::now();
     std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,
                                                  l_worldGoalPosition,
                                                  l_feetConfiguration);
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
-
-    std::cout << "Time taken by planner: "
-         << duration.count() << " milliseconds" << std::endl;
+    ROS_INFO_STREAM("Time taken by the planner: " << duration.count() << " milliseconds" << std::endl);
 
     // Copy over path
     std::copy(l_path.begin(), l_path.end(), std::back_inserter(p_path));
