@@ -584,7 +584,7 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg) 
     }
 
     // Publish predicted CoM path
-    publishPredictedCoMPath(l_path);
+//    publishPredictedCoMPath(l_path);
 
     // Publish predicted footstep sequence
     publishPredictedFootstepSequence(l_path);

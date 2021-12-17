@@ -52,4 +52,4 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(100000);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.03);
+const double MIN_STAIR_DISTANCE(0.035);
