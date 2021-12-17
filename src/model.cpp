@@ -15,7 +15,7 @@ Model::Model(ros::NodeHandle &p_nh) :
         m_nh(p_nh), m_listener(m_buffer) {
     // Feet configuration marker array publisher
     m_feetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(
-            TARGET_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
+            PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 
     // Set continuous models coefficients
     setContinuousModelsCoefficients();

@@ -140,7 +140,7 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
     p_feetConfiguration.rrCoM.y = l_latestRRFootPose->pose_actual.position.y;
 
     // FR/RL always swing first
-    p_feetConfiguration.fr_rl_swinging = true;
+    p_feetConfiguration.fr_rl_swinging = false;
 }
 
 /**

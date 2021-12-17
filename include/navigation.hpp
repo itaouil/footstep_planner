@@ -67,6 +67,13 @@ private:
      *
      * @param p_path
      */
+    void publishRealCoMPath();
+
+    /**
+     * Publish predicted CoM path.
+     *
+     * @param p_path
+     */
     void publishPredictedCoMPath(const std::vector<Node> &p_path);
 
     /**
@@ -76,6 +83,14 @@ private:
      * @param p_path
      */
     void publishPredictedFootstepSequence(const std::vector<Node> &p_path);
+
+    /**
+     * Publish predicted and real
+     * CoM and footstep sequence.
+     *
+     * @param p_path
+     */
+    void publishRealFootstepSequence(const std::vector<Node> &p_path);
 
     /**
      * Plans a path to a target goal
@@ -143,4 +158,10 @@ private:
     //! RR foot pose cache
     message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
     message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
+
+    //! Real CoM poses
+    std::vector<nav_msgs::Odometry> m_realCoMPoses;
+
+    //! Real feet poses
+    std::vector<std::vector<wb_controller::CartesianTask>> m_realFeetPoses;
 };
