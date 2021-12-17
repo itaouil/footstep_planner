@@ -22,6 +22,9 @@ import dynamic_reconfigure.client
 # Dynamic reconfigure client
 client = None
 
+# Max non forward velocity
+MAX_NON_FWD_VELOCITY=0.55
+
 
 def stop(velocity_publisher):
     start_time = rospy.Time.now()
@@ -69,8 +72,17 @@ def stomping(velocity_publisher):
 
 def publish_joy_accelerations(joy, velocity_publisher, curr_velocity):
     global client
+    global MAX_NON_FWD_VELOCITY
 
-    for next_velocity in np.arange(0.0, 0.6, 0.1):
+    for next_velocity in np.arange(0.0, 1.0, 0.1):
+        # Limit clockwise, counterclockwise, left and right motions to 0.5
+        if joy.axes in [[-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0],
+                        [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                        [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] \
+                and (curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
+            continue
+
         # Skip if next velocity to be applied is
         # the same as the current velocity of below
         if abs(next_velocity) - abs(curr_velocity) < 0.05:
@@ -78,7 +90,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity):
 
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ", next_velocity)
 
-        for _ in range(120):
+        for _ in range(48):
             # Reset velocity to initial one
             rospy.set_param("/current_velocity", float(curr_velocity))
             params = {"set_linear_vel": curr_velocity, "set_angular_vel": curr_velocity}
@@ -156,7 +168,7 @@ def joy_publisher():
     stomping(velocity_publisher)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.0, 0.6, 0.1):
+        for velocity in np.arange(0.0, 1.0, 0.1):
             print(velocity)
 
             # Change base and rotation velocity
@@ -185,8 +197,8 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration clockwise command")
-            publish_joy_accelerations(joy, velocity_publisher, velocity)
+            # print("Publishing acceleration clockwise command")
+            # publish_joy_accelerations(joy, velocity_publisher, velocity)
             # print("Publishing continuous clockwise command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -199,8 +211,8 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration counterclockwise command")
-            publish_joy_accelerations(joy, velocity_publisher, velocity)
+            # print("Publishing acceleration counterclockwise command")
+            # publish_joy_accelerations(joy, velocity_publisher, velocity)
             # print("Publishing continuous counterclockwise command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -213,8 +225,8 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration right command")
-            publish_joy_accelerations(joy, velocity_publisher, velocity)
+            # print("Publishing acceleration right command")
+            # publish_joy_accelerations(joy, velocity_publisher, velocity)
             # print("Publishing continuous right command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -227,8 +239,8 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration left command")
-            publish_joy_accelerations(joy, velocity_publisher, velocity)
+            # print("Publishing acceleration left command")
+            # publish_joy_accelerations(joy, velocity_publisher, velocity)
             # print("Publishing continuous left command")
             # publish_joy_continuous(joy, velocity_publisher)
 

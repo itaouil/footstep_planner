@@ -36,11 +36,6 @@ void Navigation::initialize() {
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
-    // Robot pose subscriber and cache setup
-    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
-    m_robotPoseCache.connectInput(m_robotPoseSubscriber);
-    m_robotPoseCache.setCacheSize(CACHE_SIZE);
-
     // Path publishers
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_PATH_TOPIC, 1);
     m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(TARGET_PATH_TOPIC, 1);
@@ -56,7 +51,7 @@ void Navigation::initialize() {
             TARGET_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 
     // Robot pose subscriber and cache setup
-    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
+    m_robotPoseSubscriber.subscribe(m_nh, ODOM_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
@@ -275,8 +270,16 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
     m_drDoubleParam.value = 0.15;
     m_drConf.doubles.push_back(m_drDoubleParam);
 
+    int count = 0;
+
     // Send planned command
     for (auto &l_node: p_path) {
+        // Skip no action
+        if (l_node.action == Action{0, 0, 0}) {
+            count += 1;
+            continue;
+        }
+
         // Set linear velocity via dynamic reconfigure
         m_drDoubleParam.name = "set_linear_vel";
         m_drDoubleParam.value = l_node.velocity;
@@ -293,6 +296,10 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
 
         // Time of cache extraction
         ros::Time l_latestPoseTime = ros::Time::now();
+
+        // Get the latest odometry pose from the cache
+        boost::shared_ptr<nav_msgs::Odometry const> l_latestRobotPose =
+                m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
 
         // Get the latest FL foot pose from the cache
         boost::shared_ptr<wb_controller::CartesianTask const> l_latestFLFootPose =
@@ -318,42 +325,48 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
         l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 
         ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
-        ROS_INFO_STREAM("Actual FL pose: " << l_latestFLFootPose->pose_actual.position.x << ". Target: " << l_node.feetConfiguration.flCoM.x);
-        ROS_INFO_STREAM("Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta << "\n");
+        ROS_INFO_STREAM(
+                "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
 
         // Execute command
-        while (abs(l_latestFLFootPose->pose_actual.position.x - l_node.feetConfiguration.flCoM.x) >= 0.007) {
+        while (abs(l_latestRobotPose->pose.pose.position.x - l_node.worldCoordinates.x) >= 0.003) {
             // Send motion command
             m_velocityPublisher.publish(l_joy);
-
 
 //            m_realPathPublisher.publish(l_realPathMsg);
 //            m_targetFeetConfigurationPublisher.publish(m_targetFootsteps[count]);
 
-            // Get callback data
-            ros::spinOnce();
-
             // Sleep
             m_rate.sleep();
+
+            // Get callback data
+            ros::spinOnce();
 
             // Acquire new feet positions
             // Time of cache extraction
             l_latestPoseTime = ros::Time::now();
 
-            // Get the latest FL foot pose from the cache
-            l_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+            // Get the latest odometry pose from the cache
+            l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
 
-            // Get the latest FR foot pose from the cache
-            l_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest RL foot pose from the cache
-            l_latestRLFootPose = m_rlFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest RR foot pose from the cache
-            l_latestRRFootPose = m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-//            ROS_INFO_STREAM("X distance: " << abs(l_latestFLFootPose->pose_actual.position.x - l_node.feetConfiguration.flCoM.x));
+//            // Get the latest FL foot pose from the cache
+//            l_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+//
+//            // Get the latest FR foot pose from the cache
+//            l_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+//
+//            // Get the latest RL foot pose from the cache
+//            l_latestRLFootPose = m_rlFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+//
+//            // Get the latest RR foot pose from the cache
+//            l_latestRRFootPose = m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
         }
+
+        count += 1;
+
+        ROS_INFO_STREAM(
+                "X distance: " << count << "/" << p_path.size() << ", "
+                               << abs(l_latestRobotPose->pose.pose.position.x - l_node.worldCoordinates.x) << "\n");
     }
 
     // Stomp on the spot command
@@ -419,10 +432,10 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg) 
     publishPredictedCoMPath(l_path);
 
     // Publish predicted footstep sequence
-    publishPredictedFootstepSequence(l_path);
+//    publishPredictedFootstepSequence(l_path);
 
     // Execute planned commands
-//    executePlannedCommands(l_path);
+    executePlannedCommands(l_path);
 }
 
 int main(int argc, char **argv) {

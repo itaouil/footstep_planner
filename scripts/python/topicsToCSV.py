@@ -39,8 +39,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/itaouil/workspace/code/aliengo_ws/src/aliengo_navigation/data/dataset4_wbc/live_extraction"
-file_object = open(path + "/accelerations_wbc_graiola_CoM_5minutes.csv", "a")
+path = "/home/itaouil/workspace/code/aliengo_ws/src/aliengo_navigation/data/dataset4_wbc/live_extraction/just_acquired"
+file_object = open(path + "/lol.csv", "a")
 
 
 def clean_max_heights():
@@ -98,6 +98,7 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
                 prev_footstep_time = time.time()
             else:
                 if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.3:
+                    print("Time: ", time.time() - prev_footstep_time)
                     footstep.data = True
                     prev_footstep_flag = True
                     prev_footstep_time = time.time()
@@ -175,6 +176,8 @@ def live_extraction(odom_msg,
         linear_y = 0.0
     if not angular_yaw:
         angular_yaw = 0.0
+
+    print(footholds_msg.contact)
 
     file_object.write(str(time.time()) + "," +
 

@@ -21,6 +21,7 @@ const std::string TARGET_FEET_CONFIGURATION_MARKERS_TOPIC("/target_feet_configur
 
 // Subscriber topics
 const std::string ROBOT_POSE_TOPIC("/pose");
+const std::string ODOM_TOPIC("/aliengo/ground_truth");
 const std::string FL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lf_foot");
 const std::string FR_FOOT_POSE_TOPIC("/aliengo/wb_controller/rf_foot");
 const std::string RL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lh_foot");
@@ -51,4 +52,4 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(100000);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.012);
+const double MIN_STAIR_DISTANCE(0.03);

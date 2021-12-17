@@ -121,12 +121,12 @@ private:
     dynamic_reconfigure::ReconfigureResponse m_drSrvRes;
     dynamic_reconfigure::DoubleParameter m_drDoubleParam;
 
-    //! Odometry cache
-    message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
-    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
-
     //! Feet transformed
     std::vector<visualization_msgs::MarkerArray> m_targetFootsteps;
+
+    //! Odometry cache
+    message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
+    message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
     //! FL foot pose cache
     message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;

@@ -94,7 +94,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 }
 
 /**
@@ -315,6 +315,16 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
 
         for (double &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
+                // Cap velocity to 0.5 after the footstep planning horizon
+                if (m_footstepsChecked > FOOTSTEP_HORIZON && l_nextVelocity != 0.5) {
+                    continue;
+                }
+
+                // Cap max next velocity for non-forward motions to 0.5
+                if (m_actions[i] != Action{1, 0, 0} && l_nextVelocity > 0.5) {
+                    continue;
+                }
+
                 // Next robot state
                 FeetConfiguration l_currentFeetConfiguration;
 
