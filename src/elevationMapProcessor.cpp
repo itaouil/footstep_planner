@@ -155,9 +155,9 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         l_occupancyGrid.info.height = static_cast<int>(p_elevationMapMsg.info.length_y /
                                                        l_occupancyGrid.info.resolution);
         l_occupancyGrid.info.origin.position.x =
-                p_elevationMapMsg.info.pose.position.x - p_elevationMapMsg.info.length_x / 2;
+                p_elevationMapMsg.info.pose.position.x + p_elevationMapMsg.info.length_x / 2;
         l_occupancyGrid.info.origin.position.y =
-                p_elevationMapMsg.info.pose.position.y - p_elevationMapMsg.info.length_y / 2;
+                p_elevationMapMsg.info.pose.position.y + p_elevationMapMsg.info.length_y / 2;
         l_occupancyGrid.info.origin.position.z = 0.0;
 
         // Populate occupancy grid (for visualization purposes only)

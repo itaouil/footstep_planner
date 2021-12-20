@@ -78,6 +78,11 @@ void Navigation::initialize() {
     m_rrFootPoseSubscriber.subscribe(m_nh, RR_FOOT_POSE_TOPIC, 1);
     m_rrFootPoseCache.connectInput(m_rrFootPoseSubscriber);
     m_rrFootPoseCache.setCacheSize(CACHE_SIZE);
+
+    // Contact forces subscriber and cache setup
+    m_contactForcesSubscriber.subscribe(m_nh, CONTACT_FORCES_TOPIC, 1);
+    m_contactForcesCache.connectInput(m_contactForcesSubscriber);
+    m_contactForcesCache.setCacheSize(CACHE_SIZE);
 }
 
 /**
@@ -417,13 +422,7 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
 
     // Send planned command
     int count = 0;
-    for (auto &l_node: p_path) {
-        // Skip no action
-        if (l_node.action == Action{0, 0, 0}) {
-            count += 1;
-            continue;
-        }
-
+    for (auto &l_node: p_path) {        
         // Set linear velocity via dynamic reconfigure
         m_drDoubleParam.name = "set_linear_vel";
         m_drDoubleParam.value = l_node.velocity;
@@ -438,12 +437,67 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
         m_drSrvReq.config = m_drConf;
         ros::service::call("/aliengo/wb_controller/set_parameters", m_drSrvReq, m_drSrvRes);
 
-        // Time of cache extraction
-        ros::Time l_latestPoseTime = ros::Time::now();
+        // Time of cache extraction and start time
+        ros::Time l_startTime = ros::Time::now();
+        ros::Time l_latestPoseTime = l_startTime;
 
         // Get the latest odometry pose from the cache
         boost::shared_ptr<nav_msgs::Odometry const> l_latestRobotPose =
-                m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
+                m_robotPoseCache.getElemBeforeTime(l_startTime);
+
+        // Get the latest contact forces from the cache
+        boost::shared_ptr<wb_controller::ContactForces const> l_latestContactForces =
+                m_contactForcesCache.getElemBeforeTime(l_startTime);
+
+        // Motion command to send
+        sensor_msgs::Joy l_joy;
+        l_joy.header.stamp = ros::Time::now();
+        l_joy.header.frame_id = "/dev/input/js0";
+        l_joy.axes = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+
+        ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
+        ROS_INFO_STREAM(
+                "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
+
+        // Execute command
+        // while (ros::Time::now().toSec() - l_startTime.toSec() < 0.3 ||
+        //        l_latestContactForces->contact_forces[0].force.z < 25 ||
+        //        l_latestContactForces->contact_forces[1].force.z < 25 ||
+        //        l_latestContactForces->contact_forces[2].force.z < 25 ||
+        //        l_latestContactForces->contact_forces[3].force.z < 25) {
+        while (abs(l_latestRobotPose->pose.pose.position.x - l_node.worldCoordinates.x) >= 0.006) {
+            // Send motion command
+            m_velocityPublisher.publish(l_joy);
+
+            // Sleep
+            m_rate.sleep();
+
+            // Get callback data
+            ros::spinOnce();
+
+            // Time of cache extraction
+            l_latestPoseTime = ros::Time::now();
+
+            // Update header of the message
+            l_joy.header.stamp = l_latestPoseTime;
+
+            // Get the latest odometry pose from the cache
+            l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
+
+            // Get the latest contact forces from the cache
+            l_latestContactForces = m_contactForcesCache.getElemBeforeTime(l_latestPoseTime);
+
+             ROS_INFO_STREAM(
+                "X distance: " << count << "/" << p_path.size() << ", "
+                               << abs(l_latestRobotPose->pose.pose.position.x - l_node.worldCoordinates.x) << "\n");
+        }
+
+        // Time of cache extraction
+        l_latestPoseTime = ros::Time::now();
+
+        // Get the latest odometry pose from the cache
+        l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
 
         // Get the latest FL foot pose from the cache
         boost::shared_ptr<wb_controller::CartesianTask const> l_latestFLFootPose =
@@ -460,51 +514,6 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
         // Get the latest RR foot pose from the cache
         boost::shared_ptr<wb_controller::CartesianTask const> l_latestRRFootPose =
                 m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-        // Motion command to send
-        sensor_msgs::Joy l_joy;
-        l_joy.header.stamp = ros::Time::now();
-        l_joy.header.frame_id = "/dev/input/js0";
-        l_joy.axes = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-
-        ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
-        ROS_INFO_STREAM(
-                "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
-
-        // Execute command
-        while (abs(l_latestRobotPose->pose.pose.position.x - l_node.worldCoordinates.x) >= 0.005) {
-            // Send motion command
-            m_velocityPublisher.publish(l_joy);
-
-            // Sleep
-            m_rate.sleep();
-
-            // Get callback data
-            ros::spinOnce();
-
-            // Get the latest odometry pose from the cache
-            l_latestPoseTime = ros::Time::now();
-            l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
-        }
-
-        // Time of cache extraction
-        l_latestPoseTime = ros::Time::now();
-
-        // Get the latest odometry pose from the cache
-        l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-        // Get the latest FL foot pose from the cache
-        l_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-        // Get the latest FR foot pose from the cache
-        l_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-        // Get the latest RL foot pose from the cache
-        l_latestRLFootPose = m_rlFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-        // Get the latest RR foot pose from the cache
-        l_latestRRFootPose = m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
 
         // Logging
         count += 1;
@@ -584,7 +593,7 @@ void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg) 
     }
 
     // Publish predicted CoM path
-//    publishPredictedCoMPath(l_path);
+    publishPredictedCoMPath(l_path);
 
     // Publish predicted footstep sequence
     publishPredictedFootstepSequence(l_path);

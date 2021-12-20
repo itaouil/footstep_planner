@@ -31,6 +31,8 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
+#include <wb_controller/ContactForces.h>
+#include <wb_controller/CartesianTask.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Planner
@@ -158,6 +160,10 @@ private:
     //! RR foot pose cache
     message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
     message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
+
+    //! Feet contact forces cache
+    message_filters::Cache<wb_controller::ContactForces> m_contactForcesCache;
+    message_filters::Subscriber<wb_controller::ContactForces> m_contactForcesSubscriber;
 
     //! Real CoM poses
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
