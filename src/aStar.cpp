@@ -241,7 +241,9 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const World3D &p_newCoMWo
  * @param p_sourceFeetConfiguration
  * @return sequence of 2D points (world coordinates)
  */
-std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinates,
+std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
+                                          const double &p_initialVelocity,
+                                          const World3D &p_sourceWorldCoordinates,
                                           const World3D &p_targetWorldCoordinates,
                                           const FeetConfiguration &p_sourceFeetConfiguration) {
     // Update elevation map parameters
@@ -270,14 +272,17 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
     l_openSet.reserve(100);
     l_closedSet.reserve(100);
 
-    // Currently expanded node
+    // Current expanded node
     Node *l_currentNode = nullptr;
 
     // Push to initial open set the source node
-    l_openSet.push_back(new Node(Action{0, 0, 0},
+    l_openSet.push_back(new Node(p_initialAction,
                                  l_sourceGridCoordinates,
                                  p_sourceWorldCoordinates,
                                  p_sourceFeetConfiguration));
+    auto l_iterator = l_openSet.begin();
+    auto l_initialNode = *l_iterator;
+    l_initialNode->velocity = p_initialVelocity;
 
     // Search process
     while (!l_openSet.empty()) {
@@ -316,7 +321,7 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
         for (double &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 // Cap velocity to 0.5 after the footstep planning horizon
-                if (m_footstepsChecked > FOOTSTEP_HORIZON && l_nextVelocity != 0.5) {
+                if (m_footstepsChecked >= FOOTSTEP_HORIZON && l_nextVelocity != 0.5) {
                     continue;
                 }
 
@@ -441,12 +446,15 @@ std::vector<Node> AStar::Search::findPath(const World3D &p_sourceWorldCoordinate
                     successor->worldCoordinates = l_newCoMWorldCoordinates;
                     successor->feetConfiguration = l_newFeetConfiguration;
                 }
-
-                // Increase footsteps validation counter
-                m_footstepsChecked += 1;
             }
         }
+
+        // Increase footsteps validation counter
+        m_footstepsChecked += 1;
     }
+
+    // Reset checked footsteps
+    m_footstepsChecked = 0;
 
     // Populate path
     std::vector<Node> path;

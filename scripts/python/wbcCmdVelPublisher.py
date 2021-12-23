@@ -183,10 +183,10 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration forward command")
-            publish_joy_accelerations(joy, velocity_publisher, velocity)
-            # print("Publishing continuous forward command")
-            # publish_joy_continuous(joy, velocity_publisher)
+            #print("Publishing acceleration forward command")
+            #publish_joy_accelerations(joy, velocity_publisher, velocity)
+            print("Publishing c/home/ilyass/workspace/code/thesis_ws/srcontinuous forward command")
+            publish_joy_continuous(joy, velocity_publisher)
 
             # 1s stomping to avoid instability
             stomping(velocity_publisher)
@@ -244,7 +244,7 @@ def joy_publisher():
             # print("Publishing continuous left command")
             # publish_joy_continuous(joy, velocity_publisher)
 
-            print(f"Sequence {velocity} finished")
+            #print(f"Sequence {velocity} finished")
         break
 
     # Stop robot fully

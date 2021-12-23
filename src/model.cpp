@@ -343,7 +343,6 @@ void Model::predictDiscontinuousDisplacements(double p_previousVelocityX,
 
     // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
-//        ROS_INFO_STREAM("Predicting FR/RL swinging");
         p_predictions[0] = m_fr_rl_com_x_acceleration * l_modelInput;
         p_predictions[1] = m_fr_rl_com_y_acceleration * l_modelInput;
 
@@ -359,9 +358,8 @@ void Model::predictDiscontinuousDisplacements(double p_previousVelocityX,
         p_predictions[8] = m_rr_support_x_acceleration * l_modelInput;
         p_predictions[9] = m_rr_support_y_acceleration * l_modelInput;
     }
-        // FL/RR are swinging
+    // FL/RR are swinging
     else {
-//        ROS_INFO_STREAM("Predicting FL/RR swinging");
         p_predictions[0] = m_fl_rr_com_x_acceleration * l_modelInput;
         p_predictions[1] = m_fl_rr_com_y_acceleration * l_modelInput;
 
@@ -393,9 +391,6 @@ void Model::computeNewCoM(double p_angularVelocity,
                           const double p_predictedCoMDisplacementY,
                           const World3D &p_currentWorldCoordinatesCoM,
                           World3D &p_newWorldCoordinatesCoM) {
-//    ROS_INFO_STREAM("Model: COM movement in x: " << p_predictedCoMDisplacementX);
-//    ROS_INFO_STREAM("Model: COM movement in y: " << p_predictedCoMDisplacementY);
-
     // Map to CoM rotation matrix
     geometry_msgs::TransformStamped l_rotationTransform;
     l_rotationTransform.header.stamp = ros::Time::now();
@@ -442,16 +437,6 @@ void Model::computeNewCoM(double p_angularVelocity,
     } else {
         p_newWorldCoordinatesCoM.q = p_currentWorldCoordinatesCoM.q;
     }
-
-//    ROS_INFO_STREAM("Model: new CoM (" << p_newWorldCoordinatesCoM.x << ", "
-//                                       << p_newWorldCoordinatesCoM.y << ", "
-//                                       << p_newWorldCoordinatesCoM.q.x() << ","
-//                                       << p_newWorldCoordinatesCoM.q.y() << ","
-//                                       << p_newWorldCoordinatesCoM.q.z() << ","
-//                                       << p_newWorldCoordinatesCoM.q.w() << ")");
-
-//    ROS_INFO_STREAM("Model: new CoM (" << p_newWorldCoordinatesCoM.x << ", "
-//                                       << p_newWorldCoordinatesCoM.y << ")");
 }
 
 /**
@@ -466,19 +451,6 @@ void Model::computeNewCoM(double p_angularVelocity,
 void Model::computeNewCoMFeetConfiguration(const std::vector<double> &p_relativeStepPredictions,
                                            const FeetConfiguration &p_currentFeetConfiguration,
                                            FeetConfiguration &p_newFeetConfiguration) {
-//    ROS_INFO_STREAM(
-//            "Model: Prev FL CoM: " << p_currentFeetConfiguration.flCoM.x << ", " << p_currentFeetConfiguration.flCoM.y);
-//    ROS_INFO_STREAM(
-//            "Model: Prev FR CoM: " << p_currentFeetConfiguration.frCoM.x << ", " << p_currentFeetConfiguration.frCoM.y);
-//    ROS_INFO_STREAM(
-//            "Model: Prev RL CoM: " << p_currentFeetConfiguration.rlCoM.x << ", " << p_currentFeetConfiguration.rlCoM.y);
-//    ROS_INFO_STREAM(
-//            "Model: Prev RR CoM: " << p_currentFeetConfiguration.rrCoM.x << ", " << p_currentFeetConfiguration.rrCoM.y
-//                                   << "\n");
-
-//    for (auto &prediction: p_relativeStepPredictions)
-//        ROS_INFO_STREAM(prediction);
-
     p_newFeetConfiguration.flCoM.x = p_relativeStepPredictions[0];
     p_newFeetConfiguration.flCoM.y = p_relativeStepPredictions[1];
 
@@ -492,13 +464,6 @@ void Model::computeNewCoMFeetConfiguration(const std::vector<double> &p_relative
     p_newFeetConfiguration.rrCoM.y = p_relativeStepPredictions[7];
 
     p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;
-
-//    ROS_INFO_STREAM("Model: New FL CoM: " << p_newFeetConfiguration.flCoM.x << ", " << p_newFeetConfiguration.flCoM.y);
-//    ROS_INFO_STREAM("Model: New FR CoM: " << p_newFeetConfiguration.frCoM.x << ", " << p_newFeetConfiguration.frCoM.y);
-//    ROS_INFO_STREAM("Model: New RL CoM: " << p_newFeetConfiguration.rlCoM.x << ", " << p_newFeetConfiguration.rlCoM.y);
-//    ROS_INFO_STREAM(
-//            "Model: New RR CoM: " << p_newFeetConfiguration.rrCoM.x << ", " << p_newFeetConfiguration.rrCoM.y << "\n");
-//    ROS_INFO_STREAM("Swinging foot: " << p_currentFeetConfiguration.fr_rl_swinging);
 }
 
 /**
@@ -523,12 +488,6 @@ void Model::predictNextState(bool p_accelerating,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              FeetConfiguration &p_newFeetConfiguration,
                              World3D &p_newWorldCoordinatesCoM) {
-//    ROS_INFO_STREAM("Next Velocity: " << p_action.x * p_nextVelocity << ", " << p_action.y * p_nextVelocity << ", "
-//                                      << p_action.theta * p_nextVelocity);
-//    ROS_INFO_STREAM(
-//            "Previous Velocity: " << p_action.x * p_previousVelocity << ", " << p_action.y * p_previousVelocity << ", "
-//                                  << p_action.theta * p_previousVelocity);
-
     // Predict feet and CoM displacements
     std::vector<double> l_predictions(10);
     if (!p_accelerating) {
@@ -583,8 +542,8 @@ void Model::predictNextState(bool p_accelerating,
 //    l_footCommonMarker.scale.y = 0.025;
 //    l_footCommonMarker.scale.z = 0.025;
 //    l_footCommonMarker.color.r = 0;
-//    l_footCommonMarker.color.g = 0;
-//    l_footCommonMarker.color.b = 1;
+//    l_footCommonMarker.color.g = 1;
+//    l_footCommonMarker.color.b = 0;
 //    l_footCommonMarker.color.a = 0.5;
 //
 //    visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
@@ -628,5 +587,5 @@ void Model::predictNextState(bool p_accelerating,
 //    l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 //
 //    m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-//    ros::Duration(0.12).sleep();
+//    ros::Duration(0.2).sleep();
 }

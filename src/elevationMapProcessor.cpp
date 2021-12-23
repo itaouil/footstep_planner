@@ -66,12 +66,12 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
     // Convert elevation map to OpenCV
     cv::Mat l_elevationMapImage;
     if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
-                                                         "elevation_inpainted",
+                                                         "elevation",
                                                          CV_32F,
                                                          l_elevationMap.get(
-                                                                 "elevation_inpainted").minCoeffOfFinites(),
+                                                                 "elevation").minCoeffOfFinites(),
                                                          l_elevationMap.get(
-                                                                 "elevation_inpainted").maxCoeffOfFinites(),
+                                                                 "elevation").maxCoeffOfFinites(),
                                                          l_elevationMapImage)) {
         ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
     }
@@ -155,9 +155,9 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
         l_occupancyGrid.info.height = static_cast<int>(p_elevationMapMsg.info.length_y /
                                                        l_occupancyGrid.info.resolution);
         l_occupancyGrid.info.origin.position.x =
-                p_elevationMapMsg.info.pose.position.x + p_elevationMapMsg.info.length_x / 2;
+                p_elevationMapMsg.info.pose.position.x - p_elevationMapMsg.info.length_x / 2;
         l_occupancyGrid.info.origin.position.y =
-                p_elevationMapMsg.info.pose.position.y + p_elevationMapMsg.info.length_y / 2;
+                p_elevationMapMsg.info.pose.position.y - p_elevationMapMsg.info.length_y / 2;
         l_occupancyGrid.info.origin.position.z = 0.0;
 
         // Populate occupancy grid (for visualization purposes only)
@@ -178,22 +178,31 @@ void ElevationMapProcessor::elevationMapCallback(const grid_map_msgs::GridMap &p
                 // Traversable cell
                 if (l_distanceTransform.at<float>(i, j) * m_elevationMapGridResolution >= MIN_STAIR_DISTANCE) {
                     l_colorLayerBGR(i, j)[0] = 0;
-                    l_colorLayerBGR(i, j)[1] = 172;
+                    l_colorLayerBGR(i, j)[1] = 255;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
                 // Impassable cell
                 else {
-                    l_colorLayerBGR(i, j)[0] = 172;
+                    l_colorLayerBGR(i, j)[0] = 255;
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
             }
         }
 
+        // Change elevation layer to processed image
+        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImageEroded,
+                                                                  "processed_elevation",
+                                                                  l_elevationMap,
+                                                                  l_elevationMap.get("elevation").minCoeffOfFinites(),
+                                                                  l_elevationMap.get("elevation").maxCoeffOfFinites());
+        
         // Add color layer
-        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 3>(l_colorLayerBGR,
-                                                                               "color",
-                                                                               l_elevationMap);
+        grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 3>(l_colorLayerBGR,
+                                                                          "color",
+                                                                          l_elevationMap,
+                                                                          0,
+                                                                          255);
 
         // Publish occupancy grid
         m_costmapPublisher.publish(l_occupancyGrid);

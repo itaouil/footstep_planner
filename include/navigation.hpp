@@ -33,6 +33,7 @@
 #include <geometry_msgs/PointStamped.h>
 #include <wb_controller/ContactForces.h>
 #include <wb_controller/CartesianTask.h>
+#include <wb_controller/ComTask.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Planner
@@ -142,8 +143,8 @@ private:
     std::vector<visualization_msgs::MarkerArray> m_targetFootsteps;
 
     //! Odometry cache
-    message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
-    message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
+    message_filters::Cache<wb_controller::ComTask> m_robotPoseCache;
+    message_filters::Subscriber<wb_controller::ComTask> m_robotPoseSubscriber;
 
     //! FL foot pose cache
     message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;
@@ -166,8 +167,20 @@ private:
     message_filters::Subscriber<wb_controller::ContactForces> m_contactForcesSubscriber;
 
     //! Real CoM poses
-    std::vector<nav_msgs::Odometry> m_realCoMPoses;
+    std::vector<wb_controller::ComTask> m_realCoMPoses;
 
     //! Real feet poses
     std::vector<std::vector<wb_controller::CartesianTask>> m_realFeetPoses;
+
+    //! Goal message
+    geometry_msgs::PoseStamped m_goalMsg;
+
+    //! Current swinging pair
+    bool m_swingingFRRL;
+
+    //! Current action given to planner
+    Action m_currentAction;
+
+    //! Current velocity given to planner
+    double m_currentVelocity;
 };

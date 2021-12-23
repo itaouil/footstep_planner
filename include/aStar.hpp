@@ -62,7 +62,9 @@ namespace AStar
          * @param p_sourceFeetConfiguration
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<Node> findPath(const World3D &p_sourceWorldCoordinates,
+        std::vector<Node> findPath(const Action &p_initialAction,
+                                   const double &p_initialVelocity,
+                                   const World3D &p_sourceWorldCoordinates,
                                    const World3D &p_targetWorldCoordinates,
                                    const FeetConfiguration &p_sourceFeetConfiguration);
     private:

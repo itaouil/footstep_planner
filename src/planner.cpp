@@ -77,7 +77,7 @@ void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
  * @param p_sourceFrame
  * @param p_feetConfiguration
  */
-void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
+void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL)
 {
     // Time of cache extraction
     const ros::Time l_latestPoseTime = ros::Time::now();
@@ -98,37 +98,6 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
     boost::shared_ptr<wb_controller::CartesianTask const> l_latestRRFootPose =
             m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
 
-//    // Common foot pose message
-//    geometry_msgs::PoseStamped l_footPoseFootFrame;
-//    l_footPoseFootFrame.header.stamp = ros::Time::now();
-//    l_footPoseFootFrame.pose.position.x = 0;
-//    l_footPoseFootFrame.pose.position.y = 0;
-//    l_footPoseFootFrame.pose.position.z = 0;
-//    l_footPoseFootFrame.pose.orientation.x = 0;
-//    l_footPoseFootFrame.pose.orientation.y = 0;
-//    l_footPoseFootFrame.pose.orientation.z = 0;
-//    l_footPoseFootFrame.pose.orientation.w = 1;
-//
-//    // FL configuration
-//    geometry_msgs::PoseStamped l_flFootPoseMapFrame;
-//    l_footPoseFootFrame.header.frame_id = FL_FOOT_FRAME;
-//    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_flFootPoseMapFrame);
-//
-//    // FR configuration
-//    geometry_msgs::PoseStamped l_frFootPoseMapFrame;
-//    l_footPoseFootFrame.header.frame_id = FR_FOOT_FRAME;
-//    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_frFootPoseMapFrame);
-//
-//    // RL configuration
-//    geometry_msgs::PoseStamped l_rlFootPoseMapFrame;
-//    l_footPoseFootFrame.header.frame_id = RL_FOOT_FRAME;
-//    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_rlFootPoseMapFrame);
-//
-//    // RR configuration
-//    geometry_msgs::PoseStamped l_rrFootPoseMapFrame;
-//    l_footPoseFootFrame.header.frame_id = RR_FOOT_FRAME;
-//    getSourceToTargetPoseTransform(HEIGHT_MAP_REFERENCE_FRAME, l_footPoseFootFrame, l_rrFootPoseMapFrame);
-
     // Populate feet CoM configuration
     p_feetConfiguration.flCoM.x = l_latestFLFootPose->pose_actual.position.x;
     p_feetConfiguration.flCoM.y = l_latestFLFootPose->pose_actual.position.y;
@@ -140,16 +109,20 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration)
     p_feetConfiguration.rrCoM.y = l_latestRRFootPose->pose_actual.position.y;
 
     // FR/RL always swing first
-    p_feetConfiguration.fr_rl_swinging = false;
+    p_feetConfiguration.fr_rl_swinging = p_swingingFRRL;
 }
 
 /**
  * Plans path from start to goal.
  *
- * @param std
+ * @param p_goalPosition
+ * @param p_currentNode
  * @param p_path
  */
 void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
+                   const Action &p_initialAction,
+                   const double &p_initialVelocity,
+                   const bool &p_swingingFRRL,
                    std::vector<Node> &p_path)
 {
     // Get the latest robot pose from the cache
@@ -179,13 +152,15 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                 0,
                                 l_goalPositionQuaternion};
 
-    // Compute initial feet configuration
+    // Compute feet configuration
     FeetConfiguration l_feetConfiguration;
-    getFeetConfiguration(l_feetConfiguration);
+    getFeetConfiguration(l_feetConfiguration, p_swingingFRRL);
 
     // Call A* search algorithm
     auto start = high_resolution_clock::now();
-    std::vector<Node> l_path = m_search.findPath(l_worldStartPosition,
+    std::vector<Node> l_path = m_search.findPath(p_initialAction,
+                                                 p_initialVelocity,
+                                                 l_worldStartPosition,
                                                  l_worldGoalPosition,
                                                  l_feetConfiguration);
     auto stop = high_resolution_clock::now();

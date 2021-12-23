@@ -59,10 +59,17 @@ public:
     /**
      * Plans path from start to goal.
      *
-     * @param std
+     * @param p_goalPosition
+     * @param p_initialAction
+     * @param p_initialVelocity
+     * @param p_swingingPair
      * @param p_path
      */
-    void plan(const geometry_msgs::PoseStamped &p_goalPosition, std::vector<Node> &p_path);
+    void plan(const geometry_msgs::PoseStamped &p_goalPosition,
+              const Action &p_initialAction,
+              const double &p_initialVelocity,
+              const bool &p_swingingPair,
+              std::vector<Node> &p_path);
 private:
     /**
      * Compute transform from source to
@@ -81,8 +88,9 @@ private:
      * w.r.t to the CoM frame.
      *
      * @param p_feetConfiguration
+     * @param p_swingingFRRL
      */
-    void getFeetConfiguration(FeetConfiguration &p_feetConfiguration);
+    void getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL);
 
     //! ROS node handle
     ros::NodeHandle m_nh;
