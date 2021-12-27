@@ -53,12 +53,6 @@ public:
 
 private:
     /**
-     * Initial publisher, subscriber,
-     * and services initialization.
-     */
-    void initialize();
-
-    /**
      * Perform rotation movement to
      * build initial height map if
      * required.
@@ -96,19 +90,28 @@ private:
     void publishRealFootstepSequence(const std::vector<Node> &p_path);
 
     /**
+     * Sets goal message and calls
+     * planner to plan the path to
+     * the goal.
+     *
+     * @param p_goalMsg
+     */
+    void goalCallback(const geometry_msgs::PoseStamped &p_goalMsg);
+
+    /**
      * Plans a path to a target goal
      * using an elevation map (2.5D).
      *
      * @param p_goalMsg
      */
-    void planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg);
+    void planPathToGoal();
 
     /**
-     * Execute planned commands.
+     * Execute planned velocity commands.
      *
      * @param p_path
      */
-    void executePlannedCommands(const std::vector<Node> &p_path);
+    void executeVelocityCommands(std::vector<Node> &p_path);
 
     //! ROS node handle
     ros::NodeHandle m_nh;
@@ -130,6 +133,7 @@ private:
     ros::Publisher m_velocityPublisher;
     ros::Publisher m_realPathPublisher;
     ros::Publisher m_targetPathPublisher;
+    ros::Publisher m_targetGoalPublisher;
     ros::Publisher m_realFeetConfigurationPublisher;
     ros::Publisher m_targetFeetConfigurationPublisher;
 
@@ -183,4 +187,13 @@ private:
 
     //! Current velocity given to planner
     double m_currentVelocity;
+
+    //! Re-planning thread
+    std::thread m_thread;
+
+    //! Re-planning boolean
+    bool m_planPathToGoal;
+
+    //! Mutex for processed elevation maps queue
+    std::mutex m_mutex;
 };

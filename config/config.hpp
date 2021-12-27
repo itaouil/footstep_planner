@@ -14,6 +14,7 @@
 
 // Published topics
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
+const std::string TARGET_GOAL_TOPIC("/aliengo_navigation/goal");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
 const std::string VELOCITY_CMD_TOPIC("/aliengo/wb_controller/joy");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
@@ -53,4 +54,4 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(2);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.035);
+const double MIN_STAIR_DISTANCE(0.03);

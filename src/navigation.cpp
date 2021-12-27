@@ -23,19 +23,8 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_planner(p_nh),
         m_swingingFRRL(false),
         m_currentAction{0, 0, 0},
-        m_currentVelocity(0.0) {
-    initialize();
-}
-
-/**
- * Destructor
- */
-Navigation::~Navigation() = default;
-
-/**
- * Navigation initialization
- */
-void Navigation::initialize() {
+        m_currentVelocity(0.0),
+        m_planPathToGoal(false) {
     // Wait for time to catch up
     ros::Duration(1).sleep();
 
@@ -43,11 +32,14 @@ void Navigation::initialize() {
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_CoM_PATH_TOPIC, 1);
     m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(PREDICTED_CoM_PATH_TOPIC, 1);
 
+    // Target goal publisher
+    m_targetGoalPublisher = m_nh.advertise<geometry_msgs::PoseStamped>(TARGET_GOAL_TOPIC, 1);
+
     // Velocity command publisher
     m_velocityPublisher = m_nh.advertise<sensor_msgs::Joy>(VELOCITY_CMD_TOPIC, 10);
 
     // Target goal subscriber
-    m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::planHeightMapPath, this);
+    m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::goalCallback, this);
 
     // Predicted feet configuration marker array publisher
     // Real vs predicted feet configuration marker array publisher
@@ -87,8 +79,20 @@ void Navigation::initialize() {
     m_contactForcesCache.connectInput(m_contactForcesSubscriber);
     m_contactForcesCache.setCacheSize(CACHE_SIZE);
 
+    // Replanning thread
+    //m_thread = std::thread(&Navigation::planPathToGoal, this);
+
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
+}
+
+/**
+ * Destructor
+ */
+Navigation::~Navigation() {
+    // if (m_thread.joinable()) {
+    //     m_thread.join();
+    // }
 }
 
 /**
@@ -144,11 +148,8 @@ void Navigation::buildInitialHeightMap() {
         double l_t1 = ros::Time::now().toSec();
         l_currentAngle = l_angularSpeed * (l_t1 - l_t0);
 
-        ROS_INFO_STREAM("Time: " << l_t1 << ", " << l_t0);
-        ROS_INFO_STREAM(l_currentAngle << ", " << l_relativeAngle);
-
+        // Sleep and pull new data
         m_rate.sleep();
-
         ros::spinOnce();
     }
 
@@ -248,7 +249,7 @@ void Navigation::publishPredictedFootstepSequence(const std::vector<Node> &p_pat
             l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
             l_footCommonMarker.type = 2;
             l_footCommonMarker.action = 0;
-            l_footCommonMarker.lifetime = ros::Duration(2);
+            l_footCommonMarker.lifetime = ros::Duration(1);
             l_footCommonMarker.pose.orientation.x = 0;
             l_footCommonMarker.pose.orientation.y = 0;
             l_footCommonMarker.pose.orientation.z = 0;
@@ -298,7 +299,7 @@ void Navigation::publishPredictedFootstepSequence(const std::vector<Node> &p_pat
             l_targetFeetConfiguration.markers.push_back(l_rrFootMarker);
 
             m_targetFeetConfigurationPublisher.publish(l_targetFeetConfiguration);
-            ros::Duration(3).sleep();
+            ros::Duration(2).sleep();
 
             count += 1;
         }
@@ -453,10 +454,7 @@ void Navigation::publishRealFootstepSequence(const std::vector<Node> &p_path) {
  *
  * @param p_path
  */
-void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
-    // Local path for re-planning
-    std::vector<Node> l_path = p_path;
-
+void Navigation::executeVelocityCommands(std::vector<Node> &p_path) {
     // Full stop command
     sensor_msgs::Joy l_stupidJoy;
     l_stupidJoy.header.stamp = ros::Time::now();
@@ -473,42 +471,86 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
     m_drDoubleParam.value = 0.15;
     m_drConf.doubles.push_back(m_drDoubleParam);
 
-    // Set angular velocity via dynamic reconfigure
-    m_drDoubleParam.name = "set_angular_vel";
-    m_drDoubleParam.value = 0.0;
-    m_drConf.doubles.push_back(m_drDoubleParam);
+    ROS_INFO_STREAM("Path size: " << p_path.size());
 
     // Send planned command
-    while (l_path.size() > 1) {
-        // Re-planning variables
-        bool l_swingingFRRL;
-        Action l_lastAction;
-        double l_lastVelocity;
-
+    if (p_path.size() > 1) {
         // Counter
         unsigned int count = 0;
 
         // Command execution logic
-        for (auto &l_node: l_path) {
+        for (auto &l_node: p_path) {
 
             // Skip starting root node
             if (count == 0) {
+                ROS_INFO_STREAM("Skipped starting idle command: ");
+                ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
+                ROS_INFO_STREAM("Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta
+                                           << "\n");
                 count += 1;
                 continue;
             }
 
             // Only execute planned commands within horizon
             if (count > FOOTSTEP_HORIZON) {
-                l_lastAction = l_node.action;
-                l_lastVelocity = l_node.velocity;
-                l_swingingFRRL = l_node.feetConfiguration.fr_rl_swinging;
+                ROS_INFO_STREAM("Completed horizon execution!");
+                ROS_INFO_STREAM("Last executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
+                                                         << m_currentAction.theta);
+                ROS_INFO_STREAM("Last executed velocity: " << m_currentVelocity);
+                ROS_INFO_STREAM("Last swinging pair: " << m_swingingFRRL << "\n");
                 break;
             }
 
-            // Set linear velocity via dynamic reconfigure
-            m_drDoubleParam.name = "set_linear_vel";
-            m_drDoubleParam.value = l_node.velocity;
-            m_drConf.doubles.push_back(m_drDoubleParam);
+            // Motion command to send
+            sensor_msgs::Joy l_joy;
+            l_joy.header.stamp = ros::Time::now();
+            l_joy.header.frame_id = "/dev/input/js0";
+            if (l_node.action == Action{1, 0, 0}) {
+                l_joy.axes = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+            } else if (l_node.action == Action{0, -1, 0}) {
+                l_joy.axes = {-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+            } else if (l_node.action == Action{0, 1, 0}) {
+                l_joy.axes = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+            } else if (l_node.action == Action{0, 0, -1}) {
+                l_joy.axes = {-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0};
+                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+            } else if (l_node.action == Action{0, 0, 1}) {
+                l_joy.axes = {1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0};
+                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+            } else {
+                ROS_INFO_STREAM("Navigation: Action is not recognized (joy message)!");
+            }
+
+            // Set velocities base on action
+            if (l_node.action == Action{1, 0, 0} ||
+                l_node.action == Action{0, -1, 0} ||
+                l_node.action == Action{0, 1, 0}) {
+                // Set linear velocity via dynamic reconfigure
+                m_drDoubleParam.name = "set_linear_vel";
+                m_drDoubleParam.value = l_node.velocity;
+                m_drConf.doubles.push_back(m_drDoubleParam);
+
+                // Set angular velocity via dynamic reconfigure
+                m_drDoubleParam.name = "set_angular_vel";
+                m_drDoubleParam.value = 0.0;
+                m_drConf.doubles.push_back(m_drDoubleParam);
+            } else if (l_node.action == Action{0, 0, 1} ||
+                       l_node.action == Action{0, 0, -1}) {
+                // Set linear velocity via dynamic reconfigure
+                m_drDoubleParam.name = "set_linear_vel";
+                m_drDoubleParam.value = 0.0;
+                m_drConf.doubles.push_back(m_drDoubleParam);
+
+                // Set angular velocity via dynamic reconfigure
+                m_drDoubleParam.name = "set_angular_vel";
+                m_drDoubleParam.value = l_node.velocity;
+                m_drConf.doubles.push_back(m_drDoubleParam);
+            } else {
+                ROS_INFO_STREAM("Navigation: Action is not recognized (velocity settings)!");
+            }
 
             // Send ros service call to change dynamic parameters
             m_drSrvReq.config = m_drConf;
@@ -526,45 +568,38 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
             boost::shared_ptr<wb_controller::ContactForces const> l_latestContactForces =
                     m_contactForcesCache.getElemBeforeTime(l_startTime);
 
-            // Motion command to send
-            sensor_msgs::Joy l_joy;
-            l_joy.header.stamp = ros::Time::now();
-            l_joy.header.frame_id = "/dev/input/js0";
-            l_joy.axes = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-
             ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
             ROS_INFO_STREAM(
                     "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta);
+            ROS_INFO_STREAM(
+                    "Initial distance: " << count << "/" << p_path.size() << ", "
+                                         << abs(l_latestRobotPose->position_actual.x - l_node.worldCoordinates.x)
+                                         << "\n");
 
-             // Execute command
-             while (abs(l_latestRobotPose->position_actual.x - l_node.worldCoordinates.x) >= 0.006) {
-                 // Send motion command
-                 m_velocityPublisher.publish(l_joy);
+            // Execute command
+            while ((ros::Time::now().toSec() - l_startTime.toSec()) <= 0.35) {
+                //while (false) {
+                // Send motion command
+                m_velocityPublisher.publish(l_joy);
 
-                 // Sleep
-                 m_rate.sleep();
+                // Sleep
+                m_rate.sleep();
 
-                 // Get callback data
-                 ros::spinOnce();
+                // Get callback data
+                ros::spinOnce();
 
-                 // Time of cache extraction
-                 l_latestPoseTime = ros::Time::now();
+                // Time of cache extraction
+                l_latestPoseTime = ros::Time::now();
 
-                 // Update header of the message
-                 l_joy.header.stamp = l_latestPoseTime;
+                // Update header of the message
+                l_joy.header.stamp = l_latestPoseTime;
 
-                 // Get the latest odometry pose from the cache
-                 l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
+                // Get the latest odometry pose from the cache
+                l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
 
-                 // Get the latest contact forces from the cache
-                 l_latestContactForces = m_contactForcesCache.getElemBeforeTime(l_latestPoseTime);
-
-                 // ROS_INFO_STREAM(
-                 //         "X distance: " << count << "/" << l_path.size() << ", "
-                 //                        << abs(l_latestRobotPose->position_actual.x - l_node.worldCoordinates.x)
-                 //                        << "\n");
-             }
+                // Get the latest contact forces from the cache
+                l_latestContactForces = m_contactForcesCache.getElemBeforeTime(l_latestPoseTime);
+            }
 
             // Time of cache extraction
             l_latestPoseTime = ros::Time::now();
@@ -589,12 +624,9 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
                     m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
 
             // Logging
-            ROS_INFO_STREAM(
-                    "X distance: " << count << "/" << l_path.size() << ", "
-                                    << abs(l_latestRobotPose->position_actual.x - l_node.worldCoordinates.x) << "\n");
-
-            // Counter for horizon commands execution
-            count += 1;
+            // ROS_INFO_STREAM(
+            //         "X distance: " << count << "/" << p_path.size() << ", "
+            //                        << abs(l_latestRobotPose->position_actual.x - l_node.worldCoordinates.x) << "\n");
 
             // Add real CoM trajectory
             m_realCoMPoses.push_back(*l_latestRobotPose);
@@ -606,101 +638,178 @@ void Navigation::executePlannedCommands(const std::vector<Node> &p_path) {
             l_feetConfiguration.push_back(*l_latestRLFootPose);
             l_feetConfiguration.push_back(*l_latestRRFootPose);
             m_realFeetPoses.push_back(l_feetConfiguration);
+
+            // Store node info for replanning
+            m_currentAction = l_node.action;
+            m_currentVelocity = l_node.velocity;
+            m_swingingFRRL = l_node.feetConfiguration.fr_rl_swinging;
+
+            // Counter for horizon commands execution
+            count += 1;
         }
 
-        ROS_INFO("Navigation: Re-planning new footstep sequence.");
+        // Replan
+        // {
+        //     std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        //     m_planPathToGoal = true;
+        // }
 
-        // Call planner to find path to goal
-        auto start = high_resolution_clock::now();
-        l_path.clear();
-        m_planner.plan(m_goalMsg, l_lastAction, l_lastVelocity, !l_swingingFRRL, l_path);
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(stop - start);
-        ROS_INFO_STREAM("Time taken by the re-planning: " << duration.count() << " milliseconds" << std::endl);
+        // ROS_INFO_STREAM("Boolean value222: " << m_planPathToGoal);
 
-        // Publish predicted CoM path
-        //publishPredictedCoMPath(l_path);
+        ROS_INFO_STREAM("Finished path portion execution. Replan new path.");
+        planPathToGoal();
 
-        // Publish predicted footstep sequence
-        //publishPredictedFootstepSequence(l_path);
-    }
+    } else {
+        ROS_INFO("Navigation: Goal has been reached.");
 
-    // Stomp on the spot command
-    sensor_msgs::Joy l_stompJoy;
-    l_stompJoy.header.stamp = ros::Time::now();
-    l_stompJoy.header.frame_id = "/dev/input/js0";
-    l_stompJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    l_stompJoy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+        // Stomp on the spot command
+        sensor_msgs::Joy l_stompJoy;
+        l_stompJoy.header.stamp = ros::Time::now();
+        l_stompJoy.header.frame_id = "/dev/input/js0";
+        l_stompJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        l_stompJoy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 
-    // Full stop command
-    sensor_msgs::Joy l_stopJoy;
-    l_stopJoy.header.stamp = ros::Time::now();
-    l_stopJoy.header.frame_id = "/dev/input/js0";
-    l_stopJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    l_stopJoy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        // Full stop command
+        sensor_msgs::Joy l_stopJoy;
+        l_stopJoy.header.stamp = ros::Time::now();
+        l_stopJoy.header.frame_id = "/dev/input/js0";
+        l_stopJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        l_stopJoy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    // Stomping behaviour to keep good feet positions
-    // once the goal has been reached
-    double l_startTime = ros::Time::now().toSec();
-    while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
-        // Send motion command
-        m_velocityPublisher.publish(l_stompJoy);
+        // Stomping behaviour to keep good feet positions
+        // once the goal has been reached
+        double l_startTime = ros::Time::now().toSec();
+        while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
+            // Send motion command
+            m_velocityPublisher.publish(l_stompJoy);
 
-        // Sleep
-        m_rate.sleep();
+            // Sleep
+            m_rate.sleep();
 
-        // Get callback data
-        ros::spinOnce();
-    }
+            // Get callback data
+            ros::spinOnce();
+        }
 
-    // Bring robot to full stop once target goal reached
-    l_startTime = ros::Time::now().toSec();
-    while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
-        // Send motion command
-        m_velocityPublisher.publish(l_stopJoy);
+        // Bring robot to full stop once target goal reached
+        l_startTime = ros::Time::now().toSec();
+        while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
+            // Send motion command
+            m_velocityPublisher.publish(l_stopJoy);
 
-        // Sleep
-        m_rate.sleep();
+            // Sleep
+            m_rate.sleep();
 
-        // Get callback data
-        ros::spinOnce();
+            // Get callback data
+            ros::spinOnce();
+        }
+
+        // Reset initial planner variables
+        m_swingingFRRL = false;
+        m_currentVelocity = 0.0;
+        m_currentAction = Action{0, 0, 0};
     }
 }
 
 /**
- * Plans footsteps location using
- * the most up to date height map
+ * Plans a path to a target goal
+ * using an elevation map (2.5D).
+ *
+ * @param p_goalMsg
  */
-void Navigation::planHeightMapPath(const geometry_msgs::PoseStamped &p_goalMsg) {
-    ROS_INFO("Navigation: Planning request received.");
+void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
+    ROS_INFO_STREAM("Goal callback received" << "\n");
 
     // Save goal for re-planning
     m_goalMsg = p_goalMsg;
 
+    // Plan path to goal
+    // {
+    //     std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+    //     m_planPathToGoal = true;
+    // }
+    planPathToGoal();
+}
+
+// /**
+//  * Replan path to goal.
+//  */
+// void Navigation::planPathToGoal() {
+//     while (ros::ok()) {
+//         if (!m_planPathToGoal)
+//             ROS_INFO_STREAM("Thread running");
+
+//         // Replan if boolean flag set to true
+//         if (m_planPathToGoal) {
+//             ROS_INFO_STREAM("Boolean value: " << m_planPathToGoal);
+//             ROS_INFO("Navigation: Planning request received.");
+//             ROS_INFO_STREAM("Received goal pose: " << m_goalMsg.pose.position.x);
+//             ROS_INFO_STREAM("Latest executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
+//                                                        << m_currentAction.theta);
+
+//             if (m_currentAction == Action{0, 0, 0}) {
+//                 m_swingingFRRL = false;
+//             }
+//             else {
+//                 m_swingingFRRL = !m_swingingFRRL;
+//             }
+
+//             // Call planner to find path to goal
+//             std::vector<Node> l_path;
+//             m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
+
+//             // Make sure path is not empty before calling
+//             // routines that makes use of path information
+//             if (l_path.empty()) {
+//                 ROS_WARN("Navigation: Path obtained is empty (no path found).");
+//             }
+
+//             // Publish predicted CoM path
+//             publishPredictedCoMPath(l_path);
+
+//             // Execute planned commands
+//             executeVelocityCommands(l_path);
+
+//             // Stop continuous planning
+//             {
+//                 std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+//                 m_planPathToGoal = false;
+//             }
+//         }
+//     }
+// }
+
+/**
+ * Replan path to goal.
+ */
+void Navigation::planPathToGoal() {
+    ROS_INFO("Navigation: Planning request received.");
+    ROS_INFO_STREAM("Received goal pose: " << m_goalMsg.pose.position.x << ", " << m_goalMsg.pose.position.y << ", "
+                                           << m_goalMsg.pose.position.z);
+    ROS_INFO_STREAM("Latest executed velocity: " << m_currentVelocity);
+    ROS_INFO_STREAM("Latest executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
+                                               << m_currentAction.theta << "\n");
+
+    if (m_currentAction == Action{0, 0, 0}) {
+        m_swingingFRRL = false;
+    } else {
+        m_swingingFRRL = !m_swingingFRRL;
+    }
+
     // Call planner to find path to goal
     std::vector<Node> l_path;
-    m_planner.plan(p_goalMsg, Action{0, 0, 0}, 0.0, false, l_path);
+    m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
 
     // Make sure path is not empty before calling
     // routines that makes use of path information
     if (l_path.empty()) {
-        ROS_WARN("Navigation: Path obtained is empty.");
+        ROS_WARN("Navigation: Path obtained is empty (no path found).");
     }
 
     // Publish predicted CoM path
     publishPredictedCoMPath(l_path);
 
-    // Publish predicted footstep sequence
-    publishPredictedFootstepSequence(l_path);
-
     // Execute planned commands
-    executePlannedCommands(l_path);
-
-    // Publish real CoM path
-    publishRealCoMPath();
-
-    // Publish predicted and real footstep sequence
-    publishRealFootstepSequence(l_path);
+    executeVelocityCommands(l_path);
 }
 
 int main(int argc, char **argv) {
@@ -715,11 +824,8 @@ int main(int argc, char **argv) {
     // Start navigation
     Navigation navigation(nodeHandle, l_buffer, l_tf);
 
-    // Use two threads
-    ros::AsyncSpinner l_spinner(2);
-    l_spinner.start();
-
-    ros::waitForShutdown();
+    // Spin it
+    ros::spin();
 
     return 0;
 }

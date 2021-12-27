@@ -123,10 +123,14 @@ namespace AStar
          *
          * @param p_nodeGridCoordinates
          * @param p_targetGridCoordinates
+         * @param p_nodeQuaternion
+         * @param p_targetQuaternion
          * @return if coordinates within distance tolerance
          */
         bool withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
-                                   const Vec2D &p_targetGridCoordinates);
+                                   const Vec2D &p_targetGridCoordinates,
+                                   const tf2::Quaternion &p_nodeQuaternion,
+                                   const tf2::Quaternion &p_targetQuaternion);
 
         /**
          * Convert from grid coordinates to world coordinates.

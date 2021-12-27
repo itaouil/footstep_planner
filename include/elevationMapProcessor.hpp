@@ -10,8 +10,8 @@
 
 // C++ general
 #include <queue>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 // OpenCV
 #include "opencv2/opencv.hpp"
@@ -92,13 +92,19 @@ public:
     void getUpdatedElevationMapGridOrigin(double &p_elevationMapGridOriginX, double &p_elevationMapGridOriginY);
 private:
     /**
-     * Elevation map callback that processes
-     * the incoming elevation map and computes
-     * the costmap.
+     * Elevation map callback.
      *
-     * @param p_elevationMapMsg
+     * @param p_gridMapMsg
      */
-    void elevationMapCallback(const grid_map_msgs::GridMap &p_elevationMapMsg);
+    void elevationMapCallback(const grid_map_msgs::GridMap &p_gridMapMsg);
+
+    /**
+     * Threaded routine that processes the
+     * raw elevation maps in order to compute
+     * the traversability costmap and the post
+     * processed elevation map.
+     */
+    void gridMapPostProcessing();
 
     //! Mutex for processed elevation maps queue
     std::mutex m_mutex;
@@ -115,9 +121,10 @@ private:
     unsigned int m_elevationMapGridSizeY;
 
     //! Height and foot costs caches
+    std::queue<grid_map::Matrix> m_gridMaps;
     std::queue<cv::Mat> m_distanceTransforms;
     std::queue<cv::Mat> m_traversabilityCostmaps;
-    std::queue<grid_map::Matrix> m_elevationMaps;
+    std::queue<grid_map_msgs::GridMap> m_gridMapMsgs;
 
     //! ROS subscribers
     ros::Subscriber m_elevationMapSubscriber;
@@ -125,4 +132,7 @@ private:
     //! ROS publishers
     ros::Publisher m_costmapPublisher;
     ros::Publisher m_elevationMapPublisher;
+
+    //! Thread for grid map post processing
+    std::thread m_thread;
 };

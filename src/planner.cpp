@@ -152,6 +152,8 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                 0,
                                 l_goalPositionQuaternion};
 
+    ROS_INFO_STREAM("Current robot pose: " << l_robotPoseMapFrame.pose.position.x);
+
     // Compute feet configuration
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(l_feetConfiguration, p_swingingFRRL);
