@@ -60,36 +60,6 @@ private:
     void buildInitialHeightMap();
 
     /**
-     * Publish predicted CoM path.
-     *
-     * @param p_path
-     */
-    void publishRealCoMPath();
-
-    /**
-     * Publish predicted CoM path.
-     *
-     * @param p_path
-     */
-    void publishPredictedCoMPath(const std::vector<Node> &p_path);
-
-    /**
-     * Publish predicted CoM and
-     * footstep sequence.
-     *
-     * @param p_path
-     */
-    void publishPredictedFootstepSequence(const std::vector<Node> &p_path);
-
-    /**
-     * Publish predicted and real
-     * CoM and footstep sequence.
-     *
-     * @param p_path
-     */
-    void publishRealFootstepSequence(const std::vector<Node> &p_path);
-
-    /**
      * Sets goal message and calls
      * planner to plan the path to
      * the goal.
@@ -107,11 +77,47 @@ private:
     void planPathToGoal();
 
     /**
+     * Stopping behaviour.
+     */
+    void stopAction();
+
+    /**
+     * Stomping behaviour.
+     */
+    void stompAction();
+
+    /**
      * Execute planned velocity commands.
      *
      * @param p_path
      */
     void executeVelocityCommands(std::vector<Node> &p_path);
+
+    /**
+     * Publish predicted CoM path.
+     *
+     * @param p_path
+     */
+    void publishRealCoMPath();
+
+    /**
+     * Publish predicted CoM path.
+     */
+    void publishPredictedCoMPath();
+
+    /**
+     * Publish predicted and real
+     * CoM and footstep sequence.
+     */
+    void publishRealFootstepSequence();
+
+    /**
+     * Publish predicted CoM and
+     * footstep sequence.
+     *
+     * @param p_path
+     */
+    void publishPredictedFootstepSequence();
 
     //! ROS node handle
     ros::NodeHandle m_nh;
@@ -170,8 +176,14 @@ private:
     message_filters::Cache<wb_controller::ContactForces> m_contactForcesCache;
     message_filters::Subscriber<wb_controller::ContactForces> m_contactForcesSubscriber;
 
+    //! Predicted CoM poses
+    std::vector<World3D> m_predictedCoMPoses;
+
     //! Real CoM poses
     std::vector<wb_controller::ComTask> m_realCoMPoses;
+
+    //! Predicted feet poses
+    std::vector<Node> m_predictedFeetPoses;
 
     //! Real feet poses
     std::vector<std::vector<wb_controller::CartesianTask>> m_realFeetPoses;

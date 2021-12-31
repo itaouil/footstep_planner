@@ -38,7 +38,7 @@ const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(1);
+const double GRADIENT_THRESHOLD(0.5);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -46,12 +46,17 @@ const unsigned int CACHE_SIZE(10);
 // Height map acquiring flag
 const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 
-// Planner parameters
-const double TIMESTAMP(0.325);
+// Time taken for a footstep (approx)
+const double TIMESTAMP(0.3);
+
+// Whether to allow or disallow diagonal moves
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(2);
+const unsigned int FOOTSTEP_HORIZON(1);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.03);
+const double MIN_STAIR_DISTANCE(0.035);
+
+// Angle tolerance between target and robot rotation
+const double ANGLE_DIFFERENCE_TOLERANCE(2);

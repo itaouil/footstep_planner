@@ -157,7 +157,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
 
             m_traversabilityCostmaps.push(l_costmap);
             m_distanceTransforms.push(l_distanceTransform);
-            m_gridMaps.push(l_elevationMap.get("elevation"));
+            m_gridMaps.push(l_elevationMap.get("elevation_inpainted"));
         }
 
         // Visualize occupancy grid and colored

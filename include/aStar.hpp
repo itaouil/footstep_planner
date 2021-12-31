@@ -164,17 +164,15 @@ namespace AStar
         //! Robot model
         Model m_model;
 
-        //! TF2 buffer
-        tf2_ros::Buffer m_buffer;
+        //! First search or not
+        bool m_firstSearch;
 
         //! Footsteps validated
         unsigned int m_footstepsChecked;
 
-        //! TF2 listener
+        //! TF2 buffer and listener
+        tf2_ros::Buffer m_buffer;
         tf2_ros::TransformListener m_listener;
-
-        //! Elevation map processor (collisions, foothold validity)
-        ElevationMapProcessor m_elevationMapProcessor;
 
         //! Elevation map parameters
         double m_elevationMapGridOriginX{};
@@ -182,6 +180,9 @@ namespace AStar
         double m_elevationMapGridResolution{};
         unsigned int m_elevationMapGridSizeX{};
         unsigned int m_elevationMapGridSizeY{};
+
+        //! Elevation map processor (collisions, foothold validity)
+        ElevationMapProcessor m_elevationMapProcessor;
 
         //! Allowed actions in the search
         std::vector<Action> m_actions;
@@ -194,6 +195,12 @@ namespace AStar
 
         //! Heuristic function to be used
         std::function<unsigned int(Node, Node)> m_heuristic;
+
+        //! Whether an angle correction is needed
+        bool m_angleCorrectionNeeded;
+
+        //! Idle feet configuration
+        FeetConfiguration m_idleFeetConfiguration;
     };
 
     class Heuristic
