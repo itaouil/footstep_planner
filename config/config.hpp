@@ -47,7 +47,7 @@ const unsigned int CACHE_SIZE(10);
 const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 
 // Time taken for a footstep (approx)
-const double TIMESTAMP(0.3);
+const double TIMESTAMP(0.33);
 
 // Whether to allow or disallow diagonal moves
 const bool SET_DIAGONAL_MOVEMENT(false);
@@ -59,4 +59,4 @@ const unsigned int FOOTSTEP_HORIZON(1);
 const double MIN_STAIR_DISTANCE(0.035);
 
 // Angle tolerance between target and robot rotation
-const double ANGLE_DIFFERENCE_TOLERANCE(2);
+const double ANGLE_DIFFERENCE_TOLERANCE(6);

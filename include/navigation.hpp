@@ -90,8 +90,9 @@ private:
      * Execute planned velocity commands.
      *
      * @param p_path
+     * @param p_goalFound
      */
-    void executeVelocityCommands(std::vector<Node> &p_path);
+    void executeVelocityCommands(const std::vector<Node> &p_path, bool p_goalFound);
 
     /**
      * Publish predicted CoM path.

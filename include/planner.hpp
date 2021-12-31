@@ -65,7 +65,7 @@ public:
      * @param p_swingingPair
      * @param p_path
      */
-    void plan(const geometry_msgs::PoseStamped &p_goalPosition,
+    bool plan(const geometry_msgs::PoseStamped &p_goalPosition,
               const Action &p_initialAction,
               const double &p_initialVelocity,
               const bool &p_swingingPair,

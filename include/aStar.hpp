@@ -29,8 +29,7 @@
 // Config
 #include <config.hpp>
 
-namespace AStar
-{
+namespace AStar {
     /**
       * Obtain yaw angle from
       * respective quaternion rotation.
@@ -40,13 +39,12 @@ namespace AStar
       */
     double getYawFromQuaternion(const tf2::Quaternion &p_quaternion);
 
-    class Search
-    {
+    class Search {
     public:
         /**
          * Constructor.
          */
-        explicit Search(ros::NodeHandle& p_nh);
+        explicit Search(ros::NodeHandle &p_nh);
 
         /**
          * Destructor.
@@ -62,11 +60,13 @@ namespace AStar
          * @param p_sourceFeetConfiguration
          * @return sequence of 2D points (world coordinates)
          */
-        std::vector<Node> findPath(const Action &p_initialAction,
-                                   const double &p_initialVelocity,
-                                   const World3D &p_sourceWorldCoordinates,
-                                   const World3D &p_targetWorldCoordinates,
-                                   const FeetConfiguration &p_sourceFeetConfiguration);
+        bool findPath(const Action &p_initialAction,
+                      const double &p_initialVelocity,
+                      const World3D &p_sourceWorldCoordinates,
+                      const World3D &p_targetWorldCoordinates,
+                      const FeetConfiguration &p_sourceFeetConfiguration,
+                      std::vector<Node> &p_path);
+
     private:
         /**
          * Sets whether the search uses a 4
@@ -91,7 +91,7 @@ namespace AStar
          *
          * @param p_nodes
          */
-        void releaseNodes(std::vector<Node*>& p_nodes);
+        void releaseNodes(std::vector<Node *> &p_nodes);
 
         /**
          * Find if given node is in a vector (open/closed set).
@@ -103,7 +103,7 @@ namespace AStar
          * @param p_quaternion
          * @return the requested node or a nullptr
          */
-        Node* findNodeOnList(const std::vector<Node*> &p_nodes,
+        Node *findNodeOnList(const std::vector<Node *> &p_nodes,
                              const Action &p_action,
                              double p_velocity,
                              const Vec2D &p_gridCoordinates,
@@ -114,7 +114,7 @@ namespace AStar
          *
          * @param p_heuristic
          */
-        void setHeuristic(const std::function<unsigned int(Node, Node)>& p_heuristic);
+        void setHeuristic(const std::function<unsigned int(Node, Node)> &p_heuristic);
 
         /**
          * Check if current node coordinates
@@ -167,6 +167,9 @@ namespace AStar
         //! First search or not
         bool m_firstSearch;
 
+        //! Whether goal was reached or not
+        bool m_reachedGoal;
+
         //! Footsteps validated
         unsigned int m_footstepsChecked;
 
@@ -203,8 +206,7 @@ namespace AStar
         FeetConfiguration m_idleFeetConfiguration;
     };
 
-    class Heuristic
-    {
+    class Heuristic {
     public:
         /**
          * A* Heuristic routine that returns the

@@ -74,7 +74,8 @@ bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
 AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_model(p_nh),
         m_firstSearch(true),
-        m_footstepsChecked(0),
+        m_reachedGoal(false),
+        m_footstepsChecked(-1),
         m_listener(m_buffer),
         m_elevationMapProcessor(p_nh),
         m_angleCorrectionNeeded(false) {
@@ -190,7 +191,7 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node *> &p_nodes,
             if (node->gridCoordinates == p_gridCoordinates &&
                 node->action == p_action &&
                 node->velocity == p_velocity) {
-                ROS_INFO_STREAM("Action brought to already visited CoM");
+                ROS_INFO_STREAM("Action brought to already visited CoM. " << m_angleCorrectionNeeded << "\n");
                 // ROS_INFO_STREAM("Same node: " << node->gridCoordinates.x << ", "
                 //                                << node->gridCoordinates.y << ", "
                 //                                << p_gridCoordinates.x << ", "
@@ -235,8 +236,13 @@ bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
     if (m_angleCorrectionNeeded) {
         double l_currentHeading = getYawFromQuaternion(p_nodeQuaternion);
         double l_targetHeading = getYawFromQuaternion(p_targetQuaternion);
+        ROS_INFO_STREAM("Current heading2: " << l_currentHeading);
+        ROS_INFO_STREAM("Target heading2: " << l_targetHeading);
+        ROS_INFO_STREAM(
+                "bOOLEAN: " << (std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE) << "\n");
         return std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE;
     } else {
+        ROS_INFO_STREAM((p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 2) << ", " << (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 2));
         return ((p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 2) &&
                 (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 2));
     }
@@ -273,17 +279,21 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const World3D &p_newCoMWo
  * @param p_sourceFeetConfiguration
  * @return sequence of 2D points (world coordinates)
  */
-std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
-                                          const double &p_initialVelocity,
-                                          const World3D &p_sourceWorldCoordinates,
-                                          const World3D &p_targetWorldCoordinates,
-                                          const FeetConfiguration &p_sourceFeetConfiguration) {
+bool AStar::Search::findPath(const Action &p_initialAction,
+                             const double &p_initialVelocity,
+                             const World3D &p_sourceWorldCoordinates,
+                             const World3D &p_targetWorldCoordinates,
+                             const FeetConfiguration &p_sourceFeetConfiguration,
+                             std::vector<Node> &p_path) {
     // Store initial idle feet configuration
     if (m_firstSearch) {
         m_idleFeetConfiguration = p_sourceFeetConfiguration;
         m_firstSearch = false;
         ROS_INFO("Search: Stored initial feet configuration");
     }
+
+    // Reset
+    m_reachedGoal = false;
 
     // Decide if a rotational correction is needed
     double l_currentHeading = getYawFromQuaternion(p_sourceWorldCoordinates.q);
@@ -328,7 +338,9 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
 
     // Search process
     while (!l_openSet.empty()) {
+        // Increase counters
         l_expandedNodes += 1;
+        m_footstepsChecked += 1;
 
         l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
@@ -343,25 +355,27 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
             }
         }
 
-        // Quit search after footstep horizon was planned for
-        if (m_footstepsChecked >= FOOTSTEP_HORIZON) {
-            ROS_INFO("Search: Footstep horizon planned. Quitting search");
-            break;
-        }
-
-        // Condition to break search as target rotation or pose reached
+        // Stop search if goal is found
         if (withinTargetTolerance(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                                   l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
             if (m_angleCorrectionNeeded) {
-                ROS_INFO("Search: Target rotation reached. Setting angle correction boolean to false now!");
                 m_angleCorrectionNeeded = false;
+                ROS_INFO("Search: Target rotation reached.");
             } else {
-                ROS_INFO_STREAM("Footstep horizon: " << m_footstepsChecked);
                 ROS_INFO("Search: Target pose reached.");
             }
 
+            m_reachedGoal = true;
             break;
         }
+
+        // Stop search if footstep horizon prediction is done
+        if (m_footstepsChecked == FOOTSTEP_HORIZON) {
+            m_footstepsChecked = 0;
+            ROS_INFO("Search: Footstep search horizon done.");
+            break;
+        }
+
 
         // Push to closed set the currently expanded
         // node and delete its iterator from the open set
@@ -386,17 +400,17 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
                 }
 
                 // Disallow low velocities after footstep horizon is planned
-                if (m_footstepsChecked >= FOOTSTEP_HORIZON) {
-                    // For forward motion allow only 0.9 velocity
-                    if (m_actions[i].x == 1 && l_nextVelocity != 0.9) {
-                        continue;
-                    }
-
-                    // For non-forward motions allow only 0.5 velocity
-                    if (m_actions[i].x != 1 && l_nextVelocity != 0.5) {
-                        continue;
-                    }
-                }
+//                if (m_footstepsChecked >= FOOTSTEP_HORIZON) {
+//                    // For forward motion allow only 0.9 velocity
+//                    if (m_actions[i].x == 1 && l_nextVelocity != 0.9) {
+//                        continue;
+//                    }
+//
+//                    // For non-forward motions allow only 0.5 velocity
+//                    if (m_actions[i].x != 1 && l_nextVelocity != 0.5) {
+//                        continue;
+//                    }
+//                }
 
                 // New robot state (CoM and Feet)
                 World3D l_newCoMWorldCoordinates{};
@@ -436,7 +450,7 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
                 }
 
                 // Perform foothold validity for pre-defined horizon
-                if (m_footstepsChecked <= FOOTSTEP_HORIZON) {
+                if (m_footstepsChecked < FOOTSTEP_HORIZON) {
                     // Transform feet configuration from CoM to Map frame
                     FeetConfiguration l_newFeetConfigurationMap;
                     transformCoMFeetConfigurationToMap(l_newCoMWorldCoordinates,
@@ -518,26 +532,18 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
                 }
             }
         }
-
-        // Increase footsteps validation counter
-        m_footstepsChecked += 1;
-        ROS_INFO_STREAM("Increase foot horizon: " << m_footstepsChecked);
     }
 
-    // Reset checked footsteps
-    m_footstepsChecked = 0;
-
     // Populate path
-    std::vector<Node> path;
     while (l_currentNode != nullptr && l_currentNode->action != Action{0, 0, 0}) {
         ROS_INFO_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
                                     << l_currentNode->action.theta);
-        path.push_back(*l_currentNode);
+        p_path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
     }
 
     // Reverse path (from source to target)
-    std::reverse(path.begin(), path.end());
+    std::reverse(p_path.begin(), p_path.end());
 
     // Release resources
     releaseNodes(l_openSet);
@@ -545,7 +551,7 @@ std::vector<Node> AStar::Search::findPath(const Action &p_initialAction,
 
     ROS_DEBUG_STREAM("Number of expanded nodes: " << l_expandedNodes);
 
-    return path;
+    return m_reachedGoal;
 }
 
 /**

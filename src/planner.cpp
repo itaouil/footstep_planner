@@ -13,11 +13,10 @@
  *
  * @param p_nh
  */
-Planner::Planner(ros::NodeHandle& p_nh):
-    m_nh(p_nh),
-    m_search(p_nh),
-    m_listener(m_buffer)
-{
+Planner::Planner(ros::NodeHandle &p_nh) :
+        m_nh(p_nh),
+        m_search(p_nh),
+        m_listener(m_buffer) {
     // Robot pose subscriber and cache setup
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
@@ -56,14 +55,11 @@ Planner::~Planner() = default;
  */
 void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
                                              const geometry_msgs::PoseStamped &p_initialPose,
-                                             geometry_msgs::PoseStamped &p_targetPose)
-{
-    try
-    {
+                                             geometry_msgs::PoseStamped &p_targetPose) {
+    try {
         m_buffer.transform(p_initialPose, p_targetPose, p_targetFrame, ros::Duration(1.0));
     }
-    catch (tf2::TransformException &ex)
-    {
+    catch (tf2::TransformException &ex) {
         std::cout << ex.what() << std::endl;
         ROS_WARN("Planner: Could not transform source pose to target one. Skipping this iteration.");
         return;
@@ -77,26 +73,29 @@ void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
  * @param p_sourceFrame
  * @param p_feetConfiguration
  */
-void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL)
-{
+void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL) {
     // Time of cache extraction
     const ros::Time l_latestPoseTime = ros::Time::now();
 
     // Get the latest FL foot pose from the cache
     boost::shared_ptr<wb_controller::CartesianTask const> l_latestFLFootPose =
-            m_flFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+            m_flFootPoseCache.getElemBeforeTime(
+                    l_latestPoseTime);
 
     // Get the latest FR foot pose from the cache
     boost::shared_ptr<wb_controller::CartesianTask const> l_latestFRFootPose =
-            m_frFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+            m_frFootPoseCache.getElemBeforeTime(
+                    l_latestPoseTime);
 
     // Get the latest RL foot pose from the cache
     boost::shared_ptr<wb_controller::CartesianTask const> l_latestRLFootPose =
-            m_rlFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+            m_rlFootPoseCache.getElemBeforeTime(
+                    l_latestPoseTime);
 
     // Get the latest RR foot pose from the cache
     boost::shared_ptr<wb_controller::CartesianTask const> l_latestRRFootPose =
-            m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
+            m_rrFootPoseCache.getElemBeforeTime(
+                    l_latestPoseTime);
 
     // Populate feet CoM configuration
     p_feetConfiguration.flCoM.x = l_latestFLFootPose->pose_actual.position.x;
@@ -119,12 +118,11 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const
  * @param p_currentNode
  * @param p_path
  */
-void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
+bool Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                    const Action &p_initialAction,
                    const double &p_initialVelocity,
                    const bool &p_swingingFRRL,
-                   std::vector<Node> &p_path)
-{
+                   std::vector<Node> &p_path) {
     // Get the latest robot pose from the cache
     const ros::Time l_latestPoseTime = ros::Time::now();
     boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> l_latestRobotPose =
@@ -160,15 +158,15 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
 
     // Call A* search algorithm
     auto start = high_resolution_clock::now();
-    std::vector<Node> l_path = m_search.findPath(p_initialAction,
-                                                 p_initialVelocity,
-                                                 l_worldStartPosition,
-                                                 l_worldGoalPosition,
-                                                 l_feetConfiguration);
+    bool l_foundGoal = m_search.findPath(p_initialAction,
+                                         p_initialVelocity,
+                                         l_worldStartPosition,
+                                         l_worldGoalPosition,
+                                         l_feetConfiguration,
+                                         p_path);
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     ROS_INFO_STREAM("Time taken by the planner: " << duration.count() << " milliseconds" << std::endl);
 
-    // Copy over path
-    std::copy(l_path.begin(), l_path.end(), std::back_inserter(p_path));
+    return l_foundGoal;
 }

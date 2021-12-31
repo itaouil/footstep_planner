@@ -79,9 +79,6 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     m_contactForcesCache.connectInput(m_contactForcesSubscriber);
     m_contactForcesCache.setCacheSize(CACHE_SIZE);
 
-    // Replanning thread
-    //m_thread = std::thread(&Navigation::planPathToGoal, this);
-
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 }
@@ -89,11 +86,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
 /**
  * Destructor
  */
-Navigation::~Navigation() {
-    // if (m_thread.joinable()) {
-    //     m_thread.join();
-    // }
-}
+Navigation::~Navigation() = default;
 
 /**
  * Performs a 360 rotation to acquire
@@ -177,61 +170,8 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     // Save goal for re-planning
     m_goalMsg = p_goalMsg;
 
-    // Plan path to goal
-    // {
-    //     std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-    //     m_planPathToGoal = true;
-    // }
     planPathToGoal();
 }
-
-// /**
-//  * Replan path to goal.
-//  */
-// void Navigation::planPathToGoal() {
-//     while (ros::ok()) {
-//         if (!m_planPathToGoal)
-//             ROS_INFO_STREAM("Thread running");
-
-//         // Replan if boolean flag set to true
-//         if (m_planPathToGoal) {
-//             ROS_INFO_STREAM("Boolean value: " << m_planPathToGoal);
-//             ROS_INFO("Navigation: Planning request received.");
-//             ROS_INFO_STREAM("Received goal pose: " << m_goalMsg.pose.position.x);
-//             ROS_INFO_STREAM("Latest executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
-//                                                        << m_currentAction.theta);
-
-//             if (m_currentAction == Action{0, 0, 0}) {
-//                 m_swingingFRRL = false;
-//             }
-//             else {
-//                 m_swingingFRRL = !m_swingingFRRL;
-//             }
-
-//             // Call planner to find path to goal
-//             std::vector<Node> l_path;
-//             m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
-
-//             // Make sure path is not empty before calling
-//             // routines that makes use of path information
-//             if (l_path.empty()) {
-//                 ROS_WARN("Navigation: Path obtained is empty (no path found).");
-//             }
-
-//             // Publish predicted CoM path
-//             publishPredictedCoMPath(l_path);
-
-//             // Execute planned commands
-//             executeVelocityCommands(l_path);
-
-//             // Stop continuous planning
-//             {
-//                 std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-//                 m_planPathToGoal = false;
-//             }
-//         }
-//     }
-// }
 
 /**
  * Replan path to goal.
@@ -252,16 +192,17 @@ void Navigation::planPathToGoal() {
 
     // Call planner to find path to goal
     std::vector<Node> l_path;
-    m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
+    const bool l_goalFound = m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
 
     // Make sure path is not empty before calling
     // routines that makes use of path information
     if (l_path.empty()) {
-        ROS_WARN("Navigation: Path obtained is empty (no path found).");
+        ROS_WARN("Navigation: Path obtained is empty (planPathToGoal) .");
+        return;
     }
 
     // Execute planned commands
-    executeVelocityCommands(l_path);
+    executeVelocityCommands(l_path, l_goalFound);
 }
 
 /**
@@ -316,7 +257,7 @@ void Navigation::stompAction() {
  *
  * @param p_path
  */
-void Navigation::executeVelocityCommands(std::vector<Node> &p_path) {
+void Navigation::executeVelocityCommands(const std::vector<Node> &p_path, const bool p_goalFound) {
     // Full stop command
     sensor_msgs::Joy l_stupidJoy;
     l_stupidJoy.header.stamp = ros::Time::now();
@@ -329,10 +270,8 @@ void Navigation::executeVelocityCommands(std::vector<Node> &p_path) {
     m_drDoubleParam.value = 0.15;
     m_drConf.doubles.push_back(m_drDoubleParam);
 
-    ROS_INFO_STREAM("Path size: " << p_path.size());
-
     // Send planned command
-    if (!p_path.empty()) {
+    while (!p_goalFound) {
         // Counter
         unsigned int count = 1;
 
@@ -490,38 +429,34 @@ void Navigation::executeVelocityCommands(std::vector<Node> &p_path) {
 
             // Counter for horizon commands execution
             count += 1;
+
+            ROS_INFO_STREAM("Sending command....");
         }
 
         ROS_INFO_STREAM("Finished path portion execution. Replan new path.");
-
-        // Reset initial planner variables
-        m_swingingFRRL = false;
-        m_currentVelocity = 0.0;
-        m_currentAction = Action{0, 0, 0};
-
         planPathToGoal();
-    } else {
-        ROS_INFO("Navigation: Goal has been reached.");
+    }
 
-        // Stomp and stop
-        stompAction();
-        stopAction();
+    ROS_INFO("Navigation: Goal has been reached.");
 
-        // Reset initial planner variables
-        m_swingingFRRL = false;
-        m_currentVelocity = 0.0;
-        m_currentAction = Action{0, 0, 0};
+    // Stomp and stop
+    stompAction();
+    stopAction();
 
-        ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
-        publishRealCoMPath();
-        publishPredictedCoMPath();
+    // Reset initial planner variables
+    m_swingingFRRL = false;
+    m_currentVelocity = 0.0;
+    m_currentAction = Action{0, 0, 0};
+
+    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
+    publishRealCoMPath();
+    publishPredictedCoMPath();
 
 //        ROS_INFO_STREAM("Publishing predicted footsteps");
 //        publishPredictedFootstepSequence();
 //
 //        ROS_INFO_STREAM("Publishing real footsteps");
 //        publishRealFootstepSequence();
-    }
 }
 
 /**
@@ -652,42 +587,42 @@ void Navigation::publishPredictedFootstepSequence() {
  * Publish predicted and real
  * CoM and footstep sequence.
  */
-    void Navigation::publishRealFootstepSequence() {
-        int j = 0;
+void Navigation::publishRealFootstepSequence() {
+    int j = 0;
 
-        if (m_realCoMPoses.empty() || m_realFeetPoses.empty()) {
-            ROS_WARN("Navigation: Real feet or CoM containers empty.");
-            return;
-        }
+    if (m_realCoMPoses.empty() || m_realFeetPoses.empty()) {
+        ROS_WARN("Navigation: Real feet or CoM containers empty.");
+        return;
+    }
 
-        for (unsigned int i = 0; i < m_realFeetPoses.size(); i++) {
-            // Feet configuration array
-            visualization_msgs::MarkerArray l_realFeetConfiguration;
+    for (unsigned int i = 0; i < m_realFeetPoses.size(); i++) {
+        // Feet configuration array
+        visualization_msgs::MarkerArray l_realFeetConfiguration;
 
-            // Populate target array
-            visualization_msgs::Marker l_targetFootCommonMarker;
-            l_targetFootCommonMarker.header.stamp = ros::Time::now();
-            l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-            l_targetFootCommonMarker.type = 2;
-            l_targetFootCommonMarker.action = 0;
-            l_targetFootCommonMarker.lifetime = ros::Duration(3);
-            l_targetFootCommonMarker.pose.orientation.x = 0;
-            l_targetFootCommonMarker.pose.orientation.y = 0;
-            l_targetFootCommonMarker.pose.orientation.z = 0;
-            l_targetFootCommonMarker.pose.orientation.w = 1;
-            l_targetFootCommonMarker.scale.x = 0.035;
-            l_targetFootCommonMarker.scale.y = 0.035;
-            l_targetFootCommonMarker.scale.z = 0.035;
-            l_targetFootCommonMarker.color.r = 0;
-            l_targetFootCommonMarker.color.g = 1;
-            l_targetFootCommonMarker.color.b = 0;
-            l_targetFootCommonMarker.color.a = 0.7;
+        // Populate target array
+        visualization_msgs::Marker l_targetFootCommonMarker;
+        l_targetFootCommonMarker.header.stamp = ros::Time::now();
+        l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+        l_targetFootCommonMarker.type = 2;
+        l_targetFootCommonMarker.action = 0;
+        l_targetFootCommonMarker.lifetime = ros::Duration(3);
+        l_targetFootCommonMarker.pose.orientation.x = 0;
+        l_targetFootCommonMarker.pose.orientation.y = 0;
+        l_targetFootCommonMarker.pose.orientation.z = 0;
+        l_targetFootCommonMarker.pose.orientation.w = 1;
+        l_targetFootCommonMarker.scale.x = 0.035;
+        l_targetFootCommonMarker.scale.y = 0.035;
+        l_targetFootCommonMarker.scale.z = 0.035;
+        l_targetFootCommonMarker.color.r = 0;
+        l_targetFootCommonMarker.color.g = 1;
+        l_targetFootCommonMarker.color.b = 0;
+        l_targetFootCommonMarker.color.a = 0.7;
 
-            visualization_msgs::Marker l_targetCoMMarker = l_targetFootCommonMarker;
-            l_targetCoMMarker.id = j++;
-            l_targetCoMMarker.pose.position.x = m_predictedCoMPoses[i].x;
-            l_targetCoMMarker.pose.position.y = m_predictedCoMPoses[i].y;
-            l_targetCoMMarker.pose.position.z = m_predictedCoMPoses[i].z;
+        visualization_msgs::Marker l_targetCoMMarker = l_targetFootCommonMarker;
+        l_targetCoMMarker.id = j++;
+        l_targetCoMMarker.pose.position.x = m_predictedCoMPoses[i].x;
+        l_targetCoMMarker.pose.position.y = m_predictedCoMPoses[i].y;
+        l_targetCoMMarker.pose.position.z = m_predictedCoMPoses[i].z;
 
 //            visualization_msgs::Marker l_targetFLFootMarker = l_targetFootCommonMarker;
 //            l_targetFLFootMarker.id = j++;
@@ -713,7 +648,7 @@ void Navigation::publishPredictedFootstepSequence() {
 //            l_targetRRFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.rrMap.y;
 //            l_targetRRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rrMap.z;
 //
-            l_realFeetConfiguration.markers.push_back(l_targetCoMMarker);
+        l_realFeetConfiguration.markers.push_back(l_targetCoMMarker);
 //            l_realFeetConfiguration.markers.push_back(l_targetFLFootMarker);
 //            l_realFeetConfiguration.markers.push_back(l_targetFRFootMarker);
 //            l_realFeetConfiguration.markers.push_back(l_targetRLFootMarker);
@@ -782,26 +717,26 @@ void Navigation::publishPredictedFootstepSequence() {
 //            l_realFeetConfiguration.markers.push_back(l_realRLFootMarker);
 //            l_realFeetConfiguration.markers.push_back(l_realRRFootMarker);
 
-            m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
+        m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
 
-            ros::Duration(4).sleep();
-        }
+        ros::Duration(4).sleep();
     }
+}
 
-    int main(int argc, char **argv) {
-        // Initialize node
-        ros::init(argc, argv, "aliengo_navigation");
-        ros::NodeHandle nodeHandle("~");
+int main(int argc, char **argv) {
+    // Initialize node
+    ros::init(argc, argv, "aliengo_navigation");
+    ros::NodeHandle nodeHandle("~");
 
-        // TF2 objects
-        tf2_ros::Buffer l_buffer(ros::Duration(10));
-        tf2_ros::TransformListener l_tf(l_buffer);
+    // TF2 objects
+    tf2_ros::Buffer l_buffer(ros::Duration(10));
+    tf2_ros::TransformListener l_tf(l_buffer);
 
-        // Start navigation
-        Navigation navigation(nodeHandle, l_buffer, l_tf);
+    // Start navigation
+    Navigation navigation(nodeHandle, l_buffer, l_tf);
 
-        // Spin it
-        ros::spin();
+    // Spin it
+    ros::spin();
 
-        return 0;
-    }
+    return 0;
+}
