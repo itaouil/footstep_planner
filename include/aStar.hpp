@@ -199,9 +199,6 @@ namespace AStar {
         //! Heuristic function to be used
         std::function<unsigned int(Node, Node)> m_heuristic;
 
-        //! Whether an angle correction is needed
-        bool m_angleCorrectionNeeded;
-
         //! Idle feet configuration
         FeetConfiguration m_idleFeetConfiguration;
     };

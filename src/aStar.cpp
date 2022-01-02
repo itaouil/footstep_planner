@@ -77,8 +77,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_reachedGoal(false),
         m_footstepsChecked(-1),
         m_listener(m_buffer),
-        m_elevationMapProcessor(p_nh),
-        m_angleCorrectionNeeded(false) {
+        m_elevationMapProcessor(p_nh) {
     // Set cost heuristics: manhattan, euclidean, octagonal
     setHeuristic(&Heuristic::euclidean);
 
@@ -112,7 +111,7 @@ AStar::Search::~Search() = default;
  * @param p_enable
  */
 void AStar::Search::setDiagonalMovement(bool p_enable) {
-    m_numberOfActions = (p_enable ? 7 : 5);
+    m_numberOfActions = (p_enable ? 7 : 3);
 }
 
 /**
@@ -164,45 +163,24 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node *> &p_nodes,
                                     const Vec2D &p_gridCoordinates,
                                     const tf2::Quaternion &p_quaternion) {
     for (auto &node: p_nodes) {
-        // If an angle correction is in process do not
-        // consider the grid position as the robot slightly
-        // moves during the rotation
-        if (m_angleCorrectionNeeded) {
-            double l_currentHeading = getYawFromQuaternion(node->worldCoordinates.q);
-            double l_targetHeading = getYawFromQuaternion(p_quaternion);
-            double l_yawDifference = std::abs(l_currentHeading - l_targetHeading);
-
-            // Check if the two nodes have the same state
-            // (i.e. same grid coordinates, same yaw, and same velocity)
-            if (node->action == p_action &&
-                node->velocity == p_velocity &&
-                l_yawDifference < 0.03) {
-                // ROS_INFO_STREAM("Same node: " << node->gridCoordinates.x << ", "
-                //                                << node->gridCoordinates.y << ", "
-                //                                << p_gridCoordinates.x << ", "
-                //                                << p_gridCoordinates.y << ", "
-                //                                << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
-                //                                << l_yawDifference << "\n");
-                return node;
-            }
-        } else {
-            // Check if the two nodes have the same state
-            // (i.e. same grid coordinates, same yaw, and same velocity)
-            if (node->gridCoordinates == p_gridCoordinates &&
-                node->action == p_action &&
-                node->velocity == p_velocity) {
-                ROS_INFO_STREAM("Action brought to already visited CoM. " << m_angleCorrectionNeeded << "\n");
-                // ROS_INFO_STREAM("Same node: " << node->gridCoordinates.x << ", "
-                //                                << node->gridCoordinates.y << ", "
-                //                                << p_gridCoordinates.x << ", "
-                //                                << p_gridCoordinates.y << ", "
-                //                                << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
-                //                                << l_yawDifference << "\n");
-                return node;
-            }
+        // Check if the two nodes have the same state
+        double l_yawDifference = std::abs(
+                getYawFromQuaternion(node->worldCoordinates.q) - getYawFromQuaternion(p_quaternion));
+        if (node->gridCoordinates == p_gridCoordinates &&
+            node->action == p_action &&
+            node->velocity == p_velocity &&
+            l_yawDifference < 0.03) {
+            ROS_INFO_STREAM("Action brought to already visited CoM. " << "\n");
+            // ROS_INFO_STREAM("Same node: " << node->gridCoordinates.x << ", "
+            //                                << node->gridCoordinates.y << ", "
+            //                                << p_gridCoordinates.x << ", "
+            //                                << p_gridCoordinates.y << ", "
+            //                                << p_action.x << ", " << p_action.y << ", " << p_action.theta << ", "
+            //                                << l_yawDifference << "\n");
+            return node;
         }
-
     }
+
     return nullptr;
 }
 
@@ -233,19 +211,16 @@ bool AStar::Search::withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
                                           const Vec2D &p_targetGridCoordinates,
                                           const tf2::Quaternion &p_nodeQuaternion,
                                           const tf2::Quaternion &p_targetQuaternion) {
-    if (m_angleCorrectionNeeded) {
-        double l_currentHeading = getYawFromQuaternion(p_nodeQuaternion);
-        double l_targetHeading = getYawFromQuaternion(p_targetQuaternion);
-        ROS_INFO_STREAM("Current heading2: " << l_currentHeading);
-        ROS_INFO_STREAM("Target heading2: " << l_targetHeading);
-        ROS_INFO_STREAM(
-                "bOOLEAN: " << (std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE) << "\n");
-        return std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE;
-    } else {
-        ROS_INFO_STREAM((p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 2) << ", " << (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 2));
-        return ((p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 2) &&
-                (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 2));
-    }
+    double l_currentHeading = getYawFromQuaternion(p_nodeQuaternion);
+    double l_targetHeading = getYawFromQuaternion(p_targetQuaternion);
+
+    ROS_INFO_STREAM("Tolerance angle: " << l_currentHeading << ", " << l_targetHeading << ", " << (std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE));
+    ROS_INFO_STREAM("Grid x tolerance: " << p_nodeGridCoordinates.x << ", " << p_targetGridCoordinates.x);
+    ROS_INFO_STREAM("Grid y tolerance: " << p_nodeGridCoordinates.y << ", " << p_targetGridCoordinates.y << "\n");
+
+    return ((p_nodeGridCoordinates.x - p_targetGridCoordinates.x <= 1) &&
+            (p_nodeGridCoordinates.y - p_targetGridCoordinates.y <= 1) &&
+            std::abs(l_currentHeading - l_targetHeading) <= ANGLE_DIFFERENCE_TOLERANCE);
 }
 
 /**
@@ -294,14 +269,6 @@ bool AStar::Search::findPath(const Action &p_initialAction,
 
     // Reset
     m_reachedGoal = false;
-
-    // Decide if a rotational correction is needed
-    double l_currentHeading = getYawFromQuaternion(p_sourceWorldCoordinates.q);
-    double l_targetHeading = getYawFromQuaternion(p_targetWorldCoordinates.q);
-    m_angleCorrectionNeeded = std::abs(l_currentHeading - l_targetHeading) > ANGLE_DIFFERENCE_TOLERANCE;
-    ROS_INFO_STREAM("Search: Angle correction needed: " << m_angleCorrectionNeeded);
-    ROS_INFO_STREAM("Current heading: " << l_currentHeading);
-    ROS_INFO_STREAM("Target heading: " << l_targetHeading << "\n");
 
     // Update elevation map parameters
     m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
@@ -358,24 +325,17 @@ bool AStar::Search::findPath(const Action &p_initialAction,
         // Stop search if goal is found
         if (withinTargetTolerance(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                                   l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            if (m_angleCorrectionNeeded) {
-                m_angleCorrectionNeeded = false;
-                ROS_INFO("Search: Target rotation reached.");
-            } else {
-                ROS_INFO("Search: Target pose reached.");
-            }
-
+            ROS_INFO_STREAM("Search: Target found. " << m_footstepsChecked);
             m_reachedGoal = true;
             break;
         }
 
         // Stop search if footstep horizon prediction is done
-        if (m_footstepsChecked == FOOTSTEP_HORIZON) {
-            m_footstepsChecked = 0;
+        if (m_footstepsChecked > FOOTSTEP_HORIZON) {
+            m_footstepsChecked = -1;
             ROS_INFO("Search: Footstep search horizon done.");
             break;
         }
-
 
         // Push to closed set the currently expanded
         // node and delete its iterator from the open set
@@ -384,16 +344,6 @@ bool AStar::Search::findPath(const Action &p_initialAction,
 
         for (double &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
-                // If angular correction needed skip any non-rotational action
-                if (m_angleCorrectionNeeded && std::abs(m_actions[i].theta) == 0) {
-                    continue;
-                }
-
-                // If angular correction NOT needed skip any rotational action
-                if (!m_angleCorrectionNeeded && std::abs(m_actions[i].theta) == 1) {
-                    continue;
-                }
-
                 // Disallow velocities above 0.5 for non-forward actions
                 if (m_actions[i].x != 1 && l_nextVelocity > 0.5) {
                     continue;
@@ -457,7 +407,7 @@ bool AStar::Search::findPath(const Action &p_initialAction,
                                                        l_newFeetConfiguration,
                                                        l_newFeetConfigurationMap);
 
-                    // Convert footholds to grid indeces
+                    // Convert footholds to grid indexes
                     Vec2D l_flGridPose{};
                     Vec2D l_frGridPose{};
                     Vec2D l_rlGridPose{};
@@ -621,14 +571,14 @@ unsigned int AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p
     auto l_angleDelta = getHeadingDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.gridCoordinates, p_targetNode.gridCoordinates);
 
-    // Euclidean distance
-    auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 1000);
+    // Heuristics
+    auto l_angleHeuristic = static_cast<unsigned int>(std::abs(l_angleDelta) * 100);
     auto l_distanceHeuristic = static_cast<unsigned int>(10 *
                                                          sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
 
-    //ROS_INFO_STREAM("Angle Delta: " << l_angleDelta << "\n");
-    // ROS_INFO_STREAM("Angle heuristic: " << l_angleHeuristic);
-    // ROS_INFO_STREAM("Distance heuristic: " << l_distanceHeuristic);
+    ROS_INFO_STREAM("Angle Delta: " << l_angleDelta);
+    ROS_INFO_STREAM("Angle heuristic: " << l_angleHeuristic);
+    ROS_INFO_STREAM("Distance heuristic: " << l_distanceHeuristic << "\n");
 
     // Wait for time to catch up
     //ros::Duration(3).sleep();

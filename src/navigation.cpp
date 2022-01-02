@@ -23,8 +23,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_planner(p_nh),
         m_swingingFRRL(false),
         m_currentAction{0, 0, 0},
-        m_currentVelocity(0.0),
-        m_planPathToGoal(false) {
+        m_currentVelocity(0.0) {
     // Wait for time to catch up
     ros::Duration(1).sleep();
 
@@ -170,7 +169,11 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     // Save goal for re-planning
     m_goalMsg = p_goalMsg;
 
+    // Plan path
     planPathToGoal();
+
+    // Execute commands planned
+    executeVelocityCommands();
 }
 
 /**
@@ -191,18 +194,7 @@ void Navigation::planPathToGoal() {
     }
 
     // Call planner to find path to goal
-    std::vector<Node> l_path;
-    const bool l_goalFound = m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, l_path);
-
-    // Make sure path is not empty before calling
-    // routines that makes use of path information
-    if (l_path.empty()) {
-        ROS_WARN("Navigation: Path obtained is empty (planPathToGoal) .");
-        return;
-    }
-
-    // Execute planned commands
-    executeVelocityCommands(l_path, l_goalFound);
+    m_goalFound = m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, m_path);
 }
 
 /**
@@ -254,10 +246,8 @@ void Navigation::stompAction() {
 
 /**
  * Execute planned commands.
- *
- * @param p_path
  */
-void Navigation::executeVelocityCommands(const std::vector<Node> &p_path, const bool p_goalFound) {
+void Navigation::executeVelocityCommands() {
     // Full stop command
     sensor_msgs::Joy l_stupidJoy;
     l_stupidJoy.header.stamp = ros::Time::now();
@@ -271,12 +261,18 @@ void Navigation::executeVelocityCommands(const std::vector<Node> &p_path, const 
     m_drConf.doubles.push_back(m_drDoubleParam);
 
     // Send planned command
-    while (!p_goalFound) {
+    while (!m_goalFound) {
         // Counter
         unsigned int count = 1;
 
+        // Check if path is empty
+        if (m_path.empty()) {
+            //ROS_WARN("Navigation: Path obtained is empty (executeVelocityCommands) .");
+            continue;
+        }
+
         // Command execution logic
-        for (auto &l_node: p_path) {
+        for (auto &l_node: m_path) {
             // Only execute planned commands within horizon
             if (count > FOOTSTEP_HORIZON) {
                 ROS_INFO_STREAM("Completed horizon execution!");

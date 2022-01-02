@@ -88,11 +88,8 @@ private:
 
     /**
      * Execute planned velocity commands.
-     *
-     * @param p_path
-     * @param p_goalFound
      */
-    void executeVelocityCommands(const std::vector<Node> &p_path, bool p_goalFound);
+    void executeVelocityCommands();
 
     /**
      * Publish predicted CoM path.
@@ -119,6 +116,12 @@ private:
      * @param p_path
      */
     void publishPredictedFootstepSequence();
+
+    //! Path planned
+    std::vector<Node> m_path;
+
+    //! Whether the goal was found
+    bool m_goalFound;
 
     //! ROS node handle
     ros::NodeHandle m_nh;
@@ -200,13 +203,4 @@ private:
 
     //! Current velocity given to planner
     double m_currentVelocity;
-
-    //! Re-planning thread
-    std::thread m_thread;
-
-    //! Re-planning boolean
-    bool m_planPathToGoal;
-
-    //! Mutex for processed elevation maps queue
-    std::mutex m_mutex;
 };
