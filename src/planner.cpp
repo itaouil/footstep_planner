@@ -115,20 +115,21 @@ void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const
  * Plans path from start to goal.
  *
  * @param p_goalPosition
- * @param p_currentNode
+ * @param p_initialAction
+ * @param p_initialVelocity
+ * @param p_swingingPair
  * @param p_path
  */
-bool Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
+void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                    const Action &p_initialAction,
                    const double &p_initialVelocity,
                    const bool &p_swingingFRRL,
                    std::vector<Node> &p_path) {
-    // Get the latest robot pose from the cache
-    const ros::Time l_latestPoseTime = ros::Time::now();
-    boost::shared_ptr<geometry_msgs::PoseWithCovarianceStamped const> l_latestRobotPose =
-            m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
+    auto start = high_resolution_clock::now();
+    // Current robot pose
+    boost::shared_ptr<nav_msgs::Odometry const> l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
 
-    // Transform robot pose to map frame
+    // Create pose stamped message containing robot pose info
     geometry_msgs::PoseStamped l_robotPoseMapFrame;
     l_robotPoseMapFrame.header = l_latestRobotPose->header;
     l_robotPoseMapFrame.pose.position = l_latestRobotPose->pose.pose.position;
@@ -150,23 +151,29 @@ bool Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                 0,
                                 l_goalPositionQuaternion};
 
-    ROS_INFO_STREAM("Current robot pose: " << l_robotPoseMapFrame.pose.position.x);
+
+
+    ROS_INFO_STREAM("Received goal pose: " << p_goalPosition.pose.position.x << ", "
+                                           << p_goalPosition.pose.position.y << ", "
+                                           << p_goalPosition.pose.position.z);
+    ROS_INFO_STREAM("Current robot pose: " << l_robotPoseMapFrame.pose.position.x << ", "
+                                                << l_robotPoseMapFrame.pose.position.y);
 
     // Compute feet configuration
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(l_feetConfiguration, p_swingingFRRL);
 
-    // Call A* search algorithm
-    auto start = high_resolution_clock::now();
-    bool l_foundGoal = m_search.findPath(p_initialAction,
-                                         p_initialVelocity,
-                                         l_worldStartPosition,
-                                         l_worldGoalPosition,
-                                         l_feetConfiguration,
-                                         p_path);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    ROS_INFO_STREAM("Time taken by the planner: " << duration.count() << " milliseconds" << std::endl);
+    // Clear passed path before calling search
+    p_path.clear();
 
-    return l_foundGoal;
+    // Call the A* search algorithm
+    m_search.findPath(p_initialAction,
+                      p_initialVelocity,
+                      l_worldStartPosition,
+                      l_worldGoalPosition,
+                      l_feetConfiguration,
+                      p_path);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    ROS_INFO_STREAM("Time taken by the planner: " << duration.count() << " microseconds" << std::endl);
 }

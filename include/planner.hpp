@@ -20,6 +20,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // ROS messages
+#include <nav_msgs/Odometry.h>
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
@@ -65,7 +66,7 @@ public:
      * @param p_swingingPair
      * @param p_path
      */
-    bool plan(const geometry_msgs::PoseStamped &p_goalPosition,
+    void plan(const geometry_msgs::PoseStamped &p_goalPosition,
               const Action &p_initialAction,
               const double &p_initialVelocity,
               const bool &p_swingingPair,
@@ -105,8 +106,8 @@ private:
     tf2_ros::TransformListener m_listener;
 
     //! Robot pose cache
-    message_filters::Cache<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseCache;
-    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> m_robotPoseSubscriber;
+    message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
+    message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
     //! FL foot pose cache
     message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;

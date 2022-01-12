@@ -17,13 +17,14 @@
  */
 Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros::TransformListener &p_tf2) :
         m_nh(p_nh),
-        m_rate(1000),
         m_tf2(p_tf2),
+        m_rate(1000),
         m_buffer(p_buffer),
         m_planner(p_nh),
-        m_swingingFRRL(false),
-        m_currentAction{0, 0, 0},
-        m_currentVelocity(0.0) {
+        m_swingingFRRL(true),
+        m_previousVelocity(0.0),
+        m_previousAction{0, 0, 0},
+        m_startedJoyPublisher(false) {
     // Wait for time to catch up
     ros::Duration(1).sleep();
 
@@ -49,7 +50,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
             PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 
     // Robot pose subscriber and cache setup
-    m_robotPoseSubscriber.subscribe(m_nh, ODOM_TOPIC, 1);
+    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
@@ -80,56 +81,156 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
 
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
+
+    // Spawn thread for joy message publishing
+    m_thread = std::thread(&Navigation::joyPublisher, this);
 }
 
 /**
  * Destructor
  */
-Navigation::~Navigation() = default;
+Navigation::~Navigation() {
+    // Stop thread
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+}
+
+/**
+ * Stopping behaviour.
+ */
+void Navigation::halt() {
+    sensor_msgs::Joy l_stopJoy;
+    l_stopJoy.header.stamp = ros::Time::now();
+    l_stopJoy.header.frame_id = "/dev/input/js0";
+    l_stopJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    l_stopJoy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    const double l_startTime = ros::Time::now().toSec();
+    while ((ros::Time::now().toSec() - l_startTime) <= 0.5) {
+        l_stopJoy.header.stamp = ros::Time::now();
+        m_velocityPublisher.publish(l_stopJoy);
+
+        // Sleep
+        m_rate.sleep();
+
+        // Get callback data
+        ros::spinOnce();
+    }
+}
+
+/**
+ * Stomping behaviour.
+ */
+void Navigation::stomp() {
+    sensor_msgs::Joy l_stompJoy;
+    l_stompJoy.header.stamp = ros::Time::now();
+    l_stompJoy.header.frame_id = "/dev/input/js0";
+    l_stompJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    l_stompJoy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+
+    const double l_startTime = ros::Time::now().toSec();
+    while ((ros::Time::now().toSec() - l_startTime) <= 1) {
+        l_stompJoy.header.stamp = ros::Time::now();
+        m_velocityPublisher.publish(l_stompJoy);
+
+        // Sleep
+        m_rate.sleep();
+
+        // Get callback data
+        ros::spinOnce();
+    }
+}
+
+/**
+ * Reset the robot configuration.
+ */
+void Navigation::resetConfiguration() {
+    // Stomp and stop
+    stomp();
+    halt();
+
+    // Reset planner variables
+    m_swingingFRRL = true;
+    m_previousVelocity = 0.0;
+    m_previousAction = Action{0, 0, 0};
+
+    ROS_INFO("Navigation: Configuration reset done.");
+}
+
+/**
+ * Send continuous joy commands
+ * to the WBC controller when
+ * planned actions are in execution.
+ */
+void Navigation::joyPublisher() {
+    while (ros::ok()) {
+        if (m_startedJoyPublisher) {
+            m_joy.header.stamp = ros::Time::now();
+            m_velocityPublisher.publish(m_joy);
+
+            // Sleep
+            m_rate.sleep();
+
+            // Get callback data
+            ros::spinOnce();
+        }
+    }
+}
+
+/**
+ * Start execution of threaded
+ * joy publisher and reset the
+ * configuration.
+ */
+void Navigation::startJoyPublisher() {
+    m_joy.header.stamp = ros::Time::now();
+    m_joy.header.frame_id = "/dev/input/js0";
+    m_joy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    m_joy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    resetConfiguration();
+
+    m_startedJoyPublisher = true;
+    ROS_INFO("Navigation: Joy publisher started.");
+}
+
+/**
+ * Stop execution of threaded
+ * joy publisher and reset the
+ * configuration.
+ */
+void Navigation::stopJoyPublisher() {
+    m_startedJoyPublisher = false;
+    resetConfiguration();
+    ROS_INFO("Navigation: Joy publisher stopped.");
+}
 
 /**
  * Performs a 360 rotation to acquire
  * full height map to be used for planning
  */
 void Navigation::buildInitialHeightMap() {
-    ROS_INFO("Navigation: Started rotation behaviour to acquire full height map");
+    ROS_INFO("Navigation: Started rotation behaviour to acquire full height map.");
 
-    // Const values
+    // Angle of rotation and speed of rotation (in degrees)
     const int l_angle = 360;
-    const double l_speed = 10;
+    const float l_speed = 10;
 
     // Convert from angles to radians
-    const double l_angularSpeed = l_speed * 2 * M_PI / 360;
-    const double l_relativeAngle = l_angle * 2 * M_PI / 360;
+    const float l_angularSpeed = l_speed * 2 * M_PI / 360;
+    const float l_relativeAngle = l_angle * 2 * M_PI / 360;
 
-    // Set linear velocity via dynamic reconfigure
-    m_drDoubleParam.name = "set_linear_vel";
-    m_drDoubleParam.value = 0.0;
-    m_drConf.doubles.push_back(m_drDoubleParam);
-
-    // Set angular velocity via dynamic reconfigure
-    m_drDoubleParam.name = "set_angular_vel";
-    m_drDoubleParam.value = l_angularSpeed;
-    m_drConf.doubles.push_back(m_drDoubleParam);
-
-    // Send ros service call to change dynamic parameters
-    m_drSrvReq.config = m_drConf;
-    ros::service::call("/aliengo/wb_controller/set_parameters", m_drSrvReq, m_drSrvRes);
-
-    // Send ros service call to change dynamic parameters
-    m_drSrvReq.config = m_drConf;
-    ros::service::call("/aliengo/wb_controller/set_parameters", m_drSrvReq, m_drSrvRes);
-
-    // Setting current variables for distance calculus
+    // Initial angle and time
     double l_currentAngle = 0;
     double l_t0 = ros::Time::now().toSec();
 
-    // Motion command to send
+    // Angular motion command
     sensor_msgs::Joy l_joy;
     l_joy.header.stamp = ros::Time::now();
     l_joy.header.frame_id = "/dev/input/js0";
-    l_joy.axes = {-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0};
-    l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    l_joy.axes = {0.0, 0.0, 0.0, -l_angularSpeed, 0.0, 0.0, 0.0, 0.0};
+    l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
 
     // Send velocity command
     while (l_currentAngle < l_relativeAngle) {
@@ -145,16 +246,45 @@ void Navigation::buildInitialHeightMap() {
         ros::spinOnce();
     }
 
-    // Set angular velocity via dynamic reconfigure
-    m_drDoubleParam.name = "set_angular_vel";
-    m_drDoubleParam.value = 0.0;
-    m_drConf.doubles.push_back(m_drDoubleParam);
-
-    // Send ros service call to change dynamic parameters
-    m_drSrvReq.config = m_drConf;
-    ros::service::call("/aliengo/wb_controller/set_parameters", m_drSrvReq, m_drSrvRes);
+    // Reset configuration
+    resetConfiguration();
 
     ROS_INFO("Navigation: Rotation behaviour completed.");
+}
+
+/**
+ * Construct joy command to send.
+ *
+ * @param p_action
+ * @param p_velocity
+ */
+void Navigation::setJoyCommand(const Action &p_action, const double &p_velocity) {
+    // Velocity to be sent
+    const auto l_velocityCommand = static_cast<float>(p_velocity);
+
+    // Header setup
+    m_joy.header.stamp = ros::Time::now();
+    m_joy.header.frame_id = "/dev/input/js0";
+
+    // Set axes and buttons based on action
+    if (p_action == Action{1, 0, 0}) {
+        m_joy.axes = {0.0, l_velocityCommand, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+    } else if (p_action == Action{0, -1, 0}) {
+        m_joy.axes = {-l_velocityCommand, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+    } else if (p_action == Action{0, 1, 0}) {
+        m_joy.axes = {l_velocityCommand, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+    } else if (p_action == Action{0, 0, -1}) {
+        m_joy.axes = {0.0, 0.0, 0.0, -l_velocityCommand, 0.0, 0.0, 0.0, 0.0};
+        m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+    } else if (p_action == Action{0, 0, 1}) {
+        m_joy.axes = {0.0, 0.0, 0.0, l_velocityCommand, 0.0, 0.0, 0.0, 0.0};
+        m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
+    } else {
+        ROS_WARN("Navigation: Action is not recognized (joy message)!");
+    }
 }
 
 /**
@@ -164,295 +294,161 @@ void Navigation::buildInitialHeightMap() {
  * @param p_goalMsg
  */
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
-    ROS_INFO_STREAM("Goal callback received" << "\n");
+    ROS_INFO("Goal callback received");
+
+    // Reset configuration
+    resetConfiguration();
 
     // Save goal for re-planning
     m_goalMsg = p_goalMsg;
 
     // Plan path
-    planPathToGoal();
+    m_planner.plan(m_goalMsg, m_previousAction, m_previousVelocity, m_swingingFRRL, m_path);
 
-    // Execute commands planned
-    executeVelocityCommands();
-}
-
-/**
- * Replan path to goal.
- */
-void Navigation::planPathToGoal() {
-    ROS_INFO("Navigation: Planning request received.");
-    ROS_INFO_STREAM("Received goal pose: " << m_goalMsg.pose.position.x << ", " << m_goalMsg.pose.position.y << ", "
-                                           << m_goalMsg.pose.position.z);
-    ROS_INFO_STREAM("Latest executed velocity: " << m_currentVelocity);
-    ROS_INFO_STREAM("Latest executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
-                                               << m_currentAction.theta << "\n");
-
-    if (m_currentAction == Action{0, 0, 0}) {
-        m_swingingFRRL = false;
-    } else {
-        m_swingingFRRL = !m_swingingFRRL;
-    }
-
-    // Call planner to find path to goal
-    m_goalFound = m_planner.plan(m_goalMsg, m_currentAction, m_currentVelocity, m_swingingFRRL, m_path);
-}
-
-/**
- * Stopping behaviour.
- */
-void Navigation::stopAction() {
-    sensor_msgs::Joy l_stopJoy;
-    l_stopJoy.header.stamp = ros::Time::now();
-    l_stopJoy.header.frame_id = "/dev/input/js0";
-    l_stopJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    l_stopJoy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    // Bring robot to full stop once target goal reached
-    double l_startTime = ros::Time::now().toSec();
-    while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
-        // Send motion command
-        m_velocityPublisher.publish(l_stopJoy);
-
-        // Sleep
-        m_rate.sleep();
-
-        // Get callback data
-        ros::spinOnce();
-    }
-}
-
-/**
- * Stomping behaviour.
- */
-void Navigation::stompAction() {
-    sensor_msgs::Joy l_stompJoy;
-    l_stompJoy.header.stamp = ros::Time::now();
-    l_stompJoy.header.frame_id = "/dev/input/js0";
-    l_stompJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    l_stompJoy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-
-    double l_startTime = ros::Time::now().toSec();
-    while ((ros::Time::now().toSec() - l_startTime) <= 1.2) {
-        // Send motion command
-        m_velocityPublisher.publish(l_stompJoy);
-
-        // Sleep
-        m_rate.sleep();
-
-        // Get callback data
-        ros::spinOnce();
-    }
+    // Execute planned commands
+    executeHighLevelCommands();
 }
 
 /**
  * Execute planned commands.
  */
-void Navigation::executeVelocityCommands() {
-    // Full stop command
-    sensor_msgs::Joy l_stupidJoy;
-    l_stupidJoy.header.stamp = ros::Time::now();
-    l_stupidJoy.header.frame_id = "/dev/input/js0";
-    l_stupidJoy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    l_stupidJoy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+void Navigation::executeHighLevelCommands() {
+    while (ros::ok()) {
+        unsigned int l_actions = 1;
 
-    // Set step height via dynamic reconfigure
-    m_drDoubleParam.name = "set_step_height";
-    m_drDoubleParam.value = 0.15;
-    m_drConf.doubles.push_back(m_drDoubleParam);
-
-    // Send planned command
-    while (!m_goalFound) {
-        // Counter
-        unsigned int count = 1;
-
-        // Check if path is empty
         if (m_path.empty()) {
-            //ROS_WARN("Navigation: Path obtained is empty (executeVelocityCommands) .");
-            continue;
+            ROS_WARN("Navigation: Path obtained is empty.");
+            break;
         }
 
-        // Command execution logic
+        // Start joy publisher if not running
+        if (!m_startedJoyPublisher) {
+            startJoyPublisher();
+        }
+
+        // Execute planned commands within horizon
         for (auto &l_node: m_path) {
-            // Only execute planned commands within horizon
-            if (count > FOOTSTEP_HORIZON) {
-                ROS_INFO_STREAM("Completed horizon execution!");
-                ROS_INFO_STREAM("Last executed action: " << m_currentAction.x << ", " << m_currentAction.y << ", "
-                                                         << m_currentAction.theta);
-                ROS_INFO_STREAM("Last executed velocity: " << m_currentVelocity);
-                ROS_INFO_STREAM("Last swinging pair: " << m_swingingFRRL << "\n");
-                break;
-            }
+            ROS_INFO_STREAM("Path size: " << m_path.size());
+            ROS_INFO_STREAM("Last executed action: " << m_previousAction.x << ", "
+                                                     << m_previousAction.y << ", "
+                                                     << m_previousAction.theta);
+            ROS_INFO_STREAM("Last executed velocity: " << m_previousVelocity);
+            ROS_INFO_STREAM("Last swinging pair: " << m_swingingFRRL << "\n");
 
-            // Motion command to send
-            sensor_msgs::Joy l_joy;
-            l_joy.header.stamp = ros::Time::now();
-            l_joy.header.frame_id = "/dev/input/js0";
-            if (l_node.action == Action{1, 0, 0}) {
-                l_joy.axes = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-            } else if (l_node.action == Action{0, -1, 0}) {
-                l_joy.axes = {-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-            } else if (l_node.action == Action{0, 1, 0}) {
-                l_joy.axes = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-            } else if (l_node.action == Action{0, 0, -1}) {
-                l_joy.axes = {-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0};
-                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-            } else if (l_node.action == Action{0, 0, 1}) {
-                l_joy.axes = {1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0};
-                l_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-            } else {
-                ROS_INFO_STREAM("Navigation: Action is not recognized (joy message)!");
-            }
-
-            // Set velocities base on action
-            if (l_node.action == Action{1, 0, 0} ||
-                l_node.action == Action{0, -1, 0} ||
-                l_node.action == Action{0, 1, 0}) {
-                // Set linear velocity via dynamic reconfigure
-                m_drDoubleParam.name = "set_linear_vel";
-                m_drDoubleParam.value = l_node.velocity;
-                m_drConf.doubles.push_back(m_drDoubleParam);
-
-                // Set angular velocity via dynamic reconfigure
-                m_drDoubleParam.name = "set_angular_vel";
-                m_drDoubleParam.value = 0.0;
-                m_drConf.doubles.push_back(m_drDoubleParam);
-            } else if (l_node.action == Action{0, 0, 1} ||
-                       l_node.action == Action{0, 0, -1}) {
-                // Set linear velocity via dynamic reconfigure
-                m_drDoubleParam.name = "set_linear_vel";
-                m_drDoubleParam.value = 0.0;
-                m_drConf.doubles.push_back(m_drDoubleParam);
-
-                // Set angular velocity via dynamic reconfigure
-                m_drDoubleParam.name = "set_angular_vel";
-                m_drDoubleParam.value = l_node.velocity;
-                m_drConf.doubles.push_back(m_drDoubleParam);
-            } else {
-                ROS_INFO_STREAM("Navigation: Action is not recognized (velocity settings)!");
-            }
-
-            // Send ros service call to change dynamic parameters
-            m_drSrvReq.config = m_drConf;
-            ros::service::call("/aliengo/wb_controller/set_parameters", m_drSrvReq, m_drSrvRes);
-
-            // Time of cache extraction and start time
-            ros::Time l_startTime = ros::Time::now();
-            ros::Time l_latestPoseTime = l_startTime;
-
-            // Get the latest odometry pose from the cache
-            boost::shared_ptr<wb_controller::ComTask const> l_latestRobotPose =
-                    m_robotPoseCache.getElemBeforeTime(l_startTime);
-
-            // Get the latest contact forces from the cache
-            boost::shared_ptr<wb_controller::ContactForces const> l_latestContactForces =
-                    m_contactForcesCache.getElemBeforeTime(l_startTime);
-
+            ROS_INFO_STREAM("Count: " << l_actions << "/" << FOOTSTEP_HORIZON);
             ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
             ROS_INFO_STREAM(
                     "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta << "\n");
 
-            // Add predicted CoM trajectory
-            m_predictedCoMPoses.push_back(l_node.worldCoordinates);
+            // If two different consecutive actions
+            // bring robot to idle positions first
+            // and then re-plan with the latest
+            // configuration reached
+//            if (l_node.action != m_previousAction and m_previousAction != Action{0, 0, 0}) {
+//                ROS_INFO("Navigation: Different consecutive actions applied. Resetting and re-planning.");
+//
+//                // Stop joy command and reset
+//                stopJoyPublisher();
+//
+//                // Plan new path
+//                m_planner.plan(m_goalMsg, m_previousAction, m_previousVelocity, m_swingingFRRL, m_path);
+//
+//                break;
+//            }
 
-            // Add predicted feet poses
-            m_predictedFeetPoses.push_back(l_node);
+            // Get the latest front feet poses and contact forces
+            m_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(ros::Time::now());
+            m_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(ros::Time::now());
+            m_latestContactForces = m_contactForcesCache.getElemBeforeTime(ros::Time::now());
 
-            // Execute command
-            while ((ros::Time::now().toSec() - l_startTime.toSec()) <= 0.35) {
-                //while (false) {
-                // Send motion command
-                m_velocityPublisher.publish(l_joy);
+            // Set joy command to be sending
+            setJoyCommand(l_node.action, l_node.velocity);
 
-                // Sleep
-                m_rate.sleep();
-
+            // Keep sending command until feet contact
+            const ros::Time l_startTime = ros::Time::now();
+            while ((ros::Time::now().toSec() - l_startTime.toSec()) < 0.15 ||
+                   ((m_latestContactForces->contact_forces[0].force.z < 30 &&
+                     m_latestContactForces->contact_forces[3].force.z < 30) ||
+                    (m_latestContactForces->contact_forces[1].force.z < 30 &&
+                     m_latestContactForces->contact_forces[2].force.z < 30))) {
                 // Get callback data
                 ros::spinOnce();
 
-                // Time of cache extraction
-                l_latestPoseTime = ros::Time::now();
+                // Get latest contact forces data
+                m_latestContactForces = m_contactForcesCache.getElemBeforeTime(ros::Time::now());
 
-                // Update header of the message
-                l_joy.header.stamp = l_latestPoseTime;
-
-                // Get the latest odometry pose from the cache
-                l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-                // Get the latest contact forces from the cache
-                l_latestContactForces = m_contactForcesCache.getElemBeforeTime(l_latestPoseTime);
+                ROS_INFO_STREAM("Contacts: " << ros::Time::now().toSec() - l_startTime.toSec() << ", "
+                                             << (m_latestContactForces->contact_forces[0].force.z < 30 &&
+                                                 m_latestContactForces->contact_forces[3].force.z < 30) << ", "
+                                             << (m_latestContactForces->contact_forces[1].force.z < 30 &&
+                                                 m_latestContactForces->contact_forces[2].force.z < 30));
             }
 
-            // Time of cache extraction
-            l_latestPoseTime = ros::Time::now();
+            // Add predicted CoM and feet poses
+            m_predictedFeetPoses.push_back(l_node);
+            m_predictedCoMPoses.push_back(l_node.worldCoordinates);
 
-            // Get the latest odometry pose from the cache
-            l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest FL foot pose from the cache
-            boost::shared_ptr<wb_controller::CartesianTask const> l_latestFLFootPose =
-                    m_flFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest FR foot pose from the cache
-            boost::shared_ptr<wb_controller::CartesianTask const> l_latestFRFootPose =
-                    m_frFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest RL foot pose from the cache
-            boost::shared_ptr<wb_controller::CartesianTask const> l_latestRLFootPose =
-                    m_rlFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Get the latest RR foot pose from the cache
-            boost::shared_ptr<wb_controller::CartesianTask const> l_latestRRFootPose =
-                    m_rrFootPoseCache.getElemBeforeTime(l_latestPoseTime);
-
-            // Add real CoM trajectory
-            m_realCoMPoses.push_back(*l_latestRobotPose);
-
-            // Add real feet poses
+            // Add actual CoM and feet poses
+            const ros::Time l_updateTime = ros::Time::now();
             std::vector<wb_controller::CartesianTask> l_feetConfiguration;
-            l_feetConfiguration.push_back(*l_latestFLFootPose);
-            l_feetConfiguration.push_back(*l_latestFRFootPose);
-            l_feetConfiguration.push_back(*l_latestRLFootPose);
-            l_feetConfiguration.push_back(*l_latestRRFootPose);
+            m_latestRobotPose = m_robotPoseCache.getElemBeforeTime(l_updateTime);
+            m_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(l_updateTime);
+            m_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(l_updateTime);
+            m_latestRLFootPose = m_rlFootPoseCache.getElemBeforeTime(l_updateTime);
+            m_latestRRFootPose = m_rrFootPoseCache.getElemBeforeTime(l_updateTime);
+            l_feetConfiguration.push_back(*m_latestFLFootPose);
+            l_feetConfiguration.push_back(*m_latestFRFootPose);
+            l_feetConfiguration.push_back(*m_latestRLFootPose);
+            l_feetConfiguration.push_back(*m_latestRRFootPose);
+            m_realCoMPoses.push_back(*m_latestRobotPose);
             m_realFeetPoses.push_back(l_feetConfiguration);
 
-            // Store node info for replanning
-            m_currentAction = l_node.action;
-            m_currentVelocity = l_node.velocity;
-            m_swingingFRRL = l_node.feetConfiguration.fr_rl_swinging;
+            // Update planning variables
+            m_previousAction = l_node.action;
+            m_previousVelocity = l_node.velocity;
+            if (m_latestFRFootPose->pose_actual.position.x < m_latestFLFootPose->pose_actual.position.x) {
+                ROS_INFO_STREAM("FR and FL x relatively: " << m_latestFRFootPose->pose_actual.position.x << ", "
+                                                           << m_latestFLFootPose->pose_actual.position.x);
+                m_swingingFRRL = true;
+            } else {
+                m_swingingFRRL = false;
+            }
+
+            ROS_INFO_STREAM("Swinging FR RL: " << m_swingingFRRL);
 
             // Counter for horizon commands execution
-            count += 1;
+            l_actions += 1;
 
-            ROS_INFO_STREAM("Sending command....");
+            // Get callback data
+            ros::spinOnce();
         }
 
-        ROS_INFO_STREAM("Finished path portion execution. Replan new path.");
-        planPathToGoal();
+        // Plan new path if goal not yet reached
+        if ((std::abs(m_latestRobotPose->pose.pose.position.x - m_goalMsg.pose.position.x) > 0.01 ||
+             std::abs(m_latestRobotPose->pose.pose.position.y - m_goalMsg.pose.position.y) > 0.01) &&
+            m_latestRobotPose->pose.pose.position.x <= m_goalMsg.pose.position.x) {
+            m_planner.plan(m_goalMsg, m_previousAction, m_previousVelocity, m_swingingFRRL, m_path);
+        } else {
+            ROS_INFO("Navigation: Goal has been reached.");
+            break;
+        }
+
+        // Get callback data
+        ros::spinOnce();
     }
 
-    ROS_INFO("Navigation: Goal has been reached.");
-
-    // Stomp and stop
-    stompAction();
-    stopAction();
-
-    // Reset initial planner variables
-    m_swingingFRRL = false;
-    m_currentVelocity = 0.0;
-    m_currentAction = Action{0, 0, 0};
+    // Stopping joy publisher
+    stopJoyPublisher();
 
     ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
     publishRealCoMPath();
     publishPredictedCoMPath();
 
-//        ROS_INFO_STREAM("Publishing predicted footsteps");
-//        publishPredictedFootstepSequence();
-//
-//        ROS_INFO_STREAM("Publishing real footsteps");
-//        publishRealFootstepSequence();
+    ROS_INFO_STREAM("Publishing predicted footsteps");
+    publishPredictedFootstepSequence();
+
+    ROS_INFO_STREAM("Publishing real footsteps");
+    publishRealFootstepSequence();
 }
 
 /**
@@ -474,9 +470,9 @@ void Navigation::publishRealCoMPath() {
         // World coordinates for the path
         geometry_msgs::PoseStamped l_realPoseStamped;
         l_realPoseStamped.header = l_realPathMsg.header;
-        l_realPoseStamped.pose.position.x = l_pose.position_actual.x;
-        l_realPoseStamped.pose.position.y = l_pose.position_actual.y;
-        l_realPoseStamped.pose.position.z = l_pose.position_actual.z;
+        l_realPoseStamped.pose.position.x = l_pose.pose.pose.position.x;
+        l_realPoseStamped.pose.position.y = l_pose.pose.pose.position.y;
+        l_realPoseStamped.pose.position.z = l_pose.pose.pose.position.z;
         l_realPathMsg.poses.push_back(l_realPoseStamped);
     }
 
@@ -487,6 +483,11 @@ void Navigation::publishRealCoMPath() {
  * Publish predicted CoM path.
  */
 void Navigation::publishPredictedCoMPath() {
+    if (m_realCoMPoses.empty()) {
+        ROS_WARN("Navigation: Predicted CoM path is empty.");
+        return;
+    }
+
     nav_msgs::Path l_pathMsg;
     l_pathMsg.header.stamp = ros::Time::now();
     l_pathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
@@ -513,6 +514,8 @@ void Navigation::publishPredictedCoMPath() {
 void Navigation::publishPredictedFootstepSequence() {
     // Counters
     int j = 0;
+
+    ROS_INFO_STREAM("Size of predicted feet poses: " << m_predictedFeetPoses.size());
 
     // Populate marker array
     for (auto &l_node: m_predictedFeetPoses) {
@@ -575,7 +578,7 @@ void Navigation::publishPredictedFootstepSequence() {
         l_targetFeetConfiguration.markers.push_back(l_rrFootMarker);
 
         m_targetFeetConfigurationPublisher.publish(l_targetFeetConfiguration);
-        ros::Duration(2).sleep();
+        ros::Duration(1.5).sleep();
     }
 }
 
@@ -601,7 +604,7 @@ void Navigation::publishRealFootstepSequence() {
         l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_targetFootCommonMarker.type = 2;
         l_targetFootCommonMarker.action = 0;
-        l_targetFootCommonMarker.lifetime = ros::Duration(3);
+        l_targetFootCommonMarker.lifetime = ros::Duration(6);
         l_targetFootCommonMarker.pose.orientation.x = 0;
         l_targetFootCommonMarker.pose.orientation.y = 0;
         l_targetFootCommonMarker.pose.orientation.z = 0;
@@ -620,102 +623,102 @@ void Navigation::publishRealFootstepSequence() {
         l_targetCoMMarker.pose.position.y = m_predictedCoMPoses[i].y;
         l_targetCoMMarker.pose.position.z = m_predictedCoMPoses[i].z;
 
-//            visualization_msgs::Marker l_targetFLFootMarker = l_targetFootCommonMarker;
-//            l_targetFLFootMarker.id = j++;
-//            l_targetFLFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.flMap.x;
-//            l_targetFLFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.flMap.y;
-//            l_targetFLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.flMap.z;
-//
-//            visualization_msgs::Marker l_targetFRFootMarker = l_targetFootCommonMarker;
-//            l_targetFRFootMarker.id = j++;
-//            l_targetFRFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.frMap.x;
-//            l_targetFRFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.frMap.y;
-//            l_targetFRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.frMap.z;
-//
-//            visualization_msgs::Marker l_targetRLFootMarker = l_targetFootCommonMarker;
-//            l_targetRLFootMarker.id = j++;
-//            l_targetRLFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.rlMap.x;
-//            l_targetRLFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.rlMap.y;
-//            l_targetRLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rlMap.z;
-//
-//            visualization_msgs::Marker l_targetRRFootMarker = l_targetFootCommonMarker;
-//            l_targetRRFootMarker.id = j++;
-//            l_targetRRFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.rrMap.x;
-//            l_targetRRFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.rrMap.y;
-//            l_targetRRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rrMap.z;
-//
+        visualization_msgs::Marker l_targetFLFootMarker = l_targetFootCommonMarker;
+        l_targetFLFootMarker.id = j++;
+        l_targetFLFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.flMap.x;
+        l_targetFLFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.flMap.y;
+        l_targetFLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.flMap.z;
+
+        visualization_msgs::Marker l_targetFRFootMarker = l_targetFootCommonMarker;
+        l_targetFRFootMarker.id = j++;
+        l_targetFRFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.frMap.x;
+        l_targetFRFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.frMap.y;
+        l_targetFRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.frMap.z;
+
+        visualization_msgs::Marker l_targetRLFootMarker = l_targetFootCommonMarker;
+        l_targetRLFootMarker.id = j++;
+        l_targetRLFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.rlMap.x;
+        l_targetRLFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.rlMap.y;
+        l_targetRLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rlMap.z;
+
+        visualization_msgs::Marker l_targetRRFootMarker = l_targetFootCommonMarker;
+        l_targetRRFootMarker.id = j++;
+        l_targetRRFootMarker.pose.position.x = m_predictedFeetPoses[i].feetConfiguration.rrMap.x;
+        l_targetRRFootMarker.pose.position.y = m_predictedFeetPoses[i].feetConfiguration.rrMap.y;
+        l_targetRRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rrMap.z;
+
         l_realFeetConfiguration.markers.push_back(l_targetCoMMarker);
-//            l_realFeetConfiguration.markers.push_back(l_targetFLFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_targetFRFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_targetRLFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_targetRRFootMarker);
-//
-//            // Populate real array
-//            visualization_msgs::Marker l_realFootCommonMarker;
-//            l_realFootCommonMarker.header.stamp = ros::Time::now();
-//            l_realFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-//            l_realFootCommonMarker.type = 2;
-//            l_realFootCommonMarker.action = 0;
-//            l_realFootCommonMarker.lifetime = ros::Duration(3);
-//            l_realFootCommonMarker.pose.orientation.x = 0;
-//            l_realFootCommonMarker.pose.orientation.y = 0;
-//            l_realFootCommonMarker.pose.orientation.z = 0;
-//            l_realFootCommonMarker.pose.orientation.w = 1;
-//            l_realFootCommonMarker.scale.x = 0.035;
-//            l_realFootCommonMarker.scale.y = 0.035;
-//            l_realFootCommonMarker.scale.z = 0.035;
-//            l_realFootCommonMarker.color.r = 1;
-//            l_realFootCommonMarker.color.g = 0;
-//            l_realFootCommonMarker.color.b = 0;
-//            l_realFootCommonMarker.color.a = 0.7;
-//
-//            visualization_msgs::Marker l_realCoMMarker = l_realFootCommonMarker;
-//            l_realCoMMarker.id = j++;
-//            l_realCoMMarker.pose.position.x = m_realCoMPoses[i].position_actual.x;
-//            l_realCoMMarker.pose.position.y = m_realCoMPoses[i].position_actual.y;
-//            l_realCoMMarker.pose.position.z = m_realCoMPoses[i].position_actual.z;
-//
-//            visualization_msgs::Marker l_realFLFootMarker = l_realFootCommonMarker;
-//            l_realFLFootMarker.id = j++;
-//            l_realFLFootMarker.pose.position.x =
-//                    m_realCoMPoses[i].position_actual.x + m_realFeetPoses[i][0].pose_actual.position.x;
-//            l_realFLFootMarker.pose.position.y =
-//                    m_realCoMPoses[i].position_actual.y + m_realFeetPoses[i][0].pose_actual.position.y;
-//            l_realFLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.flMap.z;
-//
-//            visualization_msgs::Marker l_realFRFootMarker = l_realFootCommonMarker;
-//            l_realFRFootMarker.id = j++;
-//            l_realFRFootMarker.pose.position.x =
-//                    m_realCoMPoses[i].position_actual.x + m_realFeetPoses[i][1].pose_actual.position.x;
-//            l_realFRFootMarker.pose.position.y =
-//                    m_realCoMPoses[i].position_actual.y + m_realFeetPoses[i][1].pose_actual.position.y;
-//            l_realFRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.frMap.z;
-//
-//            visualization_msgs::Marker l_realRLFootMarker = l_realFootCommonMarker;
-//            l_realRLFootMarker.id = j++;
-//            l_realRLFootMarker.pose.position.x =
-//                    m_realCoMPoses[i].position_actual.x + m_realFeetPoses[i][2].pose_actual.position.x;
-//            l_realRLFootMarker.pose.position.y =
-//                    m_realCoMPoses[i].position_actual.y + m_realFeetPoses[i][2].pose_actual.position.y;
-//            l_realRLFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rlMap.z;
-//
-//            visualization_msgs::Marker l_realRRFootMarker = l_realFootCommonMarker;
-//            l_realRRFootMarker.id = j++;
-//            l_realRRFootMarker.pose.position.x =
-//                    m_realCoMPoses[i].position_actual.x + m_realFeetPoses[i][3].pose_actual.position.x;
-//            l_realRRFootMarker.pose.position.y =
-//                    m_realCoMPoses[i].position_actual.y + m_realFeetPoses[i][3].pose_actual.position.y;
-//            l_realRRFootMarker.pose.position.z = m_predictedFeetPoses[i].feetConfiguration.rrMap.z;
-//
-//            l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
-//            l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_realFRFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_realRLFootMarker);
-//            l_realFeetConfiguration.markers.push_back(l_realRRFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_targetFLFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_targetFRFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_targetRLFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_targetRRFootMarker);
+
+        // Populate real array
+        visualization_msgs::Marker l_realFootCommonMarker;
+        l_realFootCommonMarker.header.stamp = ros::Time::now();
+        l_realFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+        l_realFootCommonMarker.type = 2;
+        l_realFootCommonMarker.action = 0;
+        l_realFootCommonMarker.lifetime = ros::Duration(6);
+        l_realFootCommonMarker.pose.orientation.x = 0;
+        l_realFootCommonMarker.pose.orientation.y = 0;
+        l_realFootCommonMarker.pose.orientation.z = 0;
+        l_realFootCommonMarker.pose.orientation.w = 1;
+        l_realFootCommonMarker.scale.x = 0.035;
+        l_realFootCommonMarker.scale.y = 0.035;
+        l_realFootCommonMarker.scale.z = 0.035;
+        l_realFootCommonMarker.color.r = 1;
+        l_realFootCommonMarker.color.g = 0;
+        l_realFootCommonMarker.color.b = 0;
+        l_realFootCommonMarker.color.a = 0.7;
+
+        visualization_msgs::Marker l_realCoMMarker = l_realFootCommonMarker;
+        l_realCoMMarker.id = j++;
+        l_realCoMMarker.pose.position.x = m_realCoMPoses[i].pose.pose.position.x;
+        l_realCoMMarker.pose.position.y = m_realCoMPoses[i].pose.pose.position.y;
+        l_realCoMMarker.pose.position.z = m_realCoMPoses[i].pose.pose.position.z;
+
+        visualization_msgs::Marker l_realFLFootMarker = l_realFootCommonMarker;
+        l_realFLFootMarker.id = j++;
+        l_realFLFootMarker.pose.position.x =
+                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][0].pose_actual.position.x;
+        l_realFLFootMarker.pose.position.y =
+                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][0].pose_actual.position.y;
+        l_realFLFootMarker.pose.position.z = 0.45 + m_realFeetPoses[i][0].pose_actual.position.z;
+
+        visualization_msgs::Marker l_realFRFootMarker = l_realFootCommonMarker;
+        l_realFRFootMarker.id = j++;
+        l_realFRFootMarker.pose.position.x =
+                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][1].pose_actual.position.x;
+        l_realFRFootMarker.pose.position.y =
+                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][1].pose_actual.position.y;
+        l_realFRFootMarker.pose.position.z = 0.45 + m_realFeetPoses[i][1].pose_actual.position.z;
+
+        visualization_msgs::Marker l_realRLFootMarker = l_realFootCommonMarker;
+        l_realRLFootMarker.id = j++;
+        l_realRLFootMarker.pose.position.x =
+                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][2].pose_actual.position.x;
+        l_realRLFootMarker.pose.position.y =
+                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][2].pose_actual.position.y;
+        l_realRLFootMarker.pose.position.z = 0.45 + m_realFeetPoses[i][2].pose_actual.position.z;
+
+        visualization_msgs::Marker l_realRRFootMarker = l_realFootCommonMarker;
+        l_realRRFootMarker.id = j++;
+        l_realRRFootMarker.pose.position.x =
+                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][3].pose_actual.position.x;
+        l_realRRFootMarker.pose.position.y =
+                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][3].pose_actual.position.y;
+        l_realRRFootMarker.pose.position.z = 0.45 + m_realFeetPoses[i][3].pose_actual.position.z;
+
+        l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
+        l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_realFRFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_realRLFootMarker);
+        l_realFeetConfiguration.markers.push_back(l_realRRFootMarker);
 
         m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
 
-        ros::Duration(4).sleep();
+        ros::Duration(7).sleep();
     }
 }
 

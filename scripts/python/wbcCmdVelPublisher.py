@@ -23,7 +23,7 @@ import dynamic_reconfigure.client
 client = None
 
 # Max non forward velocity
-MAX_NON_FWD_VELOCITY=0.55
+MAX_NON_FWD_VELOCITY = 0.55
 
 
 def stop(velocity_publisher):
@@ -35,10 +35,10 @@ def stop(velocity_publisher):
     joy = Joy()
     joy.header.stamp = rospy.Time.now()
     joy.header.frame_id = "/dev/input/js0"
-    joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-    rate = rospy.Rate(1000)
+    rate = rospy.Rate(500)
     while rospy.Time.now() < end_time:
         # Update joy timestamp
         # joy.header.stamp = rospy.Time.now()
@@ -57,10 +57,10 @@ def stomping(velocity_publisher):
     joy = Joy()
     joy.header.stamp = rospy.Time.now()
     joy.header.frame_id = "/dev/input/js0"
-    joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+    joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
 
-    rate = rospy.Rate(1000)
+    rate = rospy.Rate(500)
     while rospy.Time.now() < end_time:
         # Update joy timestamp
         joy.header.stamp = rospy.Time.now()
@@ -70,38 +70,43 @@ def stomping(velocity_publisher):
         rate.sleep()
 
 
-def publish_joy_accelerations(joy, velocity_publisher, curr_velocity):
+def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
     global client
     global MAX_NON_FWD_VELOCITY
 
     for next_velocity in np.arange(0.0, 1.0, 0.1):
         # Limit clockwise, counterclockwise, left and right motions to 0.5
-        if joy.axes in [[-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0],
-                        [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-                        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] \
-                and (curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
+        if motion not in ["forward", "backward"] and (
+                curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
             continue
 
         # Skip if next velocity to be applied is
-        # the same as the current velocity of below
+        # the same as the current velocity or below
         if abs(next_velocity) - abs(curr_velocity) < 0.05:
             continue
 
-        print("Applying curr velocity: ", curr_velocity, ", with next velocity: ", next_velocity)
+        # Skip if gap between velocities is more than 0.4
+        if abs(next_velocity) - abs(curr_velocity) > 0.4:
+            continue
+
+        print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
+              -next_velocity if curr_velocity < 0 else next_velocity)
 
         for _ in range(48):
             # Reset velocity to initial one
-            rospy.set_param("/current_velocity", float(curr_velocity))
-            params = {"set_linear_vel": curr_velocity, "set_angular_vel": curr_velocity}
-            client.update_configuration(params)
+            if motion in ["forward", "backward"]:
+                joy.axes[1] = curr_velocity
+            elif motion in ["right", "left"]:
+                joy.axes[0] = curr_velocity
+            else:
+                joy.axes[3] = curr_velocity
 
             start_time = rospy.Time.now()
             seconds_to_wait = rospy.Duration.from_sec(1.25)
             end_time = start_time + seconds_to_wait
 
             # Apply current velocity
-            rate = rospy.Rate(1000)
+            rate = rospy.Rate(500)
             while rospy.Time.now() < end_time:
                 # Update joy timestamp
                 joy.header.stamp = rospy.Time.now()
@@ -113,12 +118,15 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity):
             seconds_to_wait = rospy.Duration.from_sec(1.25)
             end_time = start_time + seconds_to_wait
 
-            # Change velocity
-            rospy.set_param("/current_velocity", float(next_velocity))
-            params = {"set_linear_vel": next_velocity, "set_angular_vel": next_velocity}
-            client.update_configuration(params)
+            # Change velocity to next velocity
+            if motion in ["forward", "backward"]:
+                joy.axes[1] = next_velocity if motion == "forward" else -next_velocity
+            elif motion in ["right", "left"]:
+                joy.axes[0] = next_velocity if motion == "left" else -next_velocity
+            else:
+                joy.axes[3] = next_velocity if motion == "counter" else -next_velocity
 
-            rate = rospy.Rate(1000)
+            rate = rospy.Rate(500)
             while rospy.Time.now() < end_time:
                 # Update joy timestamp
                 joy.header.stamp = rospy.Time.now()
@@ -126,18 +134,13 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity):
                 velocity_publisher.publish(joy)
                 rate.sleep()
 
-    # Reset velocity to initial one
-    rospy.set_param("/current_velocity", float(curr_velocity))
-    params = {"set_linear_vel": curr_velocity, "set_angular_vel": curr_velocity}
-    client.update_configuration(params)
-
 
 def publish_joy_continuous(joy, velocity_publisher):
     start_time = rospy.Time.now()
-    seconds_to_wait = rospy.Duration(300)
+    seconds_to_wait = rospy.Duration(120)
     end_time = start_time + seconds_to_wait
 
-    rate = rospy.Rate(1000)
+    rate = rospy.Rate(500)
     while rospy.Time.now() < end_time:
         # Update joy timestamp
         joy.header.stamp = rospy.Time.now()
@@ -154,15 +157,15 @@ def joy_publisher():
     rospy.init_node('wbc_cmd_vel_publisher')
 
     # Publisher
-    velocity_publisher = rospy.Publisher('/aliengo/wb_controller/joy', Joy, queue_size=10)
+    velocity_publisher = rospy.Publisher('/aliengo/wb_controller/joy', Joy, queue_size=1)
 
-    # Set footstep height to 0.15 and start solver
+    # Start solver
     client = dynamic_reconfigure.client.Client("/aliengo/wb_controller")
-    params = {"set_step_height": 0.15, "activate_solver": True}
+    params = {"activate_solver": True}
     client.update_configuration(params)
 
-    # Sleep for 1 second to allow solver to activate
-    rospy.sleep(1)
+    # Sleep for 2 second to allow solver to activate
+    rospy.sleep(2)
 
     # Reset feet positions
     stomping(velocity_publisher)
@@ -171,22 +174,30 @@ def joy_publisher():
         for velocity in np.arange(0.0, 1.0, 0.1):
             print(velocity)
 
-            # Change base and rotation velocity
-            params = {"set_linear_vel": velocity, "set_angular_vel": velocity}
-            client.update_configuration(params)
+            # Backward walking
+            joy = Joy()
+            joy.header.stamp = rospy.Time.now()
+            joy.header.frame_id = "/dev/input/js0"
+            joy.axes = [0.0, -velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration backward command")
+            publish_joy_accelerations(joy, velocity_publisher, -velocity, "backward")
+            # print("Publishing continuous backward command")
+            # publish_joy_continuous(joy, velocity_publisher)
 
-            rospy.set_param("/current_velocity", float(velocity))
+            # 1s stomping to avoid instability
+            stomping(velocity_publisher)
 
             # Forward walking
             joy = Joy()
             joy.header.stamp = rospy.Time.now()
             joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            #print("Publishing acceleration forward command")
-            #publish_joy_accelerations(joy, velocity_publisher, velocity)
-            print("Publishing c/home/ilyass/workspace/code/thesis_ws/srcontinuous forward command")
-            publish_joy_continuous(joy, velocity_publisher)
+            joy.axes = [0.0, velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration forward command")
+            publish_joy_accelerations(joy, velocity_publisher, velocity, "forward")
+            # print("Publishing continuous forward command")
+            # publish_joy_continuous(joy, velocity_publisher)
 
             # 1s stomping to avoid instability
             stomping(velocity_publisher)
@@ -195,10 +206,10 @@ def joy_publisher():
             joy = Joy()
             joy.header.stamp = rospy.Time.now()
             joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [-1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration clockwise command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity)
+            joy.axes = [0.0, 0.0, 0.0, -velocity, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration clockwise command")
+            publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
             # print("Publishing continuous clockwise command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -209,10 +220,10 @@ def joy_publisher():
             joy = Joy()
             joy.header.stamp = rospy.Time.now()
             joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration counterclockwise command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity)
+            joy.axes = [0.0, 0.0, 0.0, velocity, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration counterclockwise command")
+            publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
             # print("Publishing continuous counterclockwise command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -223,10 +234,10 @@ def joy_publisher():
             joy = Joy()
             joy.header.stamp = rospy.Time.now()
             joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration right command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity)
+            joy.axes = [-velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration right command")
+            publish_joy_accelerations(joy, velocity_publisher, -velocity, "right")
             # print("Publishing continuous right command")
             # publish_joy_continuous(joy, velocity_publisher)
 
@@ -237,14 +248,14 @@ def joy_publisher():
             joy = Joy()
             joy.header.stamp = rospy.Time.now()
             joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration left command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity)
+            joy.axes = [velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            print("Publishing acceleration left command")
+            publish_joy_accelerations(joy, velocity_publisher, velocity, "left")
             # print("Publishing continuous left command")
             # publish_joy_continuous(joy, velocity_publisher)
 
-            #print(f"Sequence {velocity} finished")
+        print(f"Sequence {velocity} finished")
         break
 
     # Stop robot fully

@@ -60,7 +60,7 @@ namespace AStar {
          * @param p_sourceFeetConfiguration
          * @return sequence of 2D points (world coordinates)
          */
-        bool findPath(const Action &p_initialAction,
+        void findPath(const Action &p_initialAction,
                       const double &p_initialVelocity,
                       const World3D &p_sourceWorldCoordinates,
                       const World3D &p_targetWorldCoordinates,
@@ -127,18 +127,10 @@ namespace AStar {
          * @param p_targetQuaternion
          * @return if coordinates within distance tolerance
          */
-        bool withinTargetTolerance(const Vec2D &p_nodeGridCoordinates,
-                                   const Vec2D &p_targetGridCoordinates,
-                                   const tf2::Quaternion &p_nodeQuaternion,
-                                   const tf2::Quaternion &p_targetQuaternion);
-
-        /**
-         * Convert from grid coordinates to world coordinates.
-         *
-         * @param p_gridCoordinates
-         * @param p_worldCoordinates
-         */
-        void gridToWorld(const Vec2D &p_gridCoordinates, World3D &p_worldCoordinates);
+        bool targetReached(const Vec2D &p_nodeGridCoordinates,
+                           const Vec2D &p_targetGridCoordinates,
+                           const tf2::Quaternion &p_nodeQuaternion,
+                           const tf2::Quaternion &p_targetQuaternion);
 
         /**
          * Convert from world coordinates to grid coordinates.
@@ -147,7 +139,7 @@ namespace AStar {
          * @param p_gridCoordinates
          * @return if conversion is successful
          */
-        bool worldToGrid(const World3D &p_worldCoordinates, Vec2D &p_gridCoordinates) const;
+        bool worldToGrid(const World3D &p_worldCoordinates, Vec2D &p_gridCoordinates);
 
         /**
          * Transform feet configuration
@@ -166,9 +158,6 @@ namespace AStar {
 
         //! First search or not
         bool m_firstSearch;
-
-        //! Whether goal was reached or not
-        bool m_reachedGoal;
 
         //! Footsteps validated
         unsigned int m_footstepsChecked;
@@ -209,11 +198,12 @@ namespace AStar {
          * A* Heuristic routine that returns the
          * difference between two coordinate points.
          *
-         * @param p_sourceGridCoordinates
-         * @param p_targetGridCoordinates
+         * @param p_sourceWorldCoordinates
+         * @param p_targetWorldCoordinates
          * @return points' coordinate difference
          */
-        static Vec2D getDistanceDelta(const Vec2D &p_sourceGridCoordinates, const Vec2D &p_targetGridCoordinates);
+        static World3D
+        getDistanceDelta(const World3D &p_sourceWorldCoordinates, const World3D &p_targetWorldCoordinates);
 
         /**
          * A* Heuristic class routine that computes

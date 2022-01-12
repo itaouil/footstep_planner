@@ -39,8 +39,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/itaouil/workspace/code/aliengo_ws/src/aliengo_navigation/data/dataset4_wbc/live_extraction/just_acquired"
-file_object = open(path + "/lol.csv", "a")
+path = "/home/itaouil/workspace/code/thesis_ws/src/aliengo_navigation/data/dataset4_wbc/live_extraction/step_0.06"
+file_object = open(path + "/accelerations2.csv", "a")
 
 
 def clean_max_heights():
@@ -49,10 +49,10 @@ def clean_max_heights():
     global rl_max_height
     global rr_max_height
 
-    fl_max_height = 0
-    fr_max_height = 0
-    rl_max_height = 0
-    rr_max_height = 0
+    fl_max_height = -100
+    fr_max_height = -100
+    rl_max_height = -100
+    rr_max_height = -100
 
 
 def valid_footstep(cmd_vel_msg, footholds_msg):
@@ -74,10 +74,14 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
         height_threshold = rospy.get_param("/height_threshold")
 
         # Acquire heights
-        fl_height = abs(footholds_msg.contact_positions[0].z)
-        fr_height = abs(footholds_msg.contact_positions[2].z)
-        rl_height = abs(footholds_msg.contact_positions[1].z)
-        rr_height = abs(footholds_msg.contact_positions[3].z)
+        # fl_height = abs(footholds_msg.contact_positions[0].z)
+        # fr_height = abs(footholds_msg.contact_positions[2].z)
+        # rl_height = abs(footholds_msg.contact_positions[1].z)
+        # rr_height = abs(footholds_msg.contact_positions[3].z)
+        fl_height = footholds_msg.contact_positions[0].z
+        fr_height = footholds_msg.contact_positions[2].z
+        rl_height = footholds_msg.contact_positions[1].z
+        rr_height = footholds_msg.contact_positions[3].z
 
         # Update recorded max heights for each foot
         fl_max_height = max(fl_max_height, fl_height)
@@ -129,7 +133,9 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > 0.1 and swing2_max_height > 0.1
+        max_heights_condition = swing1_max_height > -0.36 and swing2_max_height > -0.36
+
+        print(max_heights_sorted)
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -161,13 +167,10 @@ def live_extraction(odom_msg,
     if not is_valid_footstep:
         return
 
-    # Get currently commanded velocity
-    current_velocity = rospy.get_param("/current_velocity")
-
     # Compute velocities
-    linear_x = cmd_vel_msg.axes[1] * current_velocity
-    linear_y = cmd_vel_msg.axes[0] * current_velocity if not cmd_vel_msg.axes[2] else 0.0
-    angular_yaw = current_velocity * cmd_vel_msg.axes[2]
+    linear_x = cmd_vel_msg.axes[1]
+    linear_y = cmd_vel_msg.axes[0]
+    angular_yaw = cmd_vel_msg.axes[3]
 
     # Remove - sign
     if not linear_x:
@@ -176,8 +179,6 @@ def live_extraction(odom_msg,
         linear_y = 0.0
     if not angular_yaw:
         angular_yaw = 0.0
-
-    print(footholds_msg.contact)
 
     file_object.write(str(time.time()) + "," +
 
@@ -258,7 +259,6 @@ def main():
     rospy.init_node('topics_sim_to_csv')
 
     # Set initial velocity
-    rospy.set_param("/current_velocity", 0.0)
     rospy.set_param("/height_threshold", 0.002)
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=1)

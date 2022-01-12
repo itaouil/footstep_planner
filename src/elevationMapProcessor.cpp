@@ -157,7 +157,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
 
             m_traversabilityCostmaps.push(l_costmap);
             m_distanceTransforms.push(l_distanceTransform);
-            m_gridMaps.push(l_elevationMap.get("elevation_inpainted"));
+            m_gridMaps.push(l_elevationMap);
         }
 
         // Visualize occupancy grid and colored
@@ -254,7 +254,38 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             grid_map::GridMapRosConverter::toMessage(l_elevationMap, l_newElevationMapMsg);
             m_elevationMapPublisher.publish(l_newElevationMapMsg);
         }
+
+        // Get callback data
+        ros::spinOnce();
     }
+}
+
+/**
+ * Gets the corresponding cell index for world position.
+ *
+ * @param p_worldCoordinates
+ * @return true if successful, false if position outside of map
+ */
+bool ElevationMapProcessor::worldToGrid(const World3D &p_worldCoordinates, Vec2D &p_gridCoordinates) {
+    // Obtain latest elevation map
+    grid_map::GridMap l_latestElevationMap;
+    {
+        std::lock_guard<std::mutex> l_lockGuard(m_mutex);
+        l_latestElevationMap = m_gridMaps.back();
+    }
+
+    // Get 2D grid index from 2D world pose
+    grid_map::Index l_gridCoordinates;
+    grid_map::Position l_worldCoordinates{p_worldCoordinates.x, p_worldCoordinates.y};
+    bool l_successful = l_latestElevationMap.getIndex(l_worldCoordinates, l_gridCoordinates);
+
+    // Copy over cell index
+    if (l_successful) {
+        p_gridCoordinates.x = l_gridCoordinates.x();
+        p_gridCoordinates.y = l_gridCoordinates.y();
+    }
+
+    return l_successful;
 }
 
 /**
@@ -266,14 +297,14 @@ void ElevationMapProcessor::gridMapPostProcessing() {
  * @return true if access was successful, otherwise false
  */
 double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) {
-    // Obtain latest costmap
-    grid_map::Matrix l_latestElevationMap;
+    // Obtain latest elevation map
+    grid_map::GridMap l_latestElevationMap;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         l_latestElevationMap = m_gridMaps.back();
     }
 
-    return l_latestElevationMap.coeff(p_row, p_col);
+    return l_latestElevationMap["elevation_inpainted"].coeff(p_row, p_col);
 }
 
 /**
@@ -292,7 +323,7 @@ bool ElevationMapProcessor::validFootstep(const int &p_row, const int &p_col) {
         l_latestDistanceTransform = m_distanceTransforms.back();
     }
 
-    return ((l_latestDistanceTransform.at<float>(p_row, p_col) * m_elevationMapGridResolution) >= MIN_STAIR_DISTANCE);
+    return ((l_latestDistanceTransform.at<float>(p_row, p_col) * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE);
 }
 
 /**

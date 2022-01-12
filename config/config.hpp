@@ -21,8 +21,7 @@ const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuratio
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
-const std::string ROBOT_POSE_TOPIC("/pose");
-const std::string ODOM_TOPIC("/aliengo/wb_controller/CoM");
+const std::string ROBOT_POSE_TOPIC("/aliengo/ground_truth");
 const std::string FL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lf_foot");
 const std::string FR_FOOT_POSE_TOPIC("/aliengo/wb_controller/rf_foot");
 const std::string RL_FOOT_POSE_TOPIC("/aliengo/wb_controller/lh_foot");
@@ -38,7 +37,7 @@ const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(0.5);
+const double GRADIENT_THRESHOLD(0.3);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -53,10 +52,10 @@ const double TIMESTAMP(0.33);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(2);
+const unsigned int FOOTSTEP_HORIZON(1);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.035);
+const double MIN_STAIR_DISTANCE(0.02);
 
 // Angle tolerance between target and robot rotation
-const double ANGLE_DIFFERENCE_TOLERANCE(3);
+const double ANGLE_DIFFERENCE_TOLERANCE(2);

@@ -24,6 +24,7 @@
 #include <tf2_ros/transform_listener.h>
 
 // Structs
+#include <structs/vec2D.hpp>
 #include <structs/feetConfiguration.hpp>
 
 // Config file
@@ -31,13 +32,12 @@
 
 using namespace std::chrono;
 
-class ElevationMapProcessor
-{
+class ElevationMapProcessor {
 public:
     /**
      * Constructor.
      */
-    explicit ElevationMapProcessor(ros::NodeHandle& p_nh);
+    explicit ElevationMapProcessor(ros::NodeHandle &p_nh);
 
     /**
      * Destructor.
@@ -45,12 +45,21 @@ public:
     virtual ~ElevationMapProcessor();
 
     /**
+     * Gets the corresponding cell index for world position.
+     *
+     * @param p_worldCoordinates
+     * @param p_gridCoordinates
+     * @return true if successful, false if position outside of map
+     */
+    bool worldToGrid(const World3D &p_worldCoordinates, Vec2D &p_gridCoordinates);
+
+    /**
      * Returns the height of a
      * given cell index.
      *
      * @param p_row
      * @param p_col
-     * @return true if access was successful, otherwise false
+     * @return the cell's height
      */
     double getCellHeight(const int &p_row, const int &p_col);
 
@@ -90,6 +99,7 @@ public:
      * @param p_elevationMapGridOriginY
      */
     void getUpdatedElevationMapGridOrigin(double &p_elevationMapGridOriginX, double &p_elevationMapGridOriginY);
+
 private:
     /**
      * Elevation map callback.
@@ -121,7 +131,7 @@ private:
     unsigned int m_elevationMapGridSizeY;
 
     //! Height and foot costs caches
-    std::queue<grid_map::Matrix> m_gridMaps;
+    std::queue<grid_map::GridMap> m_gridMaps;
     std::queue<cv::Mat> m_distanceTransforms;
     std::queue<cv::Mat> m_traversabilityCostmaps;
     std::queue<grid_map_msgs::GridMap> m_gridMapMsgs;
