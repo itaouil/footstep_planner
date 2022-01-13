@@ -86,7 +86,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
             continue
 
         # Skip if gap between velocities is more than 0.4
-        if abs(next_velocity) - abs(curr_velocity) > 0.4:
+        if abs(next_velocity) - abs(curr_velocity) <= 0.4:
             continue
 
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
@@ -174,16 +174,16 @@ def joy_publisher():
         for velocity in np.arange(0.0, 1.0, 0.1):
             print(velocity)
 
-            # Backward walking
-            joy = Joy()
-            joy.header.stamp = rospy.Time.now()
-            joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [0.0, -velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            print("Publishing acceleration backward command")
-            publish_joy_accelerations(joy, velocity_publisher, -velocity, "backward")
-            # print("Publishing continuous backward command")
-            # publish_joy_continuous(joy, velocity_publisher)
+            # # Backward walking
+            # joy = Joy()
+            # joy.header.stamp = rospy.Time.now()
+            # joy.header.frame_id = "/dev/input/js0"
+            # joy.axes = [0.0, -velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            # print("Publishing acceleration backward command")
+            # publish_joy_accelerations(joy, velocity_publisher, -velocity, "backward")
+            # # print("Publishing continuous backward command")
+            # # publish_joy_continuous(joy, velocity_publisher)
 
             # 1s stomping to avoid instability
             stomping(velocity_publisher)

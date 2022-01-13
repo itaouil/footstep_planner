@@ -100,6 +100,11 @@ private:
     void buildInitialHeightMap();
 
     /**
+     * Update variables from caches.
+     */
+    void updateVariablesFromCache();
+
+    /**
      * Sets goal message and calls
      * planner to plan the path to
      * the goal.
@@ -196,11 +201,11 @@ private:
     //! Goal message
     geometry_msgs::PoseStamped m_goalMsg;
 
+    //! Predicted feet poses
+    std::vector<FeetConfiguration> m_predictedFootsteps;
+
     //! Predicted CoM poses
     std::vector<World3D> m_predictedCoMPoses;
-
-    //! Predicted feet poses
-    std::vector<Node> m_predictedFeetPoses;
 
     //! Real CoM poses
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
@@ -208,14 +213,17 @@ private:
     //! Real feet poses
     std::vector<std::vector<wb_controller::CartesianTask>> m_realFeetPoses;
 
+    //! CoM prediction input
+    std::vector<nav_msgs::Odometry> m_predictionInputCoM;
+
+    //! Feet prediction input
+    std::vector<std::vector<wb_controller::CartesianTask>> m_predictionInputFeet;
+
     //! Current swinging pair
     bool m_swingingFRRL;
 
     //! Current action given to planner
     Action m_previousAction;
-
-    //! Latest ROS time
-    ros::Time m_latestRosTime;
 
     //! Current velocity given to planner
     double m_previousVelocity;

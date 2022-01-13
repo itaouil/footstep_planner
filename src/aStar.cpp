@@ -40,7 +40,7 @@ bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
 AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_model(p_nh),
         m_firstSearch(true),
-        m_footstepsChecked(0),
+        m_validFootstepsFound(0),
         m_listener(m_buffer),
         m_elevationMapProcessor(p_nh) {
     // Set cost heuristics: manhattan, euclidean, octagonal
@@ -179,11 +179,11 @@ bool AStar::Search::targetReached(const Vec2D &p_nodeGridCoordinates,
     double l_currentHeading = getYawFromQuaternion(p_nodeQuaternion);
     double l_targetHeading = getYawFromQuaternion(p_targetQuaternion);
 
-    ROS_INFO_STREAM("Tolerance angle: " << l_currentHeading << ", " << l_targetHeading << ", "
+    ROS_DEBUG_STREAM("Tolerance angle: " << l_currentHeading << ", " << l_targetHeading << ", "
                                         << (std::abs(l_currentHeading - l_targetHeading) <=
                                             ANGLE_DIFFERENCE_TOLERANCE));
-    ROS_INFO_STREAM("Grid x tolerance: " << p_nodeGridCoordinates.x << ", " << p_targetGridCoordinates.x);
-    ROS_INFO_STREAM("Grid y tolerance: " << p_nodeGridCoordinates.y << ", " << p_targetGridCoordinates.y << "\n");
+    ROS_DEBUG_STREAM("Grid x tolerance: " << p_nodeGridCoordinates.x << ", " << p_targetGridCoordinates.x);
+    ROS_DEBUG_STREAM("Grid y tolerance: " << p_nodeGridCoordinates.y << ", " << p_targetGridCoordinates.y << "\n");
 
     return ((std::abs(p_nodeGridCoordinates.x - p_targetGridCoordinates.x) <= 1) &&
             (std::abs(p_nodeGridCoordinates.y - p_targetGridCoordinates.y) <= 1) &&
@@ -234,7 +234,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     }
 
     // Reset
-    m_footstepsChecked = 0;
+    m_validFootstepsFound = 0;
 
     // Update elevation map parameters
     m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
@@ -287,10 +287,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
         // If target was reached or already planned
         // for the footstep horizon stop any further
         // search
-        if (m_footstepsChecked == FOOTSTEP_HORIZON ||
+        if (m_validFootstepsFound == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                           l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            ROS_INFO_STREAM("Search: Planning completed. " << m_footstepsChecked);
+            ROS_INFO_STREAM("Search: Planning completed. " << m_validFootstepsFound);
             break;
         }
 
@@ -305,30 +305,20 @@ void AStar::Search::findPath(const Action &p_initialAction,
         ROS_DEBUG_STREAM("Expanded node world coordinates: " << l_currentNode->worldCoordinates.x << ", "
                                                              << l_currentNode->worldCoordinates.y);
 
+        // Flag signaling if valid footstep found
+        bool l_validFootstepFound = false;
+
         for (double &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 ROS_DEBUG_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
                 ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
                 ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
-                ROS_DEBUG_STREAM("Footstep checked: " << m_footstepsChecked);
+                ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
 
                 // Disallow velocities above 0.5 for non-forward actions
                 if (m_actions[i].x != 1 && l_nextVelocity > 0.5) {
                     continue;
                 }
-
-                // Disallow low velocities after footstep horizon is planned
-//                if (m_footstepsChecked >= FOOTSTEP_HORIZON) {
-//                    // For forward motion allow only 0.9 velocity
-//                    if (m_actions[i].x == 1 && l_nextVelocity != 0.9) {
-//                        continue;
-//                    }
-//
-//                    // For non-forward motions allow only 0.5 velocity
-//                    if (m_actions[i].x != 1 && l_nextVelocity != 0.5) {
-//                        continue;
-//                    }
-//                }
 
                 // New robot state (CoM and Feet)
                 World3D l_newWorldCoordinatesCoM{};
@@ -361,14 +351,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newFeetConfiguration,
                                          l_newWorldCoordinatesCoM);
 
-                ROS_DEBUG_STREAM("Source world coordinates: " << p_sourceWorldCoordinates.x << ", "
-                                                              << p_sourceWorldCoordinates.y);
-                ROS_DEBUG_STREAM("Target world coordinates: " << p_targetWorldCoordinates.x << ", "
-                                                              << p_targetWorldCoordinates.y);
-                ROS_DEBUG_STREAM(
-                        "New world coordinates: " << l_newWorldCoordinatesCoM.x << ", " << l_newWorldCoordinatesCoM.y
-                                                  << "\n");
-
                 // Convert new world CoM to grid indexes
                 Vec2D l_newGridCoordinatesCoM{};
                 AStar::Search::worldToGrid(l_newWorldCoordinatesCoM, l_newGridCoordinatesCoM);
@@ -383,7 +365,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 }
 
                 // Perform foothold validity for pre-defined horizon
-                if (m_footstepsChecked < FOOTSTEP_HORIZON) {
+                if (m_validFootstepsFound < FOOTSTEP_HORIZON) {
                     // Transform feet configuration from CoM to Map frame
                     FeetConfiguration l_newFeetConfigurationMap;
                     transformCoMFeetConfigurationToMap(l_newWorldCoordinatesCoM,
@@ -404,14 +386,21 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     if (l_currentNode->feetConfiguration.fr_rl_swinging) {
                         if (!m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y) ||
                             !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y)) {
+                            ROS_INFO("\n");
                             continue;
                         }
-                    } else {
+                        ROS_INFO("\n");
+                    }
+                    else {
                         if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y) ||
                             !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y)) {
+                            ROS_INFO("\n");
                             continue;
                         }
+                        ROS_INFO("\n");
                     }
+
+                    ROS_INFO_STREAM("VALID FOOTSTEP FOUND");
 
                     // Add map feet poses to feet configuration
                     l_newFeetConfiguration.flMap = l_newFeetConfigurationMap.flMap;
@@ -429,7 +418,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
                                                                                            l_rrGridPose.y);
 
-                    ROS_INFO_STREAM(
+                    l_validFootstepFound = true;
+
+                    ROS_DEBUG_STREAM(
                             "Heights: " << l_newFeetConfiguration.flMap.z << ", " << l_newFeetConfiguration.frMap.z
                                         << ", "
                                         << l_newFeetConfiguration.rlMap.z << ", " << l_newFeetConfiguration.rrMap.z);
@@ -472,7 +463,12 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         // Increase counters
         l_expandedNodes += 1;
-        m_footstepsChecked += 1;
+        if (l_validFootstepFound) {
+            m_validFootstepsFound += 1;
+        }
+        else {
+            ROS_INFO("Search: No valid footstep found...");
+        }
 
         // Spin
         ros::spinOnce();

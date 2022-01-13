@@ -160,7 +160,7 @@ namespace AStar {
         bool m_firstSearch;
 
         //! Footsteps validated
-        unsigned int m_footstepsChecked;
+        unsigned int m_validFootstepsFound;
 
         //! TF2 buffer and listener
         tf2_ros::Buffer m_buffer;
