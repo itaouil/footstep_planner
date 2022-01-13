@@ -130,11 +130,12 @@ private:
     unsigned int m_elevationMapGridSizeX;
     unsigned int m_elevationMapGridSizeY;
 
-    //! Height and foot costs caches
-    std::queue<grid_map::GridMap> m_gridMaps;
-    std::queue<cv::Mat> m_distanceTransforms;
-    std::queue<cv::Mat> m_traversabilityCostmaps;
+    //! Grid map messages cache
     std::queue<grid_map_msgs::GridMap> m_gridMapMsgs;
+
+    //! Latest layer data and distance transform
+    grid_map::GridMap m_gridMap;
+    cv::Mat m_distanceTransform;
 
     //! ROS subscribers
     ros::Subscriber m_elevationMapSubscriber;

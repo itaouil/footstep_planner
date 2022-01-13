@@ -55,7 +55,7 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(10);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.0);
+const double MIN_STAIR_DISTANCE(0.02);
 
 // Angle tolerance between target and robot rotation
 const double ANGLE_DIFFERENCE_TOLERANCE(2);

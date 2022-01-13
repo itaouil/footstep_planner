@@ -31,7 +31,15 @@ double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion) {
  */
 bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
                                 Vec2D &p_gridCoordinates) {
-    m_elevationMapProcessor.worldToGrid(p_worldCoordinates, p_gridCoordinates);
+    // Subtract current robot origin from world coordinates
+    // as the world coordinates passed for the conversion need
+    // to be with respect to the origin of the elevation map
+    // which is exactly the robot pose in the map
+    World3D l_worldCoordinateRobotCentric{p_worldCoordinates.x - m_robotOriginMapFrame.x,
+                                          p_worldCoordinates.y - m_robotOriginMapFrame.y};
+
+    // Compute transformation
+    m_elevationMapProcessor.worldToGrid(l_worldCoordinateRobotCentric, p_gridCoordinates);
 }
 
 /**
@@ -233,8 +241,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
         m_idleFeetConfiguration = p_sourceFeetConfiguration;
     }
 
-    // Reset
+    // Reset/Set variables used within search
     m_validFootstepsFound = 0;
+    unsigned int l_expandedNodes = 0;
+    m_robotOriginMapFrame = p_sourceWorldCoordinates;
 
     // Update elevation map parameters
     m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
@@ -242,9 +252,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                       m_elevationMapGridResolution,
                                                       m_elevationMapGridSizeX,
                                                       m_elevationMapGridSizeY);
-
-    // Number of expanded nodes so far
-    unsigned int l_expandedNodes = 0;
 
     // Convert source and target world coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
@@ -335,12 +342,12 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     l_tempNode.feetConfiguration = m_idleFeetConfiguration;
                 }
 
-                // Disallow change in velocities bigger than 0.4
-                if (std::abs(l_currentNode->velocity - l_nextVelocity) > 0.4) {
-                    ROS_DEBUG_STREAM("Gap > 0.4: " << l_currentNode->velocity << ", " << l_nextVelocity << ", " <<
-                                                   std::abs(l_currentNode->velocity - l_nextVelocity));
-                    continue;
-                }
+//                // Disallow change in velocities bigger than 0.4
+//                if (std::abs(l_currentNode->velocity - l_nextVelocity) > 0.4) {
+//                    ROS_DEBUG_STREAM("Gap > 0.4: " << l_currentNode->velocity << ", " << l_nextVelocity << ", " <<
+//                                                   std::abs(l_currentNode->velocity - l_nextVelocity));
+//                    continue;
+//                }
 
                 m_model.predictNextState(l_tempNode.velocity != l_nextVelocity,
                                          l_tempNode.velocity,
@@ -386,18 +393,14 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     if (l_currentNode->feetConfiguration.fr_rl_swinging) {
                         if (!m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y) ||
                             !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y)) {
-                            ROS_INFO("\n");
                             continue;
                         }
-                        ROS_INFO("\n");
                     }
                     else {
                         if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y) ||
                             !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y)) {
-                            ROS_INFO("\n");
                             continue;
                         }
-                        ROS_INFO("\n");
                     }
 
                     ROS_INFO_STREAM("VALID FOOTSTEP FOUND");

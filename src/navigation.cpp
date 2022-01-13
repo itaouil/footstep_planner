@@ -482,7 +482,7 @@ void Navigation::executeHighLevelCommands() {
     stopJoyPublisher();
 
     ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
-    publishRealCoMPath();
+//    publishRealCoMPath();
     publishPredictedCoMPath();
 
     ROS_INFO_STREAM("Publishing predicted footsteps");

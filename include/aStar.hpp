@@ -190,6 +190,9 @@ namespace AStar {
 
         //! Idle feet configuration
         FeetConfiguration m_idleFeetConfiguration;
+
+        //! Robot origin w.r.t to map
+        World3D m_robotOriginMapFrame;
     };
 
     class Heuristic {
