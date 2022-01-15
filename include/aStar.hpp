@@ -26,6 +26,9 @@
 #include <structs/action.hpp>
 #include <structs/world3D.hpp>
 
+// ROS messages
+#include <geometry_msgs/Twist.h>
+
 // Config
 #include <config.hpp>
 
@@ -55,15 +58,19 @@ namespace AStar {
          * Find path from source to target
          * in a given height map.
          *
+         * @param p_initialAction
+         * @param p_initialVelocity
          * @param p_sourceWorldCoordinates
          * @param p_targetWorldCoordinates
+         * @param p_velocityState
          * @param p_sourceFeetConfiguration
-         * @return sequence of 2D points (world coordinates)
+         * @param p_path
          */
         void findPath(const Action &p_initialAction,
                       const double &p_initialVelocity,
                       const World3D &p_sourceWorldCoordinates,
                       const World3D &p_targetWorldCoordinates,
+                      const geometry_msgs::Twist &p_odomVelocityState,
                       const FeetConfiguration &p_sourceFeetConfiguration,
                       std::vector<Node> &p_path);
 

@@ -135,14 +135,12 @@ private:
 
     //! Latest layer data and distance transform
     grid_map::GridMap m_gridMap;
-    cv::Mat m_distanceTransform;
 
     //! ROS subscribers
     ros::Subscriber m_elevationMapSubscriber;
 
     //! ROS publishers
-    ros::Publisher m_costmapPublisher;
-    ros::Publisher m_elevationMapPublisher;
+    ros::Publisher m_gridMapPublisher;
 
     //! Thread for grid map post processing
     std::thread m_thread;

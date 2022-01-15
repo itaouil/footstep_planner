@@ -31,15 +31,8 @@ double AStar::getYawFromQuaternion(const tf2::Quaternion &p_quaternion) {
  */
 bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
                                 Vec2D &p_gridCoordinates) {
-    // Subtract current robot origin from world coordinates
-    // as the world coordinates passed for the conversion need
-    // to be with respect to the origin of the elevation map
-    // which is exactly the robot pose in the map
-    World3D l_worldCoordinateRobotCentric{p_worldCoordinates.x - m_robotOriginMapFrame.x,
-                                          p_worldCoordinates.y - m_robotOriginMapFrame.y};
-
     // Compute transformation
-    m_elevationMapProcessor.worldToGrid(l_worldCoordinateRobotCentric, p_gridCoordinates);
+    m_elevationMapProcessor.worldToGrid(p_worldCoordinates, p_gridCoordinates);
 }
 
 /**
@@ -224,15 +217,19 @@ void AStar::Search::transformCoMFeetConfigurationToMap(const World3D &p_newCoMWo
  * Find path from source to target
  * in a given height map.
  *
+ * @param p_initialAction
+ * @param p_initialVelocity
  * @param p_sourceWorldCoordinates
  * @param p_targetWorldCoordinates
+ * @param p_odomVelocityState
  * @param p_sourceFeetConfiguration
- * @return sequence of 2D points (world coordinates)
+ * @param p_path
  */
 void AStar::Search::findPath(const Action &p_initialAction,
                              const double &p_initialVelocity,
                              const World3D &p_sourceWorldCoordinates,
                              const World3D &p_targetWorldCoordinates,
+                             const geometry_msgs::Twist &p_odomVelocityState,
                              const FeetConfiguration &p_sourceFeetConfiguration,
                              std::vector<Node> &p_path) {
     // Store initial idle feet configuration
@@ -241,10 +238,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
         m_idleFeetConfiguration = p_sourceFeetConfiguration;
     }
 
-    // Reset/Set variables used within search
+    // Reset/Set variables used during search
     m_validFootstepsFound = 0;
     unsigned int l_expandedNodes = 0;
-    m_robotOriginMapFrame = p_sourceWorldCoordinates;
 
     // Update elevation map parameters
     m_elevationMapProcessor.getElevationMapParameters(m_elevationMapGridOriginX,
@@ -353,6 +349,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_tempNode.velocity,
                                          l_nextVelocity,
                                          m_actions[i],
+                                         p_odomVelocityState,
                                          l_tempNode.worldCoordinates,
                                          l_tempNode.feetConfiguration,
                                          l_newFeetConfiguration,
@@ -403,8 +400,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                         }
                     }
 
-                    ROS_INFO_STREAM("VALID FOOTSTEP FOUND");
-
                     // Add map feet poses to feet configuration
                     l_newFeetConfiguration.flMap = l_newFeetConfigurationMap.flMap;
                     l_newFeetConfiguration.frMap = l_newFeetConfigurationMap.frMap;
@@ -423,10 +418,16 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                     l_validFootstepFound = true;
 
-                    ROS_DEBUG_STREAM(
-                            "Heights: " << l_newFeetConfiguration.flMap.z << ", " << l_newFeetConfiguration.frMap.z
-                                        << ", "
-                                        << l_newFeetConfiguration.rlMap.z << ", " << l_newFeetConfiguration.rrMap.z);
+                    ROS_INFO_STREAM(
+                            "Heights: " << l_newFeetConfiguration.flMap.z << ", "
+                                             << l_newFeetConfiguration.frMap.z << ", "
+                                             << l_newFeetConfiguration.rlMap.z << ", "
+                                             << l_newFeetConfiguration.rrMap.z);
+                    ROS_INFO_STREAM(
+                            "Coordinates: " << l_flGridPose.x << ", "
+                                                 << l_flGridPose.y << ", "
+                                                 << l_rrGridPose.x << ", "
+                                                 << l_rrGridPose.y);
                 }
 
                 // Set new CoM world height

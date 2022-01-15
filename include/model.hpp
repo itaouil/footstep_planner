@@ -18,6 +18,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // ROS messages
+#include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PointStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 
@@ -36,13 +37,12 @@
 // Config
 #include <config.hpp>
 
-class Model
-{
+class Model {
 public:
     /**
      * Constructor.
      */
-    explicit Model(ros::NodeHandle& p_nh);
+    explicit Model(ros::NodeHandle &p_nh);
 
     /**
      * Destructor.
@@ -73,12 +73,14 @@ public:
      * @param p_velocityX
      * @param p_velocityY
      * @param p_angularVelocity
+     * @param p_odomVelocityState
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
     void predictContinuousDisplacements(double p_velocityX,
                                         double p_velocityY,
                                         double p_angularVelocity,
+                                        const geometry_msgs::Twist &p_odomVelocityState,
                                         const FeetConfiguration &p_currentFeetConfiguration,
                                         std::vector<double> &p_predictions);
 
@@ -93,6 +95,7 @@ public:
      * @param p_nextVelocityX
      * @param p_nextVelocityY
      * @param p_nextAngularVelocity
+     * @param p_odomVelocityState
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
@@ -102,6 +105,7 @@ public:
                                            double p_nextVelocityX,
                                            double p_nextVelocityY,
                                            double p_nextAngularVelocity,
+                                           const geometry_msgs::Twist &p_odomVelocityState,
                                            const FeetConfiguration &p_currentFeetConfiguration,
                                            std::vector<double> &p_predictions);
 
@@ -125,13 +129,15 @@ public:
      * using the newly computed map feet
      * configuration and CoM.
      *
-     * @param l_relativeStepPredictions
+     * @param p_newWorldCoordinatesCoM
+     * @param p_absoluteFootstepPredictions
      * @param p_currentFeetConfiguration
      * @param p_newFeetConfiguration
      */
-    void computeNewCoMFeetConfiguration(const std::vector<double> &l_relativeStepPredictions,
-                                        const FeetConfiguration &p_currentFeetConfiguration,
-                                        FeetConfiguration &p_newFeetConfiguration);
+    void computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
+                                     const std::vector<double> &p_absoluteFootstepPredictions,
+                                     const FeetConfiguration &p_currentFeetConfiguration,
+                                     FeetConfiguration &p_newFeetConfiguration);
 
     /**
      * Predicts new feet configuration using
@@ -142,6 +148,7 @@ public:
      * @param p_previousVelocity
      * @param p_currentVelocity
      * @param p_action
+     * @param p_velocityState
      * @param p_currentWorldCoordinatesCoM
      * @param p_currentFeetConfiguration
      * @param p_newFeetConfiguration
@@ -151,10 +158,12 @@ public:
                           double p_previousVelocity,
                           double p_currentVelocity,
                           const Action &p_action,
+                          const geometry_msgs::Twist &p_odomVelocityState,
                           const World3D &p_currentWorldCoordinatesCoM,
                           const FeetConfiguration &p_currentFeetConfiguration,
                           FeetConfiguration &p_newFeetConfiguration,
                           World3D &p_newWorldCoordinatesCoM);
+
 private:
     //! ROS node handle
     ros::NodeHandle m_nh;
@@ -178,43 +187,27 @@ private:
     Eigen::RowVectorXd m_fl_rr_com_y_acceleration;
 
     //! FL models' coefficients
-    Eigen::RowVectorXd m_fl_support_x_continuous;
-    Eigen::RowVectorXd m_fl_support_y_continuous;
     Eigen::RowVectorXd m_fl_swinging_x_continuous;
     Eigen::RowVectorXd m_fl_swinging_y_continuous;
-    Eigen::RowVectorXd m_fl_support_x_acceleration;
-    Eigen::RowVectorXd m_fl_support_y_acceleration;
     Eigen::RowVectorXd m_fl_swinging_x_acceleration;
     Eigen::RowVectorXd m_fl_swinging_y_acceleration;
 
     //! FR models' coefficients
-    Eigen::RowVectorXd m_fr_support_x_continuous;
-    Eigen::RowVectorXd m_fr_support_y_continuous;
     Eigen::RowVectorXd m_fr_swinging_x_continuous;
     Eigen::RowVectorXd m_fr_swinging_y_continuous;
-    Eigen::RowVectorXd m_fr_support_x_acceleration;
-    Eigen::RowVectorXd m_fr_support_y_acceleration;
     Eigen::RowVectorXd m_fr_swinging_x_acceleration;
     Eigen::RowVectorXd m_fr_swinging_y_acceleration;
 
-    
+
     //! RL models' coefficients
-    Eigen::RowVectorXd m_rl_support_x_continuous;
-    Eigen::RowVectorXd m_rl_support_y_continuous;
     Eigen::RowVectorXd m_rl_swinging_x_continuous;
     Eigen::RowVectorXd m_rl_swinging_y_continuous;
-    Eigen::RowVectorXd m_rl_support_x_acceleration;
-    Eigen::RowVectorXd m_rl_support_y_acceleration;
     Eigen::RowVectorXd m_rl_swinging_x_acceleration;
     Eigen::RowVectorXd m_rl_swinging_y_acceleration;
 
     //! RR models' coefficients
-    Eigen::RowVectorXd m_rr_support_x_continuous;
-    Eigen::RowVectorXd m_rr_support_y_continuous;
     Eigen::RowVectorXd m_rr_swinging_x_continuous;
     Eigen::RowVectorXd m_rr_swinging_y_continuous;
-    Eigen::RowVectorXd m_rr_support_x_acceleration;
-    Eigen::RowVectorXd m_rr_support_y_acceleration;
     Eigen::RowVectorXd m_rr_swinging_x_acceleration;
     Eigen::RowVectorXd m_rr_swinging_y_acceleration;
 };

@@ -46,66 +46,47 @@ Planner::Planner(ros::NodeHandle &p_nh) :
 Planner::~Planner() = default;
 
 /**
- * Compute transform from source to
- * target frame.
- *
- * @param p_targetFrame
- * @param p_initialPose
- * @param p_targetPose
- */
-void Planner::getSourceToTargetPoseTransform(const std::string &p_targetFrame,
-                                             const geometry_msgs::PoseStamped &p_initialPose,
-                                             geometry_msgs::PoseStamped &p_targetPose) {
-    try {
-        m_buffer.transform(p_initialPose, p_targetPose, p_targetFrame, ros::Duration(1.0));
-    }
-    catch (tf2::TransformException &ex) {
-        std::cout << ex.what() << std::endl;
-        ROS_WARN("Planner: Could not transform source pose to target one. Skipping this iteration.");
-        return;
-    }
-}
-
-/**
  * Compute the feet placement (x,y)
  * w.r.t to the CoM frame.
  *
  * @param p_sourceFrame
  * @param p_feetConfiguration
  */
-void Planner::getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL) {
+void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &p_robotPose,
+                                   FeetConfiguration &p_feetConfiguration,
+                                   const bool &p_swingingFRRL) {
     // Time of cache extraction
     const ros::Time l_latestPoseTime = ros::Time::now();
 
     // Get the latest FL foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_latestFLFootPose =
+    boost::shared_ptr<wb_controller::CartesianTask const> l_flFootPose =
             m_flFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest FR foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_latestFRFootPose =
+    boost::shared_ptr<wb_controller::CartesianTask const> l_frFootPose =
             m_frFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest RL foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_latestRLFootPose =
+    boost::shared_ptr<wb_controller::CartesianTask const> l_rlFootPose =
             m_rlFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest RR foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_latestRRFootPose =
+    boost::shared_ptr<wb_controller::CartesianTask const> l_rrFootPose =
             m_rrFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
-    // Populate feet CoM configuration
-    p_feetConfiguration.flCoM.x = l_latestFLFootPose->pose_actual.position.x;
-    p_feetConfiguration.flCoM.y = l_latestFLFootPose->pose_actual.position.y;
-    p_feetConfiguration.frCoM.x = l_latestFRFootPose->pose_actual.position.x;
-    p_feetConfiguration.frCoM.y = l_latestFRFootPose->pose_actual.position.y;
-    p_feetConfiguration.rlCoM.x = l_latestRLFootPose->pose_actual.position.x;
-    p_feetConfiguration.rlCoM.y = l_latestRLFootPose->pose_actual.position.y;
-    p_feetConfiguration.rrCoM.x = l_latestRRFootPose->pose_actual.position.x;
-    p_feetConfiguration.rrCoM.y = l_latestRRFootPose->pose_actual.position.y;
+    // Populate map feet poses entry
+    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_flFootPose->pose_actual.position.x;
+    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_flFootPose->pose_actual.position.y;
+    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_frFootPose->pose_actual.position.x;
+    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_frFootPose->pose_actual.position.y;
+    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_rlFootPose->pose_actual.position.x;
+    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_rlFootPose->pose_actual.position.y;
+    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_rrFootPose->pose_actual.position.x;
+    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_rrFootPose->pose_actual.position.y;
 
     // FR/RL always swing first
     p_feetConfiguration.fr_rl_swinging = p_swingingFRRL;
@@ -126,21 +107,16 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                    const bool &p_swingingFRRL,
                    std::vector<Node> &p_path) {
     auto start = high_resolution_clock::now();
-    // Current robot pose
-    boost::shared_ptr<nav_msgs::Odometry const> l_latestRobotPose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
-
-    // Create pose stamped message containing robot pose info
-    geometry_msgs::PoseStamped l_robotPoseMapFrame;
-    l_robotPoseMapFrame.header = l_latestRobotPose->header;
-    l_robotPoseMapFrame.pose.position = l_latestRobotPose->pose.pose.position;
-    l_robotPoseMapFrame.pose.orientation = l_latestRobotPose->pose.pose.orientation;
+    // Current odometry info
+    boost::shared_ptr<nav_msgs::Odometry const> l_robotPose = m_robotPoseCache.getElemBeforeTime(
+            ros::Time::now());
 
     // Compute grid source coordinates
     tf2::Quaternion l_startPositionQuaternion;
-    tf2::convert(l_robotPoseMapFrame.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{l_robotPoseMapFrame.pose.position.x,
-                                 l_robotPoseMapFrame.pose.position.y,
-                                 l_robotPoseMapFrame.pose.position.z,
+    tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
+    World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
+                                 l_robotPose->pose.pose.position.y,
+                                 l_robotPose->pose.pose.position.z,
                                  l_startPositionQuaternion};
 
     // Compute grid goal coordinates
@@ -151,17 +127,15 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                 0,
                                 l_goalPositionQuaternion};
 
-
-
     ROS_INFO_STREAM("Received goal pose: " << p_goalPosition.pose.position.x << ", "
                                            << p_goalPosition.pose.position.y << ", "
                                            << p_goalPosition.pose.position.z);
-    ROS_INFO_STREAM("Current robot pose: " << l_robotPoseMapFrame.pose.position.x << ", "
-                                                << l_robotPoseMapFrame.pose.position.y);
+    ROS_INFO_STREAM("Current robot pose: " << l_robotPose->pose.pose.position.x << ", "
+                                                << l_robotPose->pose.pose.position.y);
 
     // Compute feet configuration
     FeetConfiguration l_feetConfiguration;
-    getFeetConfiguration(l_feetConfiguration, p_swingingFRRL);
+    getFeetConfiguration(l_robotPose, l_feetConfiguration, p_swingingFRRL);
 
     // Clear passed path before calling search
     p_path.clear();
@@ -171,6 +145,7 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                       p_initialVelocity,
                       l_worldStartPosition,
                       l_worldGoalPosition,
+                      l_robotPose->twist.twist,
                       l_feetConfiguration,
                       p_path);
     auto stop = high_resolution_clock::now();

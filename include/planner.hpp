@@ -73,25 +73,15 @@ public:
               std::vector<Node> &p_path);
 private:
     /**
-     * Compute transform from source to
-     * target frame.
-     *
-     * @param p_targetFrame
-     * @param p_initialPose
-     * @param p_targetPose
-     */
-    void getSourceToTargetPoseTransform(const std::string &p_targetFrame,
-                                        const geometry_msgs::PoseStamped &p_initialPose,
-                                        geometry_msgs::PoseStamped &p_targetPose);
-
-    /**
      * Compute feet placement (x,y)
      * w.r.t to the CoM frame.
      *
      * @param p_feetConfiguration
      * @param p_swingingFRRL
      */
-    void getFeetConfiguration(FeetConfiguration &p_feetConfiguration, const bool &p_swingingFRRL);
+    void getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &p_robotPose,
+                              FeetConfiguration &p_feetConfiguration,
+                              const bool &p_swingingFRRL);
 
     //! ROS node handle
     ros::NodeHandle m_nh;

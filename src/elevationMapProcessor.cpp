@@ -17,8 +17,7 @@ ElevationMapProcessor::ElevationMapProcessor(ros::NodeHandle &p_nh) :
         m_nh(p_nh),
         m_setElevationMapParameters(false) {
     // Publishers
-    m_elevationMapPublisher = m_nh.advertise<grid_map_msgs::GridMap>("elevation_processed", 1);
-    m_costmapPublisher = m_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1);
+    m_gridMapPublisher = m_nh.advertise<grid_map_msgs::GridMap>("elevation_processed", 1);
 
     // Elevation map subscriber
     m_elevationMapSubscriber = m_nh.subscribe(HEIGHT_MAP_TOPIC,
@@ -158,12 +157,15 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                                                                   l_elevationMap["elevation"].minCoeffOfFinites(),
                                                                   l_elevationMap["elevation"].maxCoeffOfFinites());
 
-        // Update layers and distance transform
+        // Update elevation layer
+        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
+                                                                  "distance",
+                                                                  l_elevationMap);
+
+        // Store latest elevation map
         {
             std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-
             m_gridMap = l_elevationMap;
-            m_distanceTransform = l_distanceTransform;
         }
 
         // Create color layer to visualize costmap on the elevation layer
@@ -182,17 +184,6 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
-
-//                if ((i == 157 && j == 83) || (i == 182 && j == 67)) {
-//                    l_colorLayerBGR(i, j)[0] = 255;
-//                    l_colorLayerBGR(i, j)[1] = 0;
-//                    l_colorLayerBGR(i, j)[2] = 0;
-//                }
-//                else {
-//                    l_colorLayerBGR(i, j)[0] = 0;
-//                    l_colorLayerBGR(i, j)[1] = 0;
-//                    l_colorLayerBGR(i, j)[2] = 0;
-//                }
             }
         }
 
@@ -206,7 +197,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         // Publish elevation map with colored layer
         grid_map_msgs::GridMap l_newElevationMapMsg;
         grid_map::GridMapRosConverter::toMessage(l_elevationMap, l_newElevationMapMsg);
-        m_elevationMapPublisher.publish(l_newElevationMapMsg);
+        m_gridMapPublisher.publish(l_newElevationMapMsg);
 
         // Get callback data
         ros::spinOnce();
@@ -271,13 +262,12 @@ bool ElevationMapProcessor::validFootstep(const int &p_row, const int &p_col) {
     float l_cellDistance;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        l_cellDistance = m_distanceTransform.at<float>(p_row, p_col);
+        l_cellDistance = m_gridMap["distance"].coeff(p_row, p_col);
     }
 
     ROS_DEBUG_STREAM("Position: " << p_row << ", " << p_col);
     ROS_DEBUG_STREAM("Distance value: " << l_cellDistance);
     ROS_DEBUG_STREAM("Distance cm: " << l_cellDistance * m_elevationMapGridResolution);
-    ROS_DEBUG_STREAM("Boolean: " << ((l_cellDistance * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE));
 
     return ((l_cellDistance * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE);
 }
