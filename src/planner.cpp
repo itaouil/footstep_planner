@@ -81,15 +81,42 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
     // Populate map feet poses entry
     p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_flFootPose->pose_actual.position.x;
     p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_flFootPose->pose_actual.position.y;
-    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_frFootPose->pose_actual.position.x;
-    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_frFootPose->pose_actual.position.y;
-    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_rlFootPose->pose_actual.position.x;
-    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_rlFootPose->pose_actual.position.y;
-    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_rrFootPose->pose_actual.position.x;
-    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_rrFootPose->pose_actual.position.y;
+    p_feetConfiguration.frMap.x = p_robotPose->pose.pose.position.x + l_frFootPose->pose_actual.position.x;
+    p_feetConfiguration.frMap.y = p_robotPose->pose.pose.position.y + l_frFootPose->pose_actual.position.y;
+    p_feetConfiguration.rlMap.x = p_robotPose->pose.pose.position.x + l_rlFootPose->pose_actual.position.x;
+    p_feetConfiguration.rlMap.y = p_robotPose->pose.pose.position.y + l_rlFootPose->pose_actual.position.y;
+    p_feetConfiguration.rrMap.x = p_robotPose->pose.pose.position.x + l_rrFootPose->pose_actual.position.x;
+    p_feetConfiguration.rrMap.y = p_robotPose->pose.pose.position.y + l_rrFootPose->pose_actual.position.y;
+
+    // Populate CoM feet poses entry
+    p_feetConfiguration.flCoM.x = l_flFootPose->pose_actual.position.x;
+    p_feetConfiguration.flCoM.y = l_flFootPose->pose_actual.position.y;
+    p_feetConfiguration.frCoM.x = l_frFootPose->pose_actual.position.x;
+    p_feetConfiguration.frCoM.y = l_frFootPose->pose_actual.position.y;
+    p_feetConfiguration.rlCoM.x = l_rlFootPose->pose_actual.position.x;
+    p_feetConfiguration.rlCoM.y = l_rlFootPose->pose_actual.position.y;
+    p_feetConfiguration.rrCoM.x = l_rrFootPose->pose_actual.position.x;
+    p_feetConfiguration.rrCoM.y = l_rrFootPose->pose_actual.position.y;
+
+//    ROS_INFO_STREAM("Planner: CoM (MAP) " << p_robotPose->pose.pose.position.x << ", " << p_robotPose->pose.pose.position.y);
+//
+//    ROS_INFO_STREAM("Planner: FL (MAP) " << p_feetConfiguration.flMap.x << ", " << p_feetConfiguration.flMap.y);
+//    ROS_INFO_STREAM("Planner: FL (COM) " << p_feetConfiguration.flCoM.x << ", " << p_feetConfiguration.flCoM.y << "\n");
+//
+//    ROS_INFO_STREAM("Planner: FR (MAP) " << p_feetConfiguration.frMap.x << ", " << p_feetConfiguration.frMap.y);
+//    ROS_INFO_STREAM("Planner: FL (COM) " << p_feetConfiguration.frCoM.x << ", " << p_feetConfiguration.frCoM.y << "\n");
+//
+//    ROS_INFO_STREAM("Planner: RL (MAP) " << p_feetConfiguration.rlMap.x << ", " << p_feetConfiguration.rlMap.y);
+//    ROS_INFO_STREAM("Planner: RL (COM) " << p_feetConfiguration.rlCoM.x << ", " << p_feetConfiguration.rlCoM.y << "\n");
+//
+//    ROS_INFO_STREAM("Planner: RR (MAP) " << p_feetConfiguration.rrMap.x << ", " << p_feetConfiguration.rrMap.y);
+//    ROS_INFO_STREAM("Planner: RR (COM) " << p_feetConfiguration.rrCoM.x << ", " << p_feetConfiguration.rrCoM.y << "\n");
 
     // FR/RL always swing first
-    p_feetConfiguration.fr_rl_swinging = p_swingingFRRL;
+    if (l_frFootPose->pose_actual.position.z > l_flFootPose->pose_actual.position.z ||
+        l_frFootPose->pose_actual.position.x > l_flFootPose->pose_actual.position.z) {
+        p_feetConfiguration.fr_rl_swinging = true;
+    }
 }
 
 /**
@@ -131,7 +158,7 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                            << p_goalPosition.pose.position.y << ", "
                                            << p_goalPosition.pose.position.z);
     ROS_INFO_STREAM("Current robot pose: " << l_robotPose->pose.pose.position.x << ", "
-                                                << l_robotPose->pose.pose.position.y);
+                                           << l_robotPose->pose.pose.position.y);
 
     // Compute feet configuration
     FeetConfiguration l_feetConfiguration;

@@ -55,34 +55,7 @@ public:
      * the prediction process of continuous
      * velocity commands.
      */
-    void setContinuousModelsCoefficients();
-
-    /**
-     * Populates the respective model
-     * coefficients vectors required for
-     * the prediction process of discontinuous
-     * velocity commands.
-     */
-    void setDiscontinuousModelsCoefficients();
-
-    /**
-     * Compute CoM and feet displacements
-     * predictions when a continuous velocity
-     * is used.
-     *
-     * @param p_velocityX
-     * @param p_velocityY
-     * @param p_angularVelocity
-     * @param p_odomVelocityState
-     * @param p_currentFeetConfiguration
-     * @param p_predictions
-     */
-    void predictContinuousDisplacements(double p_velocityX,
-                                        double p_velocityY,
-                                        double p_angularVelocity,
-                                        const geometry_msgs::Twist &p_odomVelocityState,
-                                        const FeetConfiguration &p_currentFeetConfiguration,
-                                        std::vector<double> &p_predictions);
+    void setModelsCoefficients();
 
     /**
      * Compute CoM and feet displacements
@@ -99,15 +72,15 @@ public:
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
-    void predictDiscontinuousDisplacements(double p_previousVelocityX,
-                                           double p_previousVelocityY,
-                                           double p_previousAngularVelocity,
-                                           double p_nextVelocityX,
-                                           double p_nextVelocityY,
-                                           double p_nextAngularVelocity,
-                                           const geometry_msgs::Twist &p_odomVelocityState,
-                                           const FeetConfiguration &p_currentFeetConfiguration,
-                                           std::vector<double> &p_predictions);
+    void prediction(double p_previousVelocityX,
+                    double p_previousVelocityY,
+                    double p_previousAngularVelocity,
+                    double p_nextVelocityX,
+                    double p_nextVelocityY,
+                    double p_nextAngularVelocity,
+                    const geometry_msgs::Twist &p_odomVelocityState,
+                    const FeetConfiguration &p_currentFeetConfiguration,
+                    std::vector<double> &p_predictions);
 
     /**
      * Compute new CoM in world coordinates.
@@ -168,46 +141,32 @@ private:
     //! ROS node handle
     ros::NodeHandle m_nh;
 
-    //! TF2 buffer
+    //! TF2 buffer and listener
     tf2_ros::Buffer m_buffer;
-
-    //! TF2 listener
     tf2_ros::TransformListener m_listener;
 
+    //! Publisher for feet poses (debugging)
     ros::Publisher m_feetConfigurationPublisher;
 
     //! CoM models' coefficients
-    Eigen::RowVectorXd m_fr_rl_com_x_continuous;
-    Eigen::RowVectorXd m_fr_rl_com_y_continuous;
-    Eigen::RowVectorXd m_fl_rr_com_x_continuous;
-    Eigen::RowVectorXd m_fl_rr_com_y_continuous;
-    Eigen::RowVectorXd m_fr_rl_com_x_acceleration;
-    Eigen::RowVectorXd m_fr_rl_com_y_acceleration;
-    Eigen::RowVectorXd m_fl_rr_com_x_acceleration;
-    Eigen::RowVectorXd m_fl_rr_com_y_acceleration;
+    Eigen::RowVectorXd m_fr_rl_com_x;
+    Eigen::RowVectorXd m_fr_rl_com_y;
+    Eigen::RowVectorXd m_fl_rr_com_x;
+    Eigen::RowVectorXd m_fl_rr_com_y;
 
     //! FL models' coefficients
-    Eigen::RowVectorXd m_fl_swinging_x_continuous;
-    Eigen::RowVectorXd m_fl_swinging_y_continuous;
-    Eigen::RowVectorXd m_fl_swinging_x_acceleration;
-    Eigen::RowVectorXd m_fl_swinging_y_acceleration;
+    Eigen::RowVectorXd m_fl_swinging_x;
+    Eigen::RowVectorXd m_fl_swinging_y;
 
     //! FR models' coefficients
-    Eigen::RowVectorXd m_fr_swinging_x_continuous;
-    Eigen::RowVectorXd m_fr_swinging_y_continuous;
-    Eigen::RowVectorXd m_fr_swinging_x_acceleration;
-    Eigen::RowVectorXd m_fr_swinging_y_acceleration;
-
+    Eigen::RowVectorXd m_fr_swinging_x;
+    Eigen::RowVectorXd m_fr_swinging_y;
 
     //! RL models' coefficients
-    Eigen::RowVectorXd m_rl_swinging_x_continuous;
-    Eigen::RowVectorXd m_rl_swinging_y_continuous;
-    Eigen::RowVectorXd m_rl_swinging_x_acceleration;
-    Eigen::RowVectorXd m_rl_swinging_y_acceleration;
+    Eigen::RowVectorXd m_rl_swinging_x;
+    Eigen::RowVectorXd m_rl_swinging_y;
 
     //! RR models' coefficients
-    Eigen::RowVectorXd m_rr_swinging_x_continuous;
-    Eigen::RowVectorXd m_rr_swinging_y_continuous;
-    Eigen::RowVectorXd m_rr_swinging_x_acceleration;
-    Eigen::RowVectorXd m_rr_swinging_y_acceleration;
+    Eigen::RowVectorXd m_rr_swinging_x;
+    Eigen::RowVectorXd m_rr_swinging_y;
 };

@@ -418,12 +418,12 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                     l_validFootstepFound = true;
 
-                    ROS_INFO_STREAM(
+                    ROS_DEBUG_STREAM(
                             "Heights: " << l_newFeetConfiguration.flMap.z << ", "
                                              << l_newFeetConfiguration.frMap.z << ", "
                                              << l_newFeetConfiguration.rlMap.z << ", "
                                              << l_newFeetConfiguration.rrMap.z);
-                    ROS_INFO_STREAM(
+                    ROS_DEBUG_STREAM(
                             "Coordinates: " << l_flGridPose.x << ", "
                                                  << l_flGridPose.y << ", "
                                                  << l_rrGridPose.x << ", "

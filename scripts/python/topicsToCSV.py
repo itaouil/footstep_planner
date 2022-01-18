@@ -39,8 +39,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/itaouil/workspace/code/thesis_ws/src/aliengo_navigation/data/dataset4_wbc/live_extraction/step_0.06"
-file_object = open(path + "/accelerations2.csv", "a")
+path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/step_0.06/gt/fwd_only"
+file_object = open(path + "/continuous.csv", "a")
 
 
 def clean_max_heights():
@@ -74,10 +74,6 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
         height_threshold = rospy.get_param("/height_threshold")
 
         # Acquire heights
-        # fl_height = abs(footholds_msg.contact_positions[0].z)
-        # fr_height = abs(footholds_msg.contact_positions[2].z)
-        # rl_height = abs(footholds_msg.contact_positions[1].z)
-        # rr_height = abs(footholds_msg.contact_positions[3].z)
         fl_height = footholds_msg.contact_positions[0].z
         fr_height = footholds_msg.contact_positions[2].z
         rl_height = footholds_msg.contact_positions[1].z
@@ -133,19 +129,21 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.36 and swing2_max_height > -0.36
-
-        print(max_heights_sorted)
+        max_heights_condition = swing1_max_height > -0.39 and swing2_max_height > -0.39
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
-            print(f"Heights do not match motion: {fr_max_height}, {fl_max_height}, {rl_max_height}, {rr_max_height}, {max_heights_sorted[:2]}.")
+            if not swinging_condition:
+                print("Invalid swinging condition")
+                print(fl_moving, fr_moving, rl_moving, rr_moving)
 
         # Clean max height variable if footstep detected
         clean_max_heights()
 
     # Publish footstep detection boolean
     publisher.publish(footstep)
+
+    rospy.set_param("/feet_in_contact", footstep.data)
 
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
@@ -261,6 +259,8 @@ def main():
     # Set initial velocity
     rospy.set_param("/height_threshold", 0.002)
 
+    rospy.set_param("/feet_in_contact", False)
+
     publisher = rospy.Publisher('footstep', Bool, queue_size=1)
 
     odom_sub = message_filters.Subscriber("/aliengo/ground_truth", Odometry)
@@ -281,7 +281,6 @@ def main():
     ts.registerCallback(live_extraction)
 
     rospy.spin()
-
 
 # Execute main
 if __name__ == '__main__':

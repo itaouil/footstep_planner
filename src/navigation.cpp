@@ -187,9 +187,7 @@ void Navigation::startJoyPublisher() {
     m_joy.header.stamp = ros::Time::now();
     m_joy.header.frame_id = "/dev/input/js0";
     m_joy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    m_joy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    resetConfiguration();
+    m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
 
     m_startedJoyPublisher = true;
     ROS_INFO("Navigation: Joy publisher started.");
@@ -204,7 +202,7 @@ void Navigation::stopJoyPublisher() {
     m_joy.header.stamp = ros::Time::now();
     m_joy.header.frame_id = "/dev/input/js0";
     m_joy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    m_joy.buttons = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
 
 //    m_startedJoyPublisher = false;
 //    resetConfiguration();
