@@ -177,7 +177,7 @@ void Model::prediction(double p_previousVelocityX,
         p_predictions[8] = 0.0;
         p_predictions[9] = 0.0;
     }
-        // FL/RR are swinging
+    // FL/RR are swinging
     else {
         p_predictions[0] = m_fl_rr_com_x * l_modelInput;
         p_predictions[1] = m_fl_rr_com_y * l_modelInput;
@@ -263,26 +263,26 @@ void Model::computeNewCoM(double p_angularVelocity,
  * using the newly computed map feet
  * configuration and kinematic transforms.
  *
- * @param p_absolutepredictions
+ * @param p_predictions
  * @param p_currentFeetConfiguration
  * @param p_newFeetConfiguration
  */
 void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
-                                        const std::vector<double> &p_absolutepredictions,
+                                        const std::vector<double> &p_predictions,
                                         const FeetConfiguration &p_currentFeetConfiguration,
                                         FeetConfiguration &p_newFeetConfiguration) {
     // Map poses
-    p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x + p_absolutepredictions[0];
-    p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y + p_absolutepredictions[1];
+    p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x + p_predictions[2];
+    p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y + p_predictions[3];
 
-    p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x + p_absolutepredictions[2];
-    p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y + p_absolutepredictions[3];
+    p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x + p_predictions[4];
+    p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y + p_predictions[5];
 
-    p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + p_absolutepredictions[4];
-    p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + p_absolutepredictions[5];
+    p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + p_predictions[6];
+    p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + p_predictions[7];
 
-    p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + p_absolutepredictions[6];
-    p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + p_absolutepredictions[7];
+    p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + p_predictions[8];
+    p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + p_predictions[9];
 
     // CoM Poses
     p_newFeetConfiguration.flCoM.x = p_newFeetConfiguration.flMap.x - p_newWorldCoordinatesCoM.x;
@@ -365,23 +365,17 @@ void Model::predictNextState(bool p_accelerating,
                                     << l_predictions[9] << "\n");
 
     // Compute new CoM
-    computeNewCoM(p_action
-                          .
-                                  theta * p_nextVelocity,
+    computeNewCoM(p_action.theta * p_nextVelocity,
                   l_predictions[0],
                   l_predictions[1],
                   p_currentWorldCoordinatesCoM,
-                  p_newWorldCoordinatesCoM
-    );
+                  p_newWorldCoordinatesCoM);
 
     // Compute new feet configuration
-    std::vector<double> l_absolutepredictions = std::vector<double>(l_predictions.begin() + 2,
-                                                                    l_predictions.end());
     computeNewFeetConfiguration(p_newWorldCoordinatesCoM,
-                                l_absolutepredictions,
+                                l_predictions,
                                 p_currentFeetConfiguration,
-                                p_newFeetConfiguration
-    );
+                                p_newFeetConfiguration);
 
 // Change swinging feet pair
 //    p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;

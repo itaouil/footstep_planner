@@ -103,12 +103,12 @@ public:
      * configuration and CoM.
      *
      * @param p_newWorldCoordinatesCoM
-     * @param p_absoluteFootstepPredictions
+     * @param p_predictions
      * @param p_currentFeetConfiguration
      * @param p_newFeetConfiguration
      */
     void computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
-                                     const std::vector<double> &p_absoluteFootstepPredictions,
+                                     const std::vector<double> &p_predictions,
                                      const FeetConfiguration &p_currentFeetConfiguration,
                                      FeetConfiguration &p_newFeetConfiguration);
 
