@@ -86,7 +86,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
     global client
     global MAX_NON_FWD_VELOCITY
 
-    for next_velocity in np.arange(0.1, 0.7, 0.1):
+    for next_velocity in np.arange(0.0, 0.7, 0.1):
         # Limit clockwise, counterclockwise, left and right motions to 0.5
         if motion not in ["forward", "backward"] and (
                 curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
@@ -97,9 +97,9 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
         if abs(next_velocity) - abs(curr_velocity) < 0.05:
             continue
 
-        # Skip if gap velocity is above 0.4
-        if abs(next_velocity) - abs(curr_velocity) > 0.35:
-            continue
+        # # Skip if gap velocity is above 0.4
+        # if abs(next_velocity) - abs(curr_velocity) > 0.35:
+        #     continue
 
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
               -next_velocity if curr_velocity < 0 else next_velocity)
@@ -182,7 +182,7 @@ def joy_publisher():
     rospy.sleep(2)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 0.7, 0.1):
+        for velocity in np.arange(0.7, 0.9, 0.1):
             print(velocity)
 
             # 1s stomping to avoid instability

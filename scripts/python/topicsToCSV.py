@@ -40,7 +40,7 @@ rr_max_height = 0
 
 # Global variables
 path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/step_0.06/gt/fwd_only"
-file_object = open(path + "/continuous.csv", "a")
+file_object = open(path + "/continuous_08.csv", "a")
 
 
 def clean_max_heights():
@@ -128,7 +128,7 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
         swing2_max_height = max_heights_sorted[1]
 
         # Compute booleans for swinging and max height conditions
-        swinging_condition = fr_moving != fl_moving and fr_moving == rl_moving and fl_moving == rr_moving
+        swinging_condition = fr_moving != fl_moving
         max_heights_condition = swing1_max_height > -0.39 and swing2_max_height > -0.39
 
         if not swinging_condition or not max_heights_condition:

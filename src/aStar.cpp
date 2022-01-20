@@ -62,7 +62,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
 }
 
 /**
@@ -339,7 +339,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 }
 
 //                // Disallow change in velocities bigger than 0.4
-//                if (std::abs(l_currentNode->velocity - l_nextVelocity) > 0.4) {
+//                if (std::abs(l_currentNode->velocity - l_nextVelocity) > 0.35) {
 //                    ROS_DEBUG_STREAM("Gap > 0.4: " << l_currentNode->velocity << ", " << l_nextVelocity << ", " <<
 //                                                   std::abs(l_currentNode->velocity - l_nextVelocity));
 //                    continue;

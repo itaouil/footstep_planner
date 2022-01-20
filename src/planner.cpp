@@ -112,11 +112,13 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
 //    ROS_INFO_STREAM("Planner: RR (MAP) " << p_feetConfiguration.rrMap.x << ", " << p_feetConfiguration.rrMap.y);
 //    ROS_INFO_STREAM("Planner: RR (COM) " << p_feetConfiguration.rrCoM.x << ", " << p_feetConfiguration.rrCoM.y << "\n");
 
-    // FR/RL always swing first
-    if (l_frFootPose->pose_actual.position.z > l_flFootPose->pose_actual.position.z ||
-        l_frFootPose->pose_actual.position.x > l_flFootPose->pose_actual.position.z) {
-        p_feetConfiguration.fr_rl_swinging = true;
-    }
+//    // FR/RL always swing first
+//    if (l_frFootPose->pose_actual.position.z > l_flFootPose->pose_actual.position.z ||
+//        l_frFootPose->pose_actual.position.x > l_flFootPose->pose_actual.position.z) {
+//        p_feetConfiguration.fr_rl_swinging = true;
+//    }
+
+    p_feetConfiguration.fr_rl_swinging = p_swingingFRRL;
 }
 
 /**

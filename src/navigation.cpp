@@ -199,13 +199,8 @@ void Navigation::startJoyPublisher() {
  * configuration.
  */
 void Navigation::stopJoyPublisher() {
-    m_joy.header.stamp = ros::Time::now();
-    m_joy.header.frame_id = "/dev/input/js0";
-    m_joy.axes = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    m_joy.buttons = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
-
-//    m_startedJoyPublisher = false;
-//    resetConfiguration();
+    m_startedJoyPublisher = false;
+    resetConfiguration();
     ROS_INFO("Navigation: Joy publisher stopped.");
 }
 
@@ -346,7 +341,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
  */
 void Navigation::executeHighLevelCommands() {
     while (ros::ok()) {
-        unsigned int l_actions = 1;
+        unsigned int l_actionInExecution = 1;
 
         if (m_path.empty()) {
             ROS_WARN("Navigation: Path obtained is empty.");
@@ -361,7 +356,7 @@ void Navigation::executeHighLevelCommands() {
         // Execute planned commands within horizon
         for (auto &l_node: m_path) {
             // Only execute first footstep
-            if (l_actions > 1) {
+            if (l_actionInExecution > 1) {
                 break;
             }
 
@@ -372,7 +367,7 @@ void Navigation::executeHighLevelCommands() {
             ROS_INFO_STREAM("Last executed velocity: " << m_previousVelocity);
             ROS_INFO_STREAM("Last swinging pair: " << m_swingingFRRL << "\n");
 
-            ROS_INFO_STREAM("Count: " << l_actions << "/" << FOOTSTEP_HORIZON);
+            ROS_INFO_STREAM("Count: " << l_actionInExecution << "/" << FOOTSTEP_HORIZON);
             ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
             ROS_INFO_STREAM(
                     "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta << "\n");
@@ -404,8 +399,8 @@ void Navigation::executeHighLevelCommands() {
             bool l_rlInContact = false;
             bool l_frInContact = false;
             bool l_rrInContact = false;
-            bool l_heightPeakReached = false;
             unsigned int l_feetInContact = 0;
+            bool l_swingingFeetOutOfContact = false;
 
             // Velocity command execution
             const ros::Time l_startTime = ros::Time::now();
@@ -429,16 +424,15 @@ void Navigation::executeHighLevelCommands() {
                 auto l_rrForceZ = m_latestContactForces->contact_forces[3].force.z;
 
                 // Check if height peak was reached
-                if (!l_heightPeakReached &&
-                    (l_flHeight > -0.38 || l_rlHeight > -0.38 || l_frHeight > -0.38 || l_rrHeight > -0.38)) {
-                    l_heightPeakReached = true;
-                    ROS_INFO("Navigation: Height peak was reached...");
+                if (!l_swingingFeetOutOfContact && ((l_flForceZ < 2 && l_rrForceZ < 2) || (l_frForceZ < 2 && l_rlForceZ < 2))) {
+                    l_swingingFeetOutOfContact = true;
+                    ROS_INFO_STREAM("Navigation: Feet got out of contact: " << l_flForceZ << ", " << l_frForceZ << ", " << l_rlForceZ << ", " << l_rrForceZ);
                 }
 
                 // Update contact booleans once height
                 // peak has been reached by any of the
                 // two swinging feet
-                if (l_heightPeakReached) {
+                if (l_swingingFeetOutOfContact) {
                     if (!l_flInContact && l_flForceZ >= 30) {
                         l_flInContact = true;
                         l_feetInContact += 1;
@@ -490,7 +484,7 @@ void Navigation::executeHighLevelCommands() {
             ROS_INFO_STREAM("Swinging FR RL: " << m_swingingFRRL);
 
             // Counter for horizon commands execution
-            l_actions += 1;
+            l_actionInExecution += 1;
 
             // Get callback data
             ros::spinOnce();
@@ -580,13 +574,13 @@ void Navigation::publishPredictedCoMPath() {
     l_pathMsg.header.stamp = ros::Time::now();
     l_pathMsg.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
 
-    for (auto &l_pose: m_predictedCoMPoses) {
+    for (uint i = 0; i < m_predictedCoMPoses.size(); i++) {
         // World coordinates for the path
         geometry_msgs::PoseStamped l_poseStamped;
         l_poseStamped.header = l_pathMsg.header;
-        l_poseStamped.pose.position.x = l_pose.x;
-        l_poseStamped.pose.position.y = l_pose.y;
-        l_poseStamped.pose.position.z = l_pose.z;
+        l_poseStamped.pose.position.x = m_predictedCoMPoses[i].x;
+        l_poseStamped.pose.position.y = m_predictedCoMPoses[i].y;
+        l_poseStamped.pose.position.z = m_realCoMPoses[i].pose.pose.position.z;
         l_pathMsg.poses.push_back(l_poseStamped);
     }
 
