@@ -78,15 +78,31 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
             m_rrFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
+    // Transform feet poses from CoM frame to map frame
+    geometry_msgs::TransformStamped l_flMap;
+    geometry_msgs::TransformStamped l_frMap;
+    geometry_msgs::TransformStamped l_rlMap;
+    geometry_msgs::TransformStamped l_rrMap;
+    try{
+        l_flMap = m_buffer.lookupTransform("world", "lf_foot", ros::Time(0));
+        l_frMap = m_buffer.lookupTransform("world", "rf_foot", ros::Time(0));
+        l_rlMap = m_buffer.lookupTransform("world", "lh_foot", ros::Time(0));
+        l_rrMap = m_buffer.lookupTransform("world", "rh_foot", ros::Time(0));
+    }
+    catch (tf2::TransformException &ex) {
+        ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
+        return;
+    }
+
     // Populate map feet poses entry
-    p_feetConfiguration.flMap.x = p_robotPose->pose.pose.position.x + l_flFootPose->pose_actual.position.x;
-    p_feetConfiguration.flMap.y = p_robotPose->pose.pose.position.y + l_flFootPose->pose_actual.position.y;
-    p_feetConfiguration.frMap.x = p_robotPose->pose.pose.position.x + l_frFootPose->pose_actual.position.x;
-    p_feetConfiguration.frMap.y = p_robotPose->pose.pose.position.y + l_frFootPose->pose_actual.position.y;
-    p_feetConfiguration.rlMap.x = p_robotPose->pose.pose.position.x + l_rlFootPose->pose_actual.position.x;
-    p_feetConfiguration.rlMap.y = p_robotPose->pose.pose.position.y + l_rlFootPose->pose_actual.position.y;
-    p_feetConfiguration.rrMap.x = p_robotPose->pose.pose.position.x + l_rrFootPose->pose_actual.position.x;
-    p_feetConfiguration.rrMap.y = p_robotPose->pose.pose.position.y + l_rrFootPose->pose_actual.position.y;
+    p_feetConfiguration.flMap.x = l_flMap.transform.translation.x;
+    p_feetConfiguration.flMap.y = l_flMap.transform.translation.y;
+    p_feetConfiguration.frMap.x = l_frMap.transform.translation.x;
+    p_feetConfiguration.frMap.y = l_frMap.transform.translation.y;
+    p_feetConfiguration.rlMap.x = l_rlMap.transform.translation.x;
+    p_feetConfiguration.rlMap.y = l_rlMap.transform.translation.y;
+    p_feetConfiguration.rrMap.x = l_rrMap.transform.translation.x;
+    p_feetConfiguration.rrMap.y = l_rrMap.transform.translation.y;
 
     // Populate CoM feet poses entry
     p_feetConfiguration.flCoM.x = l_flFootPose->pose_actual.position.x;
@@ -100,17 +116,19 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
 
 //    ROS_INFO_STREAM("Planner: CoM (MAP) " << p_robotPose->pose.pose.position.x << ", " << p_robotPose->pose.pose.position.y);
 //
-//    ROS_INFO_STREAM("Planner: FL (MAP) " << p_feetConfiguration.flMap.x << ", " << p_feetConfiguration.flMap.y);
+//    ROS_INFO_STREAM("Planner: FL (MAP) " << l_flMap.transform.translation.x << ", " << l_flMap.transform.translation.x);
 //    ROS_INFO_STREAM("Planner: FL (COM) " << p_feetConfiguration.flCoM.x << ", " << p_feetConfiguration.flCoM.y << "\n");
 //
-//    ROS_INFO_STREAM("Planner: FR (MAP) " << p_feetConfiguration.frMap.x << ", " << p_feetConfiguration.frMap.y);
+//    ROS_INFO_STREAM("Planner: FR (MAP) " << l_frMap.transform.translation.x << ", " << l_frMap.transform.translation.y);
 //    ROS_INFO_STREAM("Planner: FL (COM) " << p_feetConfiguration.frCoM.x << ", " << p_feetConfiguration.frCoM.y << "\n");
 //
-//    ROS_INFO_STREAM("Planner: RL (MAP) " << p_feetConfiguration.rlMap.x << ", " << p_feetConfiguration.rlMap.y);
+//    ROS_INFO_STREAM("Planner: RL (MAP) " << l_rlMap.transform.translation.x << ", " << l_rlMap.transform.translation.y);
 //    ROS_INFO_STREAM("Planner: RL (COM) " << p_feetConfiguration.rlCoM.x << ", " << p_feetConfiguration.rlCoM.y << "\n");
 //
-//    ROS_INFO_STREAM("Planner: RR (MAP) " << p_feetConfiguration.rrMap.x << ", " << p_feetConfiguration.rrMap.y);
+//    ROS_INFO_STREAM("Planner: RR (MAP) " << l_rrMap.transform.translation.x << ", " << l_rrMap.transform.translation.y);
 //    ROS_INFO_STREAM("Planner: RR (COM) " << p_feetConfiguration.rrCoM.x << ", " << p_feetConfiguration.rrCoM.y << "\n");
+//
+//    ros::Duration(5).sleep();
 
 //    // FR/RL always swing first
 //    if (l_frFootPose->pose_actual.position.z > l_flFootPose->pose_actual.position.z ||
@@ -140,12 +158,28 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     boost::shared_ptr<nav_msgs::Odometry const> l_robotPose = m_robotPoseCache.getElemBeforeTime(
             ros::Time::now());
 
+    // Transform feet poses from CoM frame to map frame
+    geometry_msgs::TransformStamped l_comMap;
+    try{
+        l_comMap = m_buffer.lookupTransform("world", "trunk", ros::Time(0));
+    }
+    catch (tf2::TransformException &ex) {
+        ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
+        return;
+    }
+
     // Compute grid source coordinates
+//    tf2::Quaternion l_startPositionQuaternion;
+//    tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
+//    World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
+//                                 l_robotPose->pose.pose.position.y,
+//                                 l_robotPose->pose.pose.position.z,
+//                                 l_startPositionQuaternion};
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
-                                 l_robotPose->pose.pose.position.y,
-                                 l_robotPose->pose.pose.position.z,
+    World3D l_worldStartPosition{l_comMap.transform.translation.x,
+                                 l_comMap.transform.translation.y,
+                                 0.0,
                                  l_startPositionQuaternion};
 
     // Compute grid goal coordinates
@@ -161,6 +195,8 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                                            << p_goalPosition.pose.position.z);
     ROS_INFO_STREAM("Current robot pose: " << l_robotPose->pose.pose.position.x << ", "
                                            << l_robotPose->pose.pose.position.y);
+
+    ROS_INFO_STREAM("Transformed pose: " << l_comMap.transform.translation.x << ", " << l_comMap.transform.translation.y);
 
     // Compute feet configuration
     FeetConfiguration l_feetConfiguration;

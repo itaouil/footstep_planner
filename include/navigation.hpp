@@ -211,7 +211,7 @@ private:
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
 
     //! Real feet poses
-    std::vector<std::vector<wb_controller::CartesianTask>> m_realFeetPoses;
+    std::vector<std::vector<geometry_msgs::TransformStamped>> m_realFeetPoses;
 
     //! CoM prediction input
     std::vector<nav_msgs::Odometry> m_predictionInputCoM;

@@ -461,12 +461,30 @@ void Navigation::executeHighLevelCommands() {
             // Update global variables from cache
             updateVariablesFromCache();
 
+            // Get current feet poses
+            geometry_msgs::TransformStamped l_flMap;
+            geometry_msgs::TransformStamped l_frMap;
+            geometry_msgs::TransformStamped l_rlMap;
+            geometry_msgs::TransformStamped l_rrMap;
+            geometry_msgs::TransformStamped l_comMap;
+            try{
+                l_flMap = m_buffer.lookupTransform("world", "lf_foot", ros::Time(0));
+                l_frMap = m_buffer.lookupTransform("world", "rf_foot", ros::Time(0));
+                l_rlMap = m_buffer.lookupTransform("world", "lh_foot", ros::Time(0));
+                l_rrMap = m_buffer.lookupTransform("world", "rh_foot", ros::Time(0));
+                l_comMap = m_buffer.lookupTransform("world", "trunk", ros::Time(0));
+            }
+            catch (tf2::TransformException &ex) {
+                ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
+                return;
+            }
+
             // Add actual CoM and footsteps
-            std::vector<wb_controller::CartesianTask> l_feetConfiguration;
-            l_feetConfiguration.push_back(*m_latestFLFootPose);
-            l_feetConfiguration.push_back(*m_latestFRFootPose);
-            l_feetConfiguration.push_back(*m_latestRLFootPose);
-            l_feetConfiguration.push_back(*m_latestRRFootPose);
+            std::vector<geometry_msgs::TransformStamped> l_feetConfiguration;
+            l_feetConfiguration.push_back(l_flMap);
+            l_feetConfiguration.push_back(l_frMap);
+            l_feetConfiguration.push_back(l_rlMap);
+            l_feetConfiguration.push_back(l_rrMap);
             m_realCoMPoses.push_back(*m_latestRobotPose);
             m_realFeetPoses.push_back(l_feetConfiguration);
 
@@ -526,8 +544,8 @@ void Navigation::executeHighLevelCommands() {
     publishRealCoMPath();
     publishPredictedCoMPath();
 
-    ROS_INFO_STREAM("Publishing predicted footsteps");
-    publishPredictedFootstepSequence();
+//    ROS_INFO_STREAM("Publishing predicted footsteps");
+//    publishPredictedFootstepSequence();
 
     ROS_INFO_STREAM("Publishing real footsteps");
     publishRealFootstepSequence();
@@ -748,24 +766,24 @@ void Navigation::publishRealFootstepSequence() {
         l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_targetFootCommonMarker.type = 2;
         l_targetFootCommonMarker.action = 0;
-        l_targetFootCommonMarker.lifetime = ros::Duration(6);
+        l_targetFootCommonMarker.lifetime = ros::Duration(1);
         l_targetFootCommonMarker.pose.orientation.x = 0;
         l_targetFootCommonMarker.pose.orientation.y = 0;
         l_targetFootCommonMarker.pose.orientation.z = 0;
         l_targetFootCommonMarker.pose.orientation.w = 1;
-        l_targetFootCommonMarker.scale.x = 0.025;
-        l_targetFootCommonMarker.scale.y = 0.025;
-        l_targetFootCommonMarker.scale.z = 0.025;
+        l_targetFootCommonMarker.scale.x = 0.035;
+        l_targetFootCommonMarker.scale.y = 0.035;
+        l_targetFootCommonMarker.scale.z = 0.035;
         l_targetFootCommonMarker.color.r = 0;
         l_targetFootCommonMarker.color.g = 1;
         l_targetFootCommonMarker.color.b = 0;
-        l_targetFootCommonMarker.color.a = 1;
+        l_targetFootCommonMarker.color.a = 0.8;
 
         visualization_msgs::Marker l_targetCoMMarker = l_targetFootCommonMarker;
         l_targetCoMMarker.id = j++;
         l_targetCoMMarker.pose.position.x = m_predictedCoMPoses[i].x;
         l_targetCoMMarker.pose.position.y = m_predictedCoMPoses[i].y;
-        l_targetCoMMarker.pose.position.z = m_predictedCoMPoses[i].z;
+        l_targetCoMMarker.pose.position.z = m_realCoMPoses[i].pose.pose.position.z;
 
         visualization_msgs::Marker l_targetFLFootMarker = l_targetFootCommonMarker;
         l_targetFLFootMarker.id = j++;
@@ -803,7 +821,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_realFootCommonMarker.type = 2;
         l_realFootCommonMarker.action = 0;
-        l_realFootCommonMarker.lifetime = ros::Duration(6);
+        l_realFootCommonMarker.lifetime = ros::Duration(1);
         l_realFootCommonMarker.pose.orientation.x = 0;
         l_realFootCommonMarker.pose.orientation.y = 0;
         l_realFootCommonMarker.pose.orientation.z = 0;
@@ -814,7 +832,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFootCommonMarker.color.r = 0;
         l_realFootCommonMarker.color.g = 0;
         l_realFootCommonMarker.color.b = 1;
-        l_realFootCommonMarker.color.a = 1;
+        l_realFootCommonMarker.color.a = 0.8;
 
         visualization_msgs::Marker l_realCoMMarker = l_realFootCommonMarker;
         l_realCoMMarker.id = j++;
@@ -824,39 +842,27 @@ void Navigation::publishRealFootstepSequence() {
 
         visualization_msgs::Marker l_realFLFootMarker = l_realFootCommonMarker;
         l_realFLFootMarker.id = j++;
-        l_realFLFootMarker.pose.position.x =
-                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][0].pose_actual.position.x;
-        l_realFLFootMarker.pose.position.y =
-                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][0].pose_actual.position.y;
-        l_realFLFootMarker.pose.position.z =
-                m_realCoMPoses[i].pose.pose.position.z + m_realFeetPoses[i][0].pose_actual.position.z;
+        l_realFLFootMarker.pose.position.x = m_realFeetPoses[i][0].transform.translation.x;
+        l_realFLFootMarker.pose.position.y = m_realFeetPoses[i][0].transform.translation.y;
+        l_realFLFootMarker.pose.position.z = m_predictedFootsteps[i].flMap.z;
 
         visualization_msgs::Marker l_realFRFootMarker = l_realFootCommonMarker;
         l_realFRFootMarker.id = j++;
-        l_realFRFootMarker.pose.position.x =
-                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][1].pose_actual.position.x;
-        l_realFRFootMarker.pose.position.y =
-                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][1].pose_actual.position.y;
-        l_realFRFootMarker.pose.position.z =
-                m_realCoMPoses[i].pose.pose.position.z + m_realFeetPoses[i][1].pose_actual.position.z;
+        l_realFRFootMarker.pose.position.x = m_realFeetPoses[i][1].transform.translation.x;
+        l_realFRFootMarker.pose.position.y = m_realFeetPoses[i][1].transform.translation.y;
+        l_realFRFootMarker.pose.position.z = m_predictedFootsteps[i].frMap.z;
 
         visualization_msgs::Marker l_realRLFootMarker = l_realFootCommonMarker;
         l_realRLFootMarker.id = j++;
-        l_realRLFootMarker.pose.position.x =
-                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][2].pose_actual.position.x;
-        l_realRLFootMarker.pose.position.y =
-                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][2].pose_actual.position.y;
-        l_realRLFootMarker.pose.position.z =
-                m_realCoMPoses[i].pose.pose.position.z + m_realFeetPoses[i][2].pose_actual.position.z;
+        l_realRLFootMarker.pose.position.x = m_realFeetPoses[i][2].transform.translation.x;
+        l_realRLFootMarker.pose.position.y = m_realFeetPoses[i][2].transform.translation.y;
+        l_realRLFootMarker.pose.position.z = m_predictedFootsteps[i].rlMap.z;
 
         visualization_msgs::Marker l_realRRFootMarker = l_realFootCommonMarker;
         l_realRRFootMarker.id = j++;
-        l_realRRFootMarker.pose.position.x =
-                m_realCoMPoses[i].pose.pose.position.x + m_realFeetPoses[i][3].pose_actual.position.x;
-        l_realRRFootMarker.pose.position.y =
-                m_realCoMPoses[i].pose.pose.position.y + m_realFeetPoses[i][3].pose_actual.position.y;
-        l_realRRFootMarker.pose.position.z =
-                m_realCoMPoses[i].pose.pose.position.z + m_realFeetPoses[i][3].pose_actual.position.z;
+        l_realRRFootMarker.pose.position.x = m_realFeetPoses[i][3].transform.translation.x;
+        l_realRRFootMarker.pose.position.y = m_realFeetPoses[i][3].transform.translation.y;
+        l_realRRFootMarker.pose.position.z = m_predictedFootsteps[i].rrMap.z;
 
         l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
         l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);
@@ -866,7 +872,7 @@ void Navigation::publishRealFootstepSequence() {
 
         m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
 
-        ros::Duration(6.5).sleep();
+        ros::Duration(1.5).sleep();
     }
 }
 
