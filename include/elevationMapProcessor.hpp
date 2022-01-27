@@ -67,11 +67,13 @@ public:
      * Check if predicted feet configuration
      * is valid (i.e. stepping on valid terrain).
      *
-     * @param p_row
-     * @param p_col
+     * @param p_currentRow
+     * @param p_currentCol
+     * @param p_nextRow
+     * @param p_nextCol
      * @return true if valid, otherwise false
      */
-    bool validFootstep(const int &p_row, const int &p_col);
+    bool validFootstep(const int &p_currentRow, const int &p_currentCol, const int &p_nextRow, const int &p_nextCol);
 
     /**
      * Obtain the elevation map parameters,

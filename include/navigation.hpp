@@ -137,10 +137,16 @@ private:
     void publishRealFootstepSequence();
 
     /**
-     * Publish predicted CoM and
-     * footstep sequence.
+     * Publish online the
+     * predicted footsteps.
      *
      * @param p_path
+     */
+    void publishOnlinePredictedFootsteps(const std::vector<Node> &p_path);
+
+    /**
+     * Publish predicted CoM and
+     * footstep sequence.
      */
     void publishPredictedFootstepSequence();
 
@@ -249,6 +255,6 @@ private:
     //! Thread object for joy publishing
     std::thread m_thread;
 
-    //! Mutex shared multi-threaded variable
-    std::mutex m_mutex;
+    //! File streaming object
+    std::ofstream m_fileStream;
 };

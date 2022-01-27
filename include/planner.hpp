@@ -10,6 +10,7 @@
 
 // C++
 #include <queue>
+#include <numeric>
 
 // ROS general
 #include <chrono>
@@ -58,6 +59,12 @@ public:
     virtual ~Planner();
 
     /**
+     * Prints highest, lowest and
+     * average planner runtime.
+     */
+    void stats();
+
+    /**
      * Plans path from start to goal.
      *
      * @param p_goalPosition
@@ -94,6 +101,9 @@ private:
 
     //! TF2 listener
     tf2_ros::TransformListener m_listener;
+
+    //! Planner runtimes
+    std::vector<unsigned int> m_runtimes;
 
     //! Robot pose cache
     message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;

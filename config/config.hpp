@@ -37,7 +37,10 @@ const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(0.2);
+const double GRADIENT_THRESHOLD(0.1);
+
+// Max footstep height
+const double MAX_FOOTSTEP_HEIGHT(0.06);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(200);

@@ -62,7 +62,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
 }
 
 /**
@@ -181,8 +181,8 @@ bool AStar::Search::targetReached(const Vec2D &p_nodeGridCoordinates,
     double l_targetHeading = getYawFromQuaternion(p_targetQuaternion);
 
     ROS_DEBUG_STREAM("Tolerance angle: " << l_currentHeading << ", " << l_targetHeading << ", "
-                                        << (std::abs(l_currentHeading - l_targetHeading) <=
-                                            ANGLE_DIFFERENCE_TOLERANCE));
+                                         << (std::abs(l_currentHeading - l_targetHeading) <=
+                                             ANGLE_DIFFERENCE_TOLERANCE));
     ROS_DEBUG_STREAM("Grid x tolerance: " << p_nodeGridCoordinates.x << ", " << p_targetGridCoordinates.x);
     ROS_DEBUG_STREAM("Grid y tolerance: " << p_nodeGridCoordinates.y << ", " << p_targetGridCoordinates.y << "\n");
 
@@ -376,7 +376,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                        l_newFeetConfiguration,
                                                        l_newFeetConfigurationMap);
 
-                    // Convert footholds to grid indexes
+                    // Convert new feet map configuration to grid indexes
                     Vec2D l_flGridPose{};
                     Vec2D l_frGridPose{};
                     Vec2D l_rlGridPose{};
@@ -388,14 +388,29 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                     // Check foothold validity only for swinging feet
                     if (l_currentNode->feetConfiguration.fr_rl_swinging) {
-                        if (!m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y) ||
-                            !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y)) {
+                        // Convert swinging feet (FR/RL) map coordinates to grid indexes
+                        Vec2D l_frCurrentGridPose{};
+                        Vec2D l_rlCurrentGridPose{};
+                        worldToGrid(l_currentNode->feetConfiguration.frMap, l_frCurrentGridPose);
+                        worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlCurrentGridPose);
+
+                        if (!m_elevationMapProcessor.validFootstep(l_frCurrentGridPose.x, l_frCurrentGridPose.y,
+                                                                   l_frGridPose.x, l_frGridPose.y) ||
+                            !m_elevationMapProcessor.validFootstep(l_rlCurrentGridPose.x, l_rlCurrentGridPose.y,
+                                                                   l_rlGridPose.x, l_rlGridPose.y)) {
                             continue;
                         }
-                    }
-                    else {
-                        if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y) ||
-                            !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y)) {
+                    } else {
+                        // Convert swinging feet (FL/RR) map coordinates to grid indexes
+                        Vec2D l_flCurrentGridPose{};
+                        Vec2D l_rrCurrentGridPose{};
+                        worldToGrid(l_currentNode->feetConfiguration.flMap, l_flCurrentGridPose);
+                        worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrCurrentGridPose);
+
+                        if (!m_elevationMapProcessor.validFootstep(l_flCurrentGridPose.x, l_flCurrentGridPose.y,
+                                                                   l_flGridPose.x, l_flGridPose.y) ||
+                            !m_elevationMapProcessor.validFootstep(l_rrCurrentGridPose.x, l_rrCurrentGridPose.x,
+                                                                   l_rrGridPose.x, l_rrGridPose.y)) {
                             continue;
                         }
                     }
@@ -420,14 +435,14 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                     ROS_DEBUG_STREAM(
                             "Heights: " << l_newFeetConfiguration.flMap.z << ", "
-                                             << l_newFeetConfiguration.frMap.z << ", "
-                                             << l_newFeetConfiguration.rlMap.z << ", "
-                                             << l_newFeetConfiguration.rrMap.z);
+                                        << l_newFeetConfiguration.frMap.z << ", "
+                                        << l_newFeetConfiguration.rlMap.z << ", "
+                                        << l_newFeetConfiguration.rrMap.z);
                     ROS_DEBUG_STREAM(
                             "Coordinates: " << l_flGridPose.x << ", "
-                                                 << l_flGridPose.y << ", "
-                                                 << l_rrGridPose.x << ", "
-                                                 << l_rrGridPose.y);
+                                            << l_flGridPose.y << ", "
+                                            << l_rrGridPose.x << ", "
+                                            << l_rrGridPose.y);
                 }
 
                 // Set new CoM world height
@@ -469,8 +484,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         l_expandedNodes += 1;
         if (l_validFootstepFound) {
             m_validFootstepsFound += 1;
-        }
-        else {
+        } else {
             ROS_INFO("Search: No valid footstep found...");
         }
 

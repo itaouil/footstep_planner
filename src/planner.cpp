@@ -169,18 +169,18 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     }
 
     // Compute grid source coordinates
-//    tf2::Quaternion l_startPositionQuaternion;
-//    tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
-//    World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
-//                                 l_robotPose->pose.pose.position.y,
-//                                 l_robotPose->pose.pose.position.z,
-//                                 l_startPositionQuaternion};
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{l_comMap.transform.translation.x,
-                                 l_comMap.transform.translation.y,
-                                 0.0,
+    World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
+                                 l_robotPose->pose.pose.position.y,
+                                 l_robotPose->pose.pose.position.z,
                                  l_startPositionQuaternion};
+//    tf2::Quaternion l_startPositionQuaternion;
+//    tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
+//    World3D l_worldStartPosition{l_comMap.transform.translation.x,
+//                                 l_comMap.transform.translation.y,
+//                                 0.0,
+//                                 l_startPositionQuaternion};
 
     // Compute grid goal coordinates
     tf2::Quaternion l_goalPositionQuaternion;
@@ -215,5 +215,23 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                       p_path);
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
-    ROS_INFO_STREAM("Time taken by the planner: " << duration.count() << " microseconds" << std::endl);
+    m_runtimes.push_back(duration.count());
+}
+
+/**
+ * Prints highest, lowest and
+ * average planner runtime.
+ */
+void Planner::stats() {
+    if (m_runtimes.empty()) {
+        ROS_WARN("Planner: Runtime vector is empty... something went wrong");
+        return;
+    }
+
+    unsigned int l_maxRuntime = *std::max_element(m_runtimes.begin(), m_runtimes.end());
+    unsigned int l_minRuntime = *std::min_element(m_runtimes.begin(), m_runtimes.end());
+    double l_avgRuntime = std::accumulate(m_runtimes.begin(), m_runtimes.end(), 0.0) / m_runtimes.size();
+    ROS_INFO_STREAM("Planner: The highest planner runtime was: " << l_maxRuntime);
+    ROS_INFO_STREAM("Planner: The lowest planner runtime was: " << l_minRuntime);
+    ROS_INFO_STREAM("Planner: The average planner runtime was: " << l_avgRuntime);
 }

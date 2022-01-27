@@ -101,16 +101,29 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map_msgs to grid_map.");
         }
 
+        for (unsigned int i = 0; i < l_elevationMap["elevation_inpainted"].rows(); i++) {
+            for (unsigned int j = 0; j < l_elevationMap["elevation_inpainted"].cols(); j++) {
+                if (l_elevationMap["elevation_inpainted"].coeff(i, j) < 0) {
+                    l_elevationMap["elevation_inpainted"](i,j) = 0.0;
+                }
+            }
+        }
+
         // Convert elevation map to OpenCV
         cv::Mat l_elevationMapImage;
         if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
                                                              "elevation",
                                                              CV_32F,
-                                                             l_elevationMap["elevation"].minCoeffOfFinites(),
-                                                             l_elevationMap["elevation"].maxCoeffOfFinites(),
+                                                             l_elevationMap["elevation_inpainted"].minCoeffOfFinites(),
+                                                             l_elevationMap["elevation_inpainted"].maxCoeffOfFinites(),
                                                              l_elevationMapImage)) {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
+
+//        double minVal;
+//        double maxVal;
+//        minMaxLoc( l_elevationMapImage, &minVal, &maxVal);
+//        ROS_INFO_STREAM("Max and Min: " << minVal << ", " << maxVal << ", " << l_elevationMap["elevation_inpainted"].minCoeffOfFinites() << ", " << l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
 
         // Dilate elevation map image to fill sparse regions
         cv::Mat l_elevationMapImageDilated;
@@ -150,12 +163,16 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                                                                           0,
                                                                           1);
 
+//        minMaxLoc( l_elevationMapImageFiltered, &minVal, &maxVal);
+//        ROS_INFO_STREAM("Max2 and Min2: " << minVal << ", " << maxVal << ", " << l_elevationMap["elevation_inpainted"].minCoeffOfFinites() << ", " << l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
+
+
         // Update elevation layer
-        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImageFiltered,
+        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",
                                                                   l_elevationMap,
-                                                                  l_elevationMap["elevation"].minCoeffOfFinites(),
-                                                                  l_elevationMap["elevation"].maxCoeffOfFinites());
+                                                                  l_elevationMap["elevation_inpainted"].minCoeffOfFinites(),
+                                                                  l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
 
         // Update elevation layer
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
@@ -178,7 +195,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
-                // Impassable cell
+                    // Impassable cell
                 else {
                     l_colorLayerBGR(i, j)[0] = 255;
                     l_colorLayerBGR(i, j)[1] = 0;
@@ -254,20 +271,23 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
  * Check if predicted feet configuration
  * is valid (i.e. stepping on valid terrain).
  *
- * @param p_row
- * @param p_col
+ * @param p_currentRow
+ * @param p_currentCol
+ * @param p_nextRow
+ * @param p_nextCol
  * @return true if valid, otherwise false
  */
-bool ElevationMapProcessor::validFootstep(const int &p_row, const int &p_col) {
+bool ElevationMapProcessor::validFootstep(const int &p_currentRow,
+                                          const int &p_currentCol,
+                                          const int &p_nextRow,
+                                          const int &p_nextCol) {
     float l_cellDistance;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        l_cellDistance = m_gridMap["distance"].coeff(p_row, p_col);
-    }
 
-    ROS_DEBUG_STREAM("Position: " << p_row << ", " << p_col);
-    ROS_DEBUG_STREAM("Distance value: " << l_cellDistance);
-    ROS_DEBUG_STREAM("Distance cm: " << l_cellDistance * m_elevationMapGridResolution);
+        // Get foot distance from the closest obstacle edge
+        l_cellDistance = m_gridMap["distance"].coeff(p_nextRow, p_nextCol);
+    }
 
     return ((l_cellDistance * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE);
 }
