@@ -204,6 +204,9 @@ private:
     message_filters::Cache<wb_controller::ContactForces> m_contactForcesCache;
     message_filters::Subscriber<wb_controller::ContactForces> m_contactForcesSubscriber;
 
+    //! Commanded velocities
+    std::vector<float> m_velocities;
+
     //! Goal message
     geometry_msgs::PoseStamped m_goalMsg;
 

@@ -104,7 +104,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         for (unsigned int i = 0; i < l_elevationMap["elevation_inpainted"].rows(); i++) {
             for (unsigned int j = 0; j < l_elevationMap["elevation_inpainted"].cols(); j++) {
                 if (l_elevationMap["elevation_inpainted"].coeff(i, j) < 0) {
-                    l_elevationMap["elevation_inpainted"](i,j) = 0.0;
+                    l_elevationMap["elevation_inpainted"](i, j) = 0.0;
                 }
             }
         }
@@ -271,22 +271,19 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
  * Check if predicted feet configuration
  * is valid (i.e. stepping on valid terrain).
  *
- * @param p_currentRow
- * @param p_currentCol
  * @param p_nextRow
  * @param p_nextCol
  * @return true if valid, otherwise false
  */
-bool ElevationMapProcessor::validFootstep(const int &p_currentRow,
-                                          const int &p_currentCol,
-                                          const int &p_nextRow,
+bool ElevationMapProcessor::validFootstep(const int &p_nextRow,
                                           const int &p_nextCol) {
     float l_cellDistance;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
 
         // Get foot distance from the closest obstacle edge
-        l_cellDistance = m_gridMap["distance"].coeff(p_nextRow, p_nextCol);
+        l_cellDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
+                                   m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)});
     }
 
     return ((l_cellDistance * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE);

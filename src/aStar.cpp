@@ -62,7 +62,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 }
 
 /**
@@ -394,10 +394,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                         worldToGrid(l_currentNode->feetConfiguration.frMap, l_frCurrentGridPose);
                         worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlCurrentGridPose);
 
-                        if (!m_elevationMapProcessor.validFootstep(l_frCurrentGridPose.x, l_frCurrentGridPose.y,
-                                                                   l_frGridPose.x, l_frGridPose.y) ||
-                            !m_elevationMapProcessor.validFootstep(l_rlCurrentGridPose.x, l_rlCurrentGridPose.y,
-                                                                   l_rlGridPose.x, l_rlGridPose.y)) {
+                        if (!m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y) ||
+                            !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y)) {
                             continue;
                         }
                     } else {
@@ -407,10 +405,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                         worldToGrid(l_currentNode->feetConfiguration.flMap, l_flCurrentGridPose);
                         worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrCurrentGridPose);
 
-                        if (!m_elevationMapProcessor.validFootstep(l_flCurrentGridPose.x, l_flCurrentGridPose.y,
-                                                                   l_flGridPose.x, l_flGridPose.y) ||
-                            !m_elevationMapProcessor.validFootstep(l_rrCurrentGridPose.x, l_rrCurrentGridPose.x,
-                                                                   l_rrGridPose.x, l_rrGridPose.y)) {
+                        if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y) ||
+                            !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y)) {
                             continue;
                         }
                     }
