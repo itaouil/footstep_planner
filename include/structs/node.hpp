@@ -25,10 +25,10 @@ struct Node
     Action action;
 
     //! Velocity applied to reach state
-    double velocity;
+    float velocity;
 
     //! Costs (global and heuristic)
-    unsigned int G, H;
+    float G, H;
 
     //! (x,y) (discrete) coordinates in the grid
     Vec2D gridCoordinates;
@@ -53,8 +53,8 @@ struct Node
                   Node *p_parent = nullptr):
             parent(p_parent),
             action(p_action),
-            G(0),
-            H(0),
+            G(0.0),
+            H(0.0),
             gridCoordinates(p_gridCoordinates),
             worldCoordinates(p_worldCoordinates),
             feetConfiguration(feetConfiguration)
@@ -66,7 +66,7 @@ struct Node
      *
      * @return total node cost => H(s) + G(s)
      */
-    inline unsigned int getScore() const
+    inline float getScore() const
     {
         return G + H;
     }

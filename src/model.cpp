@@ -485,7 +485,7 @@ void Model::predictNextState(bool p_accelerating,
 //    l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
 //    l_footCommonMarker.type = 2;
 //    l_footCommonMarker.action = 0;
-//    l_footCommonMarker.lifetime = ros::Duration(0.5);
+//    l_footCommonMarker.lifetime = ros::Duration(1);
 //    l_footCommonMarker.pose.orientation.x = 0;
 //    l_footCommonMarker.pose.orientation.y = 0;
 //    l_footCommonMarker.pose.orientation.z = 0;

@@ -69,9 +69,10 @@ public:
      *
      * @param p_nextRow
      * @param p_nextCol
+     * @param p_footDistance
      * @return true if valid, otherwise false
      */
-    bool validFootstep(const int &p_nextRow, const int &p_nextCol);
+    bool validFootstep(const int &p_nextRow, const int &p_nextCol, float &p_footDistance);
 
     /**
      * Obtain the elevation map parameters,

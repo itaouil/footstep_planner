@@ -40,7 +40,7 @@ const bool PUBLISH(true);
 const double GRADIENT_THRESHOLD(0.1);
 
 // Max footstep height
-const double MAX_FOOTSTEP_HEIGHT(0.06);
+const double MIN_FOOT_DISTANCE(0.035);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(200);
@@ -55,7 +55,7 @@ const double TIMESTAMP(0.33);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(4);
+const unsigned int FOOTSTEP_HORIZON(6);
 
 // Minimum distance for cell to be considered traversable
 const double MIN_STAIR_DISTANCE(0.015);

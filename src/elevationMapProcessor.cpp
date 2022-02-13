@@ -273,20 +273,21 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
  *
  * @param p_nextRow
  * @param p_nextCol
+ * @param p_footDistance
  * @return true if valid, otherwise false
  */
 bool ElevationMapProcessor::validFootstep(const int &p_nextRow,
-                                          const int &p_nextCol) {
+                                          const int &p_nextCol,
+                                          float &p_footDistance) {
     float l_cellDistance;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-
-        // Get foot distance from the closest obstacle edge
-        l_cellDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
-                                   m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)});
+        p_footDistance = l_cellDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
+                                                      m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)}) *
+                                                      m_elevationMapGridResolution;
     }
 
-    return ((l_cellDistance * m_elevationMapGridResolution) > MIN_STAIR_DISTANCE);
+    return (l_cellDistance > MIN_STAIR_DISTANCE);
 }
 
 /**

@@ -153,12 +153,10 @@ namespace AStar {
          * from CoM frame to map frame.
          *
          * @param p_newCoMWorldCoordinates
-         * @param p_newFeetConfigurationCoM
-         * @param p_newFeetConfigurationMap
+         * @param p_newFeetConfiguration
          */
-        void transformCoMFeetConfigurationToMap(const World3D &p_newCoMWorldCoordinates,
-                                                const FeetConfiguration &p_newFeetConfigurationCoM,
-                                                FeetConfiguration &p_newFeetConfigurationMap);
+        void setFeetConfigurationMapFields(const World3D &p_newCoMWorldCoordinates,
+                                           FeetConfiguration &p_newFeetConfiguration);
 
         //! Robot model
         Model m_model;
@@ -223,7 +221,7 @@ namespace AStar {
          * @param p_targetWorldCoordinates
          * @return theta distance
          */
-        static double getHeadingDelta(const World3D &p_sourceWorldCoordinates, const World3D &p_targetWorldCoordinates);
+        static float getHeadingDelta(const World3D &p_sourceWorldCoordinates, const World3D &p_targetWorldCoordinates);
 
         /**
          * A* Heuristic class routine that computes
@@ -233,7 +231,7 @@ namespace AStar {
          * @param p_targetNode
          * @return manhattan distance
          */
-        static unsigned int manhattan(const Node &p_sourceNode, const Node &p_targetNode);
+        static float manhattan(const Node &p_sourceNode, const Node &p_targetNode);
 
         /**
          * A* Heuristic class routine that computes
@@ -243,7 +241,7 @@ namespace AStar {
          * @param p_targetNode
          * @return euclidean distance
          */
-        static unsigned int euclidean(const Node &p_sourceNode, const Node &p_targetNode);
+        static float euclidean(const Node &p_sourceNode, const Node &p_targetNode);
 
         /**
          * A* Heuristic class routine that computes
@@ -253,6 +251,6 @@ namespace AStar {
          * @param p_targetNode
          * @return octagonal distance
          */
-        static unsigned int octagonal(const Node &p_sourceNode, const Node &p_targetNode);
+        static float octagonal(const Node &p_sourceNode, const Node &p_targetNode);
     };
 }
