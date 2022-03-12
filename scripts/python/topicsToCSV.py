@@ -24,7 +24,7 @@ import message_filters
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import Odometry
-from wb_controller.msg import ContactForces, CartesianTask
+from wolf_controller.msg import ContactForces, CartesianTask
 
 # Global flags (footstep extraction)
 first_footstep = True
@@ -38,9 +38,11 @@ fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
 
+robot_name = "spot"
+
 # Global variables
-path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/step_0.06/gt/fwd_only"
-file_object = open(path + "/continuous_08.csv", "a")
+path = f"/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/{robot_name}/step_0.08"
+file_object = open(path + "/continuous_1.5_minute.csv", "a")
 
 
 def clean_max_heights():
@@ -97,8 +99,8 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
                 prev_footstep_flag = True
                 prev_footstep_time = time.time()
             else:
-                if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.3:
-                    print("Time: ", time.time() - prev_footstep_time)
+                if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
+                    #print("Time: ", time.time() - prev_footstep_time)
                     footstep.data = True
                     prev_footstep_flag = True
                     prev_footstep_time = time.time()
@@ -128,14 +130,17 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
         swing2_max_height = max_heights_sorted[1]
 
         # Compute booleans for swinging and max height conditions
-        swinging_condition = fr_moving != fl_moving
-        max_heights_condition = swing1_max_height > -0.39 and swing2_max_height > -0.39
+        swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
+        max_heights_condition = swing1_max_height > -0.48 and swing2_max_height > -0.48
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
+            if not max_heights_condition:
+                print("Invalid max height condition")
+                print(swing1_max_height, swing2_max_height)
             if not swinging_condition:
                 print("Invalid swinging condition")
-                print(fl_moving, fr_moving, rl_moving, rr_moving)
+                print(fl_moving, fr_moving, rl_moving, rr_moving, fl_max_height, fr_max_height, rl_max_height, rr_max_height)
 
         # Clean max height variable if footstep detected
         clean_max_heights()
@@ -150,10 +155,6 @@ def valid_footstep(cmd_vel_msg, footholds_msg):
 
 def live_extraction(odom_msg,
                     cmd_vel_msg,
-                    fl_trunk_msg,
-                    fr_trunk_msg,
-                    rl_trunk_msg,
-                    rr_trunk_msg,
                     footholds_msg):
     # Globals
     global file_object
@@ -189,18 +190,18 @@ def live_extraction(odom_msg,
                       str(footholds_msg.contact[1]) + "," +
                       str(footholds_msg.contact[3]) + "," +
 
-                      str(fl_trunk_msg.pose_actual.position.x) + "," +  # 8
-                      str(fl_trunk_msg.pose_actual.position.y) + "," +  # 9
-                      str(fl_trunk_msg.pose_actual.position.z) + "," +
-                      str(fr_trunk_msg.pose_actual.position.x) + "," +  # 11
-                      str(fr_trunk_msg.pose_actual.position.y) + "," +  # 12
-                      str(fr_trunk_msg.pose_actual.position.z) + "," +
-                      str(rl_trunk_msg.pose_actual.position.x) + "," +  # 14
-                      str(rl_trunk_msg.pose_actual.position.y) + "," +  # 15
-                      str(rl_trunk_msg.pose_actual.position.z) + "," +
-                      str(rr_trunk_msg.pose_actual.position.x) + "," +  # 17
-                      str(rr_trunk_msg.pose_actual.position.y) + "," +  # 18
-                      str(rr_trunk_msg.pose_actual.position.z) + "," +  # 19
+                      str(footholds_msg.contact_positions[0].x) + "," +  # 8
+                      str(footholds_msg.contact_positions[0].y) + "," +  # 9
+                      str(footholds_msg.contact_positions[0].z) + "," +
+                      str(footholds_msg.contact_positions[2].x) + "," +  # 11
+                      str(footholds_msg.contact_positions[2].y) + "," +  # 12
+                      str(footholds_msg.contact_positions[2].z) + "," +
+                      str(footholds_msg.contact_positions[1].x) + "," +  # 14
+                      str(footholds_msg.contact_positions[1].y) + "," +  # 15
+                      str(footholds_msg.contact_positions[1].z) + "," +
+                      str(footholds_msg.contact_positions[3].x) + "," +  # 17
+                      str(footholds_msg.contact_positions[3].y) + "," +  # 18
+                      str(footholds_msg.contact_positions[3].z) + "," +  # 19
 
                       str(footholds_msg.des_contact_forces[0].force.x) + "," +
                       str(footholds_msg.des_contact_forces[0].force.y) + "," +
@@ -257,27 +258,20 @@ def main():
     rospy.init_node('topics_sim_to_csv')
 
     # Set initial velocity
-    rospy.set_param("/height_threshold", 0.002)
+    rospy.set_param("/height_threshold", 0.003)
 
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=1)
 
-    odom_sub = message_filters.Subscriber("/aliengo/ground_truth", Odometry)
-    cmd_vel_sub = message_filters.Subscriber("/aliengo/wb_controller/joy", Joy)
-    fl_trunk_sub = message_filters.Subscriber("/aliengo/wb_controller/lf_foot", CartesianTask)
-    fr_trunk_sub = message_filters.Subscriber("/aliengo/wb_controller/rf_foot", CartesianTask)
-    rl_trunk_sub = message_filters.Subscriber("/aliengo/wb_controller/lh_foot", CartesianTask)
-    rr_trunk_sub = message_filters.Subscriber("/aliengo/wb_controller/rh_foot", CartesianTask)
-    footholds_sub = message_filters.Subscriber("/aliengo/wb_controller/contact_forces", ContactForces)
+    odom_sub = message_filters.Subscriber(f"/{robot_name}/ground_truth", Odometry)
+    cmd_vel_sub = message_filters.Subscriber(f"/{robot_name}/wolf_controller/joy", Joy)
+    footholds_sub = message_filters.Subscriber(f"/{robot_name}/wolf_controller/contact_forces", ContactForces)
 
     ts = message_filters.TimeSynchronizer([odom_sub,
                                            cmd_vel_sub,
-                                           fl_trunk_sub,
-                                           fr_trunk_sub,
-                                           rl_trunk_sub,
-                                           rr_trunk_sub,
                                            footholds_sub], 10)
+
     ts.registerCallback(live_extraction)
 
     rospy.spin()

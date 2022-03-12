@@ -21,19 +21,11 @@ import numpy as np
 from sensor_msgs.msg import Joy
 import dynamic_reconfigure.client
 
-# Dynamic reconfigure client
+# Global variables
 client = None
-
-# Max non forward velocity
+robot_name = "spot"
 MAX_NON_FWD_VELOCITY = 0.55
-
-
-def activate_solver():
-    client.update_configuration({})
-
-    if not client.config["activate_solver"]:
-        client.update_configuration({"activate_solver": True})
-        print("Solver was inactive. Activated solver")
+ACCELERATION_ENABLED = False
 
 
 def stop(velocity_publisher):
@@ -72,8 +64,6 @@ def stomping(velocity_publisher):
 
     rate = rospy.Rate(1000)
     while rospy.Time.now() < end_time:
-        # activate_solver()
-
         # Update joy timestamp
         joy.header.stamp = rospy.Time.now()
 
@@ -86,7 +76,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
     global client
     global MAX_NON_FWD_VELOCITY
 
-    for next_velocity in np.arange(0.0, 0.7, 0.1):
+    for next_velocity in np.arange(0.2, 1.0, 0.1):
         # Limit clockwise, counterclockwise, left and right motions to 0.5
         if motion not in ["forward", "backward"] and (
                 curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
@@ -97,17 +87,10 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
         if abs(next_velocity) - abs(curr_velocity) < 0.05:
             continue
 
-        # # Skip if gap velocity is above 0.4
-        # if abs(next_velocity) - abs(curr_velocity) > 0.35:
-        #     continue
-
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
               -next_velocity if curr_velocity < 0 else next_velocity)
 
-        for _ in range(40):
-            # Reactivate solver if it got locked
-            # activate_solver()
-
+        for _ in range(20):
             # Reset velocity to initial one
             if motion in ["forward", "backward"]:
                 joy.axes[1] = curr_velocity
@@ -153,7 +136,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
 
 def publish_joy_continuous(joy, velocity_publisher):
     start_time = rospy.Time.now()
-    seconds_to_wait = rospy.Duration(120)
+    seconds_to_wait = rospy.Duration(30)
     end_time = start_time + seconds_to_wait
 
     rate = rospy.Rate(1000)
@@ -173,16 +156,15 @@ def joy_publisher():
     rospy.init_node('wbc_cmd_vel_publisher')
 
     # Publisher
-    velocity_publisher = rospy.Publisher('/aliengo/wb_controller/joy', Joy, queue_size=1)
+    velocity_publisher = rospy.Publisher(f'/{robot_name}/wolf_controller/joy', Joy, queue_size=1)
 
     # Start solver
-    client = dynamic_reconfigure.client.Client("/aliengo/wb_controller")
-    activate_solver()
+    client = dynamic_reconfigure.client.Client(f"/{robot_name}/wolf_controller")
 
     rospy.sleep(2)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.7, 0.9, 0.1):
+        for velocity in np.arange(0.1, 1.0, 0.1):
             print(velocity)
 
             # 1s stomping to avoid instability
@@ -194,13 +176,19 @@ def joy_publisher():
             joy.header.frame_id = "/dev/input/js0"
             joy.axes = [0.0, velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration forward command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity, "forward")
-            print("Publishing continuous forward command")
-            publish_joy_continuous(joy, velocity_publisher)
+            if ACCELERATION_ENABLED:
+                print("Publishing acceleration forward command")
+                publish_joy_accelerations(joy, velocity_publisher, velocity, "forward")
+            else:
+                print("Publishing continuous forward command")
+                publish_joy_continuous(joy, velocity_publisher)
 
             # 1s stomping to avoid instability
             stomping(velocity_publisher)
+
+            # Limit side and rotational velocities to 0.5
+            if not ACCELERATION_ENABLED and velocity > MAX_NON_FWD_VELOCITY:
+                continue
 
             # # Clockwise rotation
             # joy = Joy()
@@ -208,10 +196,12 @@ def joy_publisher():
             # joy.header.frame_id = "/dev/input/js0"
             # joy.axes = [0.0, 0.0, 0.0, -velocity, 0.0, 0.0, 0.0, 0.0]
             # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration clockwise command")
-            # publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
-            # # print("Publishing continuous clockwise command")
-            # # publish_joy_continuous(joy, velocity_publisher)
+            # if ACCELERATION_ENABLED:
+            #     print("Publishing acceleration clockwise command")
+            #     publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
+            # else:
+            #     print("Publishing continuous clockwise command")
+            #     publish_joy_continuous(joy, velocity_publisher)
             #
             # # 1s stomping to avoid instability
             # stomping(velocity_publisher)
@@ -222,10 +212,12 @@ def joy_publisher():
             # joy.header.frame_id = "/dev/input/js0"
             # joy.axes = [0.0, 0.0, 0.0, velocity, 0.0, 0.0, 0.0, 0.0]
             # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration counterclockwise command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
-            # # print("Publishing continuous counterclockwise command")
-            # # publish_joy_continuous(joy, velocity_publisher)
+            # if ACCELERATION_ENABLED:
+            #     print("Publishing acceleration counterclockwise command")
+            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
+            # else:
+            #     print("Publishing continuous counterclockwise command")
+            #     publish_joy_continuous(joy, velocity_publisher)
             #
             # # 1s stomping to avoid instability
             # stomping(velocity_publisher)
@@ -236,10 +228,12 @@ def joy_publisher():
             # joy.header.frame_id = "/dev/input/js0"
             # joy.axes = [-velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration right command")
-            # publish_joy_accelerations(joy, velocity_publisher, -velocity, "right")
-            # # print("Publishing continuous right command")
-            # # publish_joy_continuous(joy, velocity_publisher)
+            # if ACCELERATION_ENABLED:
+            #     print("Publishing acceleration right command")
+            #     publish_joy_accelerations(joy, velocity_publisher, -velocity, "right")
+            # else:
+            #     print("Publishing continuous right command")
+            #     publish_joy_continuous(joy, velocity_publisher)
             #
             # # 1s stomping to avoid instability
             # stomping(velocity_publisher)
@@ -250,12 +244,15 @@ def joy_publisher():
             # joy.header.frame_id = "/dev/input/js0"
             # joy.axes = [velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # print("Publishing acceleration left command")
-            # publish_joy_accelerations(joy, velocity_publisher, velocity, "left")
-            # # print("Publishing continuous left command")
-            # # publish_joy_continuous(joy, velocity_publisher)
+            # if ACCELERATION_ENABLED:
+            #     print("Publishing acceleration left command")
+            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "left")
+            # else:
+            #     print("Publishing continuous left command")
+            #     publish_joy_continuous(joy, velocity_publisher)
 
-        print(f"Sequence {velocity} finished")
+            print(f"Sequence {velocity} finished")
+
         break
 
     # Stop robot fully

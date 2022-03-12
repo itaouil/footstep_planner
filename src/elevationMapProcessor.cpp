@@ -195,7 +195,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                     l_colorLayerBGR(i, j)[1] = 0;
                     l_colorLayerBGR(i, j)[2] = 0;
                 }
-                    // Impassable cell
+                // Impassable cell
                 else {
                     l_colorLayerBGR(i, j)[0] = 255;
                     l_colorLayerBGR(i, j)[1] = 0;

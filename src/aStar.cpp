@@ -336,13 +336,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     l_tempNode.feetConfiguration = m_idleFeetConfiguration;
                 }
 
-//                // Disallow change in velocities bigger than 0.4
-//                if (std::abs(l_currentNode->velocity - l_nextVelocity) > 0.35) {
-//                    ROS_DEBUG_STREAM("Gap > 0.4: " << l_currentNode->velocity << ", " << l_nextVelocity << ", " <<
-//                                                   std::abs(l_currentNode->velocity - l_nextVelocity));
-//                    continue;
-//                }
-
                 m_model.predictNextState(l_tempNode.velocity != l_nextVelocity,
                                          l_tempNode.velocity,
                                          l_nextVelocity,
