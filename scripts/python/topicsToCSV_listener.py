@@ -38,12 +38,12 @@ fl_max_height = -100
 fr_max_height = -100
 rl_max_height = -100
 rr_max_height = -100
-MAX_HEIGHT = 0.06
+MAX_HEIGHT = 0.045
 
 # Global variables
-robot_name = "spot"
-path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/" + robot_name + "/step_0.08"
-file_object = open(path + "/continuous_1m_2.csv", "a")
+robot_name = "aliengo"
+path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/" + robot_name + "/step_0.065"
+file_object = open(path + "/continuous_1m.csv", "a")
 
 
 def clean_max_heights():

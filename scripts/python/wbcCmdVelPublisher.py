@@ -23,7 +23,7 @@ import dynamic_reconfigure.client
 
 # Global variables
 client = None
-robot_name = "spot"
+robot_name = "aliengo"
 MAX_NON_FWD_VELOCITY = 0.55
 ACCELERATION_ENABLED = False
 
@@ -136,7 +136,7 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
 
 def publish_joy_continuous(joy, velocity_publisher):
     start_time = rospy.Time.now()
-    seconds_to_wait = rospy.Duration(30)
+    seconds_to_wait = rospy.Duration(60)
     end_time = start_time + seconds_to_wait
 
     rate = rospy.Rate(1000)
@@ -164,7 +164,7 @@ def joy_publisher():
     rospy.sleep(2)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 1.0, 0.1):
+        for velocity in np.arange(0.1, 0.8, 0.1):
             print(velocity)
 
             # 1s stomping to avoid instability
@@ -190,66 +190,66 @@ def joy_publisher():
             if not ACCELERATION_ENABLED and velocity > MAX_NON_FWD_VELOCITY:
                 continue
 
-            # # Clockwise rotation
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [0.0, 0.0, 0.0, -velocity, 0.0, 0.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # if ACCELERATION_ENABLED:
-            #     print("Publishing acceleration clockwise command")
-            #     publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
-            # else:
-            #     print("Publishing continuous clockwise command")
-            #     publish_joy_continuous(joy, velocity_publisher)
-            #
-            # # 1s stomping to avoid instability
-            # stomping(velocity_publisher)
-            #
-            # # Counterclockwise rotation
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [0.0, 0.0, 0.0, velocity, 0.0, 0.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # if ACCELERATION_ENABLED:
-            #     print("Publishing acceleration counterclockwise command")
-            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
-            # else:
-            #     print("Publishing continuous counterclockwise command")
-            #     publish_joy_continuous(joy, velocity_publisher)
-            #
-            # # 1s stomping to avoid instability
-            # stomping(velocity_publisher)
-            #
-            # # Right stepping
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [-velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # if ACCELERATION_ENABLED:
-            #     print("Publishing acceleration right command")
-            #     publish_joy_accelerations(joy, velocity_publisher, -velocity, "right")
-            # else:
-            #     print("Publishing continuous right command")
-            #     publish_joy_continuous(joy, velocity_publisher)
-            #
-            # # 1s stomping to avoid instability
-            # stomping(velocity_publisher)
-            #
-            # # Left stepping
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            # if ACCELERATION_ENABLED:
-            #     print("Publishing acceleration left command")
-            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "left")
-            # else:
-            #     print("Publishing continuous left command")
-            #     publish_joy_continuous(joy, velocity_publisher)
+            # Clockwise rotation
+            joy = Joy()
+            joy.header.stamp = rospy.Time.now()
+            joy.header.frame_id = "/dev/input/js0"
+            joy.axes = [0.0, 0.0, 0.0, -velocity, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            if ACCELERATION_ENABLED:
+                print("Publishing acceleration clockwise command")
+                publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
+            else:
+                print("Publishing continuous clockwise command")
+                publish_joy_continuous(joy, velocity_publisher)
+
+            # 1s stomping to avoid instability
+            stomping(velocity_publisher)
+
+            # Counterclockwise rotation
+            joy = Joy()
+            joy.header.stamp = rospy.Time.now()
+            joy.header.frame_id = "/dev/input/js0"
+            joy.axes = [0.0, 0.0, 0.0, velocity, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            if ACCELERATION_ENABLED:
+                print("Publishing acceleration counterclockwise command")
+                publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
+            else:
+                print("Publishing continuous counterclockwise command")
+                publish_joy_continuous(joy, velocity_publisher)
+
+            # 1s stomping to avoid instability
+            stomping(velocity_publisher)
+
+            # Right stepping
+            joy = Joy()
+            joy.header.stamp = rospy.Time.now()
+            joy.header.frame_id = "/dev/input/js0"
+            joy.axes = [-velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            if ACCELERATION_ENABLED:
+                print("Publishing acceleration right command")
+                publish_joy_accelerations(joy, velocity_publisher, -velocity, "right")
+            else:
+                print("Publishing continuous right command")
+                publish_joy_continuous(joy, velocity_publisher)
+
+            # 1s stomping to avoid instability
+            stomping(velocity_publisher)
+
+            # Left stepping
+            joy = Joy()
+            joy.header.stamp = rospy.Time.now()
+            joy.header.frame_id = "/dev/input/js0"
+            joy.axes = [velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            if ACCELERATION_ENABLED:
+                print("Publishing acceleration left command")
+                publish_joy_accelerations(joy, velocity_publisher, velocity, "left")
+            else:
+                print("Publishing continuous left command")
+                publish_joy_continuous(joy, velocity_publisher)
 
             print(f"Sequence {velocity} finished")
 
