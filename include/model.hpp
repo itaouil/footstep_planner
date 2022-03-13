@@ -151,8 +151,10 @@ private:
     //! CoM models' coefficients
     Eigen::RowVectorXd m_fr_rl_com_x;
     Eigen::RowVectorXd m_fr_rl_com_y;
+    Eigen::RowVectorXd m_fr_rl_com_theta;
     Eigen::RowVectorXd m_fl_rr_com_x;
     Eigen::RowVectorXd m_fl_rr_com_y;
+    Eigen::RowVectorXd m_fl_rr_com_theta;
 
     //! FL models' coefficients
     Eigen::RowVectorXd m_fl_swinging_x;

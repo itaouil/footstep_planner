@@ -35,64 +35,75 @@ Model::~Model() = default;
 void Model::setModelsCoefficients() {
     // CoM models coefficients when FR/RL are swinging
     m_fr_rl_com_x.resize(15);
-    m_fr_rl_com_x << 0.01009882, -0.00138146,  0.00591929,  0.1437222 , -0.00433467,
-            0.00130813,  0.07772784,  0.16929027, -0.17838602,  0.00798173,
-            -0.04074072,  0.04963839,  0.10051764,  0.03709051, 0.00490574;
+    m_fr_rl_com_x << 0.02796967,  0.024182  ,  0.00068058,  0.11790178, -0.0290885 ,
+            -0.00077581, -0.0443757 , -0.10942164,  0.08139676,  0.07498781,
+            -0.0055743 ,  0.06217922, -0.03144605, -0.02771618, -0.00319576;
 
     m_fr_rl_com_y.resize(15);
-    m_fr_rl_com_y << -0.00971856, -0.01017369,  0.00118772, -0.01158384,  0.15330004,
-            -0.00105279, -0.11278145, -0.24258692, -0.02812024, -0.18596375,
-            -0.09274634, -0.15458673, -0.07468321, -0.1887789, 0.00334893;
+    m_fr_rl_com_y << 0.0316049 ,  0.02016423,  0.00060737, -0.02965458,  0.14840231,
+            -0.00021702, -0.10546343,  0.00664393,  0.07031531, -0.01054266,
+            0.10000394,  0.04083131, -0.06486641, -0.03691823, -3.7114816e-05;
+
+    m_fr_rl_com_theta.resize(15);
+    m_fr_rl_com_theta << -0.00223515,  0.00241875,  0.10491453,  0.00301203, -0.00138445,
+            0.03028244, -0.01196371, -0.00544019,  0.02164832, -0.00214386,
+            0.00095218, -0.00818043, -0.01063611,  0.01576387, -0.00011146;
 
     // CoM models coefficients when FL/RR are swinging
     m_fl_rr_com_x.resize(15);
-    m_fl_rr_com_x << -0.00118848,  0.00476276, -0.00575461,  0.13961594,  0.01091284,
-            -0.00196097, -0.18913551,  0.15876759, -0.08021554,  0.19394194,
-            -0.08546236,  0.30269309, -0.0932808 ,  0.16249433, 0.00825741;
+    m_fl_rr_com_x << 0.0391748 , -0.02654345, -0.00020698,  0.11910251,  0.03364747,
+            0.00046641,  0.02275698, -0.06345089, -0.0512084 ,  0.06847888,
+            -0.01518207,  0.10679173,  0.04363531, -0.11186685, -0.00423869;
     m_fl_rr_com_y.resize(15);
-    m_fl_rr_com_y << 0.00176666,  0.00383346, -0.00223724,  0.00324382,  0.15506061,
-            -0.00033925, -0.01565562, -0.18706853,  0.06250759, -0.07208814,
-            -0.03400149,  0.03670775,  0.10393649, -0.09758938, -0.00280065;
+    m_fl_rr_com_y << -0.03531344,  0.00699435,  0.00035215,  0.03261313,  0.14943567,
+            -0.00040065, -0.02418721, -0.00465943,  0.09854855,  0.00970225,
+            0.03226934, -0.09730781, -0.10662044,  0.09227992, -0.0003114;
+    m_fl_rr_com_theta.resize(15);
+    m_fl_rr_com_theta << 0.00272546,  0.0030142 ,  0.10701381, -0.00118914, -0.00275173,
+            0.02766265, -0.007554  , -0.00654397,  0.01315691, -0.00421638,
+            -0.00679908, -0.00151816,  0.00119611,  0.01227973, -6.37289998e-05;
 
     // FL models coefficients
     m_fl_swinging_x.resize(15);
-    m_fl_swinging_x << -0.03221593,  0.04414323, -0.05045393,  0.22381182,  0.00345068,
-            -0.00772306,  0.06273285,  0.04079152, -0.42993439,  0.60059794,
-            -0.51035987,  0.55116634, -0.00925446,  0.15409359, 0.01148435;
+    m_fl_swinging_x << -0.04492919, -0.02060393, -0.02695808,  0.21206948,  0.01437984,
+            -0.00696759, -0.27434622,  0.15721953,  0.32120999, -0.02254601,
+            0.47832031, -0.21778009, -0.52518629,  0.08302056, -0.00645457;
     m_fl_swinging_y.resize(15);
-    m_fl_swinging_y << 0.00395575, -0.0080326 ,  0.04506687,  0.00806839,  0.2276758 ,
-            0.02314851, -0.11235131,  0.11012614, -0.13762396,  0.01803263,
-            -0.13334832,  0.09655311, -0.04729901,  0.0939064, 0.00013964;
+    m_fl_swinging_y << 0.00280545, -0.02679292,  0.03154742,  0.02627906,  0.21185638,
+            0.01483404, -0.08972539, -0.28939497, -0.00880658,  0.29043648,
+            0.09789753,  0.42591386,  0.00062771, -0.42712738, -0.00152897;
 
     // FR models coefficients
     m_fr_swinging_x.resize(15);
-    m_fr_swinging_x << -0.03553982, -0.01727127,  0.05305336,  0.23106679, -0.02735418,
-            0.00833077, -0.26936718,  0.70910105,  0.07247322,  0.37863626,
-            0.06284863,  0.28592323, -0.40075097,  0.75532028, 0.01342904;
+    m_fr_swinging_x << -3.97652821e-02, -9.83015301e-03,  2.51965977e-02,
+            2.11229429e-01, -3.91925928e-02,  7.02450056e-03,
+            5.28612914e-01, -1.09043022e-01, -4.48661288e-01,
+            2.06748049e-01, -3.90183751e-01,  1.68823627e-04,
+            3.10223122e-01, -9.79540485e-02, -0.00523026;
     m_fr_swinging_y.resize(15);
-    m_fr_swinging_y << -0.03401956, -0.00950205, -0.04755827,  0.00127786,  0.22282807,
-            -0.02113752, -0.08170869, -0.41872454,  0.16559434, -0.12996355,
-            0.10822455, -0.13786639, -0.06991281, -0.38518903, 0.00108043;
+    m_fr_swinging_y << 0.02336593, -0.02594122, -0.03288898, -0.01180073,  0.22048021,
+            -0.01493796,  0.08161266,  0.50628582, -0.24680032, -0.38043102,
+            0.10366489, -0.28316007,  0.06152352,  0.15712614, -0.00424478;
 
     // RL models coefficients
     m_rl_swinging_x.resize(15);
-    m_rl_swinging_x << -0.03422896, -0.01169688, -0.05116886,  0.23290612, -0.02949314,
-            -0.00997868, -0.214117  ,  0.73927802,  0.01575591,  0.42919767,
-            0.11276529,  0.23439538, -0.45176622,  0.68855996, 0.01012326;
+    m_rl_swinging_x << -0.03419162, -0.01460773, -0.02740245,  0.20689587, -0.03420629,
+            -0.007228  ,  0.4689614 , -0.14380799, -0.38299975,  0.14155915,
+            -0.47015095,  0.02997793,  0.3841825 , -0.02781394, -0.00719564;
     m_rl_swinging_y.resize(15);
-    m_rl_swinging_y << -0.03401956, -0.00950205, -0.04755827,  0.00127786,  0.22282807,
-            -0.02113752, -0.08170869, -0.41872454,  0.16559434, -0.12996355,
-            0.10822455, -0.13786639, -0.06991281, -0.38518903, 0.00108043;
+    m_rl_swinging_y << 0.02336593, -0.02594122, -0.03288898, -0.01180073,  0.22048021,
+            -0.01493796,  0.08161266,  0.50628582, -0.24680032, -0.38043102,
+            0.10366489, -0.28316007,  0.06152352,  0.15712614, -0.00424478;
 
     // RR models coefficients
     m_rr_swinging_x.resize(15);
-    m_rr_swinging_x << -0.03228989,  0.04333071,  0.04734508,  0.22535789,  0.00342114,
-            0.01462493,  0.07372918,  0.04560112, -0.44280749,  0.59339176,
-            -0.47473278,  0.52993172, -0.01489859,  0.11369561, 0.0101464;
+    m_rr_swinging_x << -0.04063617, -0.01758817,  0.02856701,  0.20774192,  0.00989871,
+            0.00324774, -0.3149405 ,  0.12779503,  0.38093346, -0.06112671,
+            0.42287452, -0.21697419, -0.48887426,  0.15023161, -0.00537608;
     m_rr_swinging_y.resize(15);
-    m_rr_swinging_y << 0.00430843, -0.0094233 , -0.04601245,  0.0095601 ,  0.22908025,
-            -0.02334645, -0.14012686,  0.07798112, -0.09587673, -0.00097512,
-            -0.17499111,  0.12768332, -0.01252009,  0.14206591, -0.00334501;
+    m_rr_swinging_y << 0.00232242, -0.02762294, -0.03277624,  0.02698777,  0.21356777,
+            -0.01547978,  0.00844428, -0.22367209, -0.10707833,  0.35911425,
+            0.19055157,  0.36530788, -0.09192121, -0.50091637, -0.00413047;
 }
 
 /**
@@ -361,64 +372,64 @@ void Model::predictNextState(bool p_accelerating,
     // Change swinging feet pair
     p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;
 
-    // Publish predicted CoM and feet poses
-    int j = 0;
-    visualization_msgs::Marker l_footCommonMarker;
-    l_footCommonMarker.header.stamp = ros::Time::now();
-    l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_footCommonMarker.type = 2;
-    l_footCommonMarker.action = 0;
-    l_footCommonMarker.lifetime = ros::Duration(1);
-    l_footCommonMarker.pose.orientation.x = 0;
-    l_footCommonMarker.pose.orientation.y = 0;
-    l_footCommonMarker.pose.orientation.z = 0;
-    l_footCommonMarker.pose.orientation.w = 1;
-    l_footCommonMarker.scale.x = 0.035;
-    l_footCommonMarker.scale.y = 0.035;
-    l_footCommonMarker.scale.z = 0.035;
-    l_footCommonMarker.color.r = 0;
-    l_footCommonMarker.color.g = 1;
-    l_footCommonMarker.color.b = 0;
-    l_footCommonMarker.color.a = 0.5;
-
-    visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
-    l_CoMMarker.id = j++;
-    l_CoMMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x;
-    l_CoMMarker.pose.position.y = p_newWorldCoordinatesCoM.y;
-    l_CoMMarker.pose.position.z = 0;
-
-    visualization_msgs::Marker l_flFootMarker = l_footCommonMarker;
-    l_flFootMarker.id = j++;
-    l_flFootMarker.pose.position.x = p_newFeetConfiguration.flMap.x;
-    l_flFootMarker.pose.position.y = p_newFeetConfiguration.flMap.y;
-    l_flFootMarker.pose.position.z = 0;
-
-    visualization_msgs::Marker l_frFootMarker = l_footCommonMarker;
-    l_frFootMarker.id = j++;
-    l_frFootMarker.pose.position.x = p_newFeetConfiguration.frMap.x;
-    l_frFootMarker.pose.position.y = p_newFeetConfiguration.frMap.y;
-    l_frFootMarker.pose.position.z = 0;
-
-    visualization_msgs::Marker l_rlFootMarker = l_footCommonMarker;
-    l_rlFootMarker.id = j++;
-    l_rlFootMarker.pose.position.x = p_newFeetConfiguration.rlMap.x;
-    l_rlFootMarker.pose.position.y = p_newFeetConfiguration.rlMap.y;
-    l_rlFootMarker.pose.position.z = 0;
-
-    visualization_msgs::Marker l_rrFootMarker = l_footCommonMarker;
-    l_rrFootMarker.id = j++;
-    l_rrFootMarker.pose.position.x = p_newFeetConfiguration.rrMap.x;
-    l_rrFootMarker.pose.position.y = p_newFeetConfiguration.rrMap.y;
-    l_rrFootMarker.pose.position.z = 0;
-
-    visualization_msgs::MarkerArray l_pathFeetConfiguration;
-    l_pathFeetConfiguration.markers.push_back(l_CoMMarker);
-    l_pathFeetConfiguration.markers.push_back(l_flFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_frFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_rlFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
-
-    m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-    ros::Duration(1).sleep();
+//    // Publish predicted CoM and feet poses
+//    int j = 0;
+//    visualization_msgs::Marker l_footCommonMarker;
+//    l_footCommonMarker.header.stamp = ros::Time::now();
+//    l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+//    l_footCommonMarker.type = 2;
+//    l_footCommonMarker.action = 0;
+//    l_footCommonMarker.lifetime = ros::Duration(1);
+//    l_footCommonMarker.pose.orientation.x = 0;
+//    l_footCommonMarker.pose.orientation.y = 0;
+//    l_footCommonMarker.pose.orientation.z = 0;
+//    l_footCommonMarker.pose.orientation.w = 1;
+//    l_footCommonMarker.scale.x = 0.035;
+//    l_footCommonMarker.scale.y = 0.035;
+//    l_footCommonMarker.scale.z = 0.035;
+//    l_footCommonMarker.color.r = 0;
+//    l_footCommonMarker.color.g = 1;
+//    l_footCommonMarker.color.b = 0;
+//    l_footCommonMarker.color.a = 0.5;
+//
+//    visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
+//    l_CoMMarker.id = j++;
+//    l_CoMMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+//    l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x;
+//    l_CoMMarker.pose.position.y = p_newWorldCoordinatesCoM.y;
+//    l_CoMMarker.pose.position.z = 0;
+//
+//    visualization_msgs::Marker l_flFootMarker = l_footCommonMarker;
+//    l_flFootMarker.id = j++;
+//    l_flFootMarker.pose.position.x = p_newFeetConfiguration.flMap.x;
+//    l_flFootMarker.pose.position.y = p_newFeetConfiguration.flMap.y;
+//    l_flFootMarker.pose.position.z = 0;
+//
+//    visualization_msgs::Marker l_frFootMarker = l_footCommonMarker;
+//    l_frFootMarker.id = j++;
+//    l_frFootMarker.pose.position.x = p_newFeetConfiguration.frMap.x;
+//    l_frFootMarker.pose.position.y = p_newFeetConfiguration.frMap.y;
+//    l_frFootMarker.pose.position.z = 0;
+//
+//    visualization_msgs::Marker l_rlFootMarker = l_footCommonMarker;
+//    l_rlFootMarker.id = j++;
+//    l_rlFootMarker.pose.position.x = p_newFeetConfiguration.rlMap.x;
+//    l_rlFootMarker.pose.position.y = p_newFeetConfiguration.rlMap.y;
+//    l_rlFootMarker.pose.position.z = 0;
+//
+//    visualization_msgs::Marker l_rrFootMarker = l_footCommonMarker;
+//    l_rrFootMarker.id = j++;
+//    l_rrFootMarker.pose.position.x = p_newFeetConfiguration.rrMap.x;
+//    l_rrFootMarker.pose.position.y = p_newFeetConfiguration.rrMap.y;
+//    l_rrFootMarker.pose.position.z = 0;
+//
+//    visualization_msgs::MarkerArray l_pathFeetConfiguration;
+//    l_pathFeetConfiguration.markers.push_back(l_CoMMarker);
+//    l_pathFeetConfiguration.markers.push_back(l_flFootMarker);
+//    l_pathFeetConfiguration.markers.push_back(l_frFootMarker);
+//    l_pathFeetConfiguration.markers.push_back(l_rlFootMarker);
+//    l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
+//
+//    m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
+//    ros::Duration(1).sleep();
 }

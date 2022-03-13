@@ -25,7 +25,7 @@ import dynamic_reconfigure.client
 client = None
 robot_name = "aliengo"
 MAX_NON_FWD_VELOCITY = 0.55
-ACCELERATION_ENABLED = False
+ACCELERATION_ENABLED = True
 
 
 def stop(velocity_publisher):
@@ -164,7 +164,7 @@ def joy_publisher():
     rospy.sleep(2)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 0.8, 0.1):
+        for velocity in np.arange(0.1, 1.0, 0.1):
             print(velocity)
 
             # 1s stomping to avoid instability

@@ -32,9 +32,6 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_CoM_PATH_TOPIC, 1);
     m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(PREDICTED_CoM_PATH_TOPIC, 1);
 
-    // Target goal publisher
-    m_targetGoalPublisher = m_nh.advertise<geometry_msgs::PoseStamped>(TARGET_GOAL_TOPIC, 1);
-
     // Velocity command publisher
     m_velocityPublisher = m_nh.advertise<sensor_msgs::Joy>(VELOCITY_CMD_TOPIC, 10);
 
@@ -328,7 +325,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     m_predictionInputCoM.push_back(*m_latestRobotPose);
 
     // Save feet poses input to planner
-    std::vector<wb_controller::CartesianTask> l_feetConfiguration;
+    std::vector<wolf_controller::CartesianTask> l_feetConfiguration;
     l_feetConfiguration.push_back(*m_latestFLFootPose);
     l_feetConfiguration.push_back(*m_latestFRFootPose);
     l_feetConfiguration.push_back(*m_latestRLFootPose);
@@ -548,7 +545,7 @@ void Navigation::executeHighLevelCommands() {
             m_predictionInputCoM.push_back(*m_latestRobotPose);
 
             // Save feet poses input to planner
-            std::vector<wb_controller::CartesianTask> l_feetConfiguration;
+            std::vector<wolf_controller::CartesianTask> l_feetConfiguration;
             l_feetConfiguration.push_back(*m_latestFLFootPose);
             l_feetConfiguration.push_back(*m_latestFRFootPose);
             l_feetConfiguration.push_back(*m_latestRLFootPose);
@@ -569,15 +566,15 @@ void Navigation::executeHighLevelCommands() {
     // Stopping joy publisher
     stopJoyPublisher();
 
-//    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
-//    publishRealCoMPath();
-//    publishPredictedCoMPath();
+    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
+    publishRealCoMPath();
+    publishPredictedCoMPath();
 
-//    ROS_INFO_STREAM("Publishing predicted footsteps");
-//    publishPredictedFootstepSequence();
+    ROS_INFO_STREAM("Publishing predicted footsteps");
+    publishPredictedFootstepSequence();
 
-//    ROS_INFO_STREAM("Publishing real footsteps");
-//    publishRealFootstepSequence();
+    ROS_INFO_STREAM("Publishing real footsteps");
+    publishRealFootstepSequence();
 
     // Print planner stats
     m_planner.stats();
@@ -994,7 +991,7 @@ void Navigation::publishRealFootstepSequence() {
 
 int main(int argc, char **argv) {
     // Initialize node
-    ros::init(argc, argv, "aliengo_navigation");
+    ros::init(argc, argv, "footstep_planner");
     ros::NodeHandle nodeHandle("~");
 
     // TF2 objects

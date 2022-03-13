@@ -31,9 +31,9 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
-#include <wb_controller/ContactForces.h>
-#include <wb_controller/CartesianTask.h>
-#include <wb_controller/ComTask.h>
+#include <wolf_controller/ContactForces.h>
+#include <wolf_controller/CartesianTask.h>
+#include <wolf_controller/ComTask.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Planner
@@ -185,24 +185,24 @@ private:
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
     //! FL foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_flFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_flFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_flFootPoseSubscriber;
 
     //! FR foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_frFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_frFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_frFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_frFootPoseSubscriber;
 
     //! RL foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_rlFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_rlFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_rlFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_rlFootPoseSubscriber;
 
     //! RR foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_rrFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_rrFootPoseSubscriber;
 
     //! Feet contact forces cache
-    message_filters::Cache<wb_controller::ContactForces> m_contactForcesCache;
-    message_filters::Subscriber<wb_controller::ContactForces> m_contactForcesSubscriber;
+    message_filters::Cache<wolf_controller::ContactForces> m_contactForcesCache;
+    message_filters::Subscriber<wolf_controller::ContactForces> m_contactForcesSubscriber;
 
     //! Commanded velocities
     std::vector<float> m_velocities;
@@ -226,7 +226,7 @@ private:
     std::vector<nav_msgs::Odometry> m_predictionInputCoM;
 
     //! Feet prediction input
-    std::vector<std::vector<wb_controller::CartesianTask>> m_predictionInputFeet;
+    std::vector<std::vector<wolf_controller::CartesianTask>> m_predictionInputFeet;
 
     //! Current swinging pair
     bool m_swingingFRRL;
@@ -241,13 +241,13 @@ private:
     boost::shared_ptr<nav_msgs::Odometry const> m_latestRobotPose;
 
     //! Latest contact forces message
-    boost::shared_ptr<wb_controller::ContactForces const> m_latestContactForces;
+    boost::shared_ptr<wolf_controller::ContactForces const> m_latestContactForces;
 
     //! Latest relative feet poses
-    boost::shared_ptr<wb_controller::CartesianTask const> m_latestFLFootPose;
-    boost::shared_ptr<wb_controller::CartesianTask const> m_latestFRFootPose;
-    boost::shared_ptr<wb_controller::CartesianTask const> m_latestRLFootPose;
-    boost::shared_ptr<wb_controller::CartesianTask const> m_latestRRFootPose;
+    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestFLFootPose;
+    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestFRFootPose;
+    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestRLFootPose;
+    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestRRFootPose;
 
     //! Joy command
     sensor_msgs::Joy m_joy;

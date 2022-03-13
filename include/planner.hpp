@@ -25,7 +25,7 @@
 #include <grid_map_msgs/GridMap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
-#include <wb_controller/CartesianTask.h>
+#include <wolf_controller/CartesianTask.h>
 #include <visualization_msgs/MarkerArray.h>
 
 // ROS services
@@ -110,18 +110,18 @@ private:
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
     //! FL foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_flFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_flFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_flFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_flFootPoseSubscriber;
 
     //! FR foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_frFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_frFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_frFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_frFootPoseSubscriber;
 
     //! RL foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_rlFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_rlFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_rlFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_rlFootPoseSubscriber;
 
     //! RR foot pose cache
-    message_filters::Cache<wb_controller::CartesianTask> m_rrFootPoseCache;
-    message_filters::Subscriber<wb_controller::CartesianTask> m_rrFootPoseSubscriber;
+    message_filters::Cache<wolf_controller::CartesianTask> m_rrFootPoseCache;
+    message_filters::Subscriber<wolf_controller::CartesianTask> m_rrFootPoseSubscriber;
 };

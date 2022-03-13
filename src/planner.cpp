@@ -59,22 +59,22 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
     const ros::Time l_latestPoseTime = ros::Time::now();
 
     // Get the latest FL foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_flFootPose =
+    boost::shared_ptr<wolf_controller::CartesianTask const> l_flFootPose =
             m_flFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest FR foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_frFootPose =
+    boost::shared_ptr<wolf_controller::CartesianTask const> l_frFootPose =
             m_frFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest RL foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_rlFootPose =
+    boost::shared_ptr<wolf_controller::CartesianTask const> l_rlFootPose =
             m_rlFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
     // Get the latest RR foot pose from the cache
-    boost::shared_ptr<wb_controller::CartesianTask const> l_rrFootPose =
+    boost::shared_ptr<wolf_controller::CartesianTask const> l_rrFootPose =
             m_rrFootPoseCache.getElemBeforeTime(
                     l_latestPoseTime);
 
@@ -161,7 +161,7 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     // Transform feet poses from CoM frame to map frame
     geometry_msgs::TransformStamped l_comMap;
     try{
-        l_comMap = m_buffer.lookupTransform("world", "trunk", ros::Time(0));
+        l_comMap = m_buffer.lookupTransform("world", ROBOT_REFERENCE_FRAME, ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
         ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");

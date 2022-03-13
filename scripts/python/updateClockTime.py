@@ -21,7 +21,7 @@ import rospy
 # ROS msgs imports
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import Odometry
-from wb_controller.msg import ContactForces, CartesianTask
+from wolf_controller.msg import ContactForces, CartesianTask
 
 # Global publishers
 odom_publisher = None
@@ -89,20 +89,20 @@ def main():
 
     # Create publishers
     odom_publisher = rospy.Publisher("/aliengo/ground_truth_republished", Odometry, queue_size=1)
-    cmd_vel_publisher = rospy.Publisher("/aliengo/wb_controller/joy_republished", Joy, queue_size=1)
-    fl_trunk_publisher = rospy.Publisher("/aliengo/wb_controller/lf_foot_republished", CartesianTask, queue_size=1)
-    fr_trunk_publisher = rospy.Publisher("/aliengo/wb_controller/rf_foot_republished", CartesianTask, queue_size=1)
-    rl_trunk_publisher = rospy.Publisher("/aliengo/wb_controller/lh_foot_republished", CartesianTask, queue_size=1)
-    rr_trunk_publisher = rospy.Publisher("/aliengo/wb_controller/rh_foot_republished", CartesianTask, queue_size=1)
-    footholds_publisher = rospy.Publisher("/aliengo/wb_controller/contact_forces_republished", ContactForces, queue_size=1)
+    cmd_vel_publisher = rospy.Publisher("/aliengo/wolf_controller/joy_republished", Joy, queue_size=1)
+    fl_trunk_publisher = rospy.Publisher("/aliengo/wolf_controller/lf_foot_republished", CartesianTask, queue_size=1)
+    fr_trunk_publisher = rospy.Publisher("/aliengo/wolf_controller/rf_foot_republished", CartesianTask, queue_size=1)
+    rl_trunk_publisher = rospy.Publisher("/aliengo/wolf_controller/lh_foot_republished", CartesianTask, queue_size=1)
+    rr_trunk_publisher = rospy.Publisher("/aliengo/wolf_controller/rh_foot_republished", CartesianTask, queue_size=1)
+    footholds_publisher = rospy.Publisher("/aliengo/wolf_controller/contact_forces_republished", ContactForces, queue_size=1)
 
-    cmd_vel_sub = rospy.Subscriber("/aliengo/wb_controller/joy", Joy, cmd_vel_callback)
+    cmd_vel_sub = rospy.Subscriber("/aliengo/wolf_controller/joy", Joy, cmd_vel_callback)
     odom_sub = rospy.Subscriber("/aliengo/ground_truth", Odometry, odom_callback)
-    fl_trunk_sub = rospy.Subscriber("/aliengo/wb_controller/lf_foot", CartesianTask, fl_trunk_callback)
-    fr_trunk_sub = rospy.Subscriber("/aliengo/wb_controller/rf_foot", CartesianTask, fr_trunk_callback)
-    rl_trunk_sub = rospy.Subscriber("/aliengo/wb_controller/lh_foot", CartesianTask, rl_trunk_callback)
-    rr_trunk_sub = rospy.Subscriber("/aliengo/wb_controller/rh_foot", CartesianTask, rr_trunk_callback)
-    footholds_sub = rospy.Subscriber("/aliengo/wb_controller/contact_forces", ContactForces, footholds_callback)
+    fl_trunk_sub = rospy.Subscriber("/aliengo/wolf_controller/lf_foot", CartesianTask, fl_trunk_callback)
+    fr_trunk_sub = rospy.Subscriber("/aliengo/wolf_controller/rf_foot", CartesianTask, fr_trunk_callback)
+    rl_trunk_sub = rospy.Subscriber("/aliengo/wolf_controller/lh_foot", CartesianTask, rl_trunk_callback)
+    rr_trunk_sub = rospy.Subscriber("/aliengo/wolf_controller/rh_foot", CartesianTask, rr_trunk_callback)
+    footholds_sub = rospy.Subscriber("/aliengo/wolf_controller/contact_forces", ContactForces, footholds_callback)
 
     rospy.spin()
 
