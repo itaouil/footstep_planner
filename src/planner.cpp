@@ -154,35 +154,19 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                    const bool &p_swingingFRRL,
                    std::vector<Node> &p_path) {
     auto start = high_resolution_clock::now();
-    // Current odometry info
-    boost::shared_ptr<nav_msgs::Odometry const> l_robotPose = m_robotPoseCache.getElemBeforeTime(
-            ros::Time::now());
 
-    // Transform feet poses from CoM frame to map frame
-    geometry_msgs::TransformStamped l_comMap;
-    try{
-        l_comMap = m_buffer.lookupTransform("world", ROBOT_REFERENCE_FRAME, ros::Time(0));
-    }
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
-        return;
-    }
+    // Latest odometry pose
+    boost::shared_ptr<nav_msgs::Odometry const> l_robotPose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
 
-    // Compute grid source coordinates
+    // Create World3D start object
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
     World3D l_worldStartPosition{l_robotPose->pose.pose.position.x,
                                  l_robotPose->pose.pose.position.y,
                                  l_robotPose->pose.pose.position.z,
                                  l_startPositionQuaternion};
-//    tf2::Quaternion l_startPositionQuaternion;
-//    tf2::convert(l_robotPose->pose.pose.orientation, l_startPositionQuaternion);
-//    World3D l_worldStartPosition{l_comMap.transform.translation.x,
-//                                 l_comMap.transform.translation.y,
-//                                 0.0,
-//                                 l_startPositionQuaternion};
 
-    // Compute grid goal coordinates
+    // Create World3D goal object
     tf2::Quaternion l_goalPositionQuaternion;
     tf2::convert(p_goalPosition.pose.orientation, l_goalPositionQuaternion);
     World3D l_worldGoalPosition{p_goalPosition.pose.position.x,
@@ -196,13 +180,11 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     ROS_INFO_STREAM("Current robot pose: " << l_robotPose->pose.pose.position.x << ", "
                                            << l_robotPose->pose.pose.position.y);
 
-    ROS_INFO_STREAM("Transformed pose: " << l_comMap.transform.translation.x << ", " << l_comMap.transform.translation.y);
-
-    // Compute feet configuration
+    // Create FeetConfiguration object
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(l_robotPose, l_feetConfiguration, p_swingingFRRL);
 
-    // Clear passed path before calling search
+    // Clear reference path
     p_path.clear();
 
     // Call the A* search algorithm

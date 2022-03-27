@@ -120,11 +120,6 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
 
-//        double minVal;
-//        double maxVal;
-//        minMaxLoc( l_elevationMapImage, &minVal, &maxVal);
-//        ROS_INFO_STREAM("Max and Min: " << minVal << ", " << maxVal << ", " << l_elevationMap["elevation_inpainted"].minCoeffOfFinites() << ", " << l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
-
         // Dilate elevation map image to fill sparse regions
         cv::Mat l_elevationMapImageDilated;
         cv::dilate(l_elevationMapImage, l_elevationMapImageDilated, cv::Mat());

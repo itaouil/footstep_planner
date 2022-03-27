@@ -8,6 +8,8 @@
 
 #include "aStar.hpp"
 
+std::ofstream m_fileStream;
+
 /**
  * Obtain yaw angle (in degrees) from
  * respective quaternion rotation.
@@ -44,9 +46,6 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_validFootstepsFound(0),
         m_listener(m_buffer),
         m_elevationMapProcessor(p_nh) {
-    // Set cost heuristics: manhattan, euclidean, octagonal
-    setHeuristic(&Heuristic::euclidean);
-
     // Set if diagonal movements are allowed
     setDiagonalMovement(SET_DIAGONAL_MOVEMENT);
 
@@ -63,6 +62,12 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
 
     // Available velocities
     m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+
+    // Open file stream file
+    if (!m_fileStream.is_open()) {
+        m_fileStream.open(
+                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour2/02.txt");
+    }
 }
 
 /**
@@ -148,18 +153,6 @@ Node *AStar::Search::findNodeOnList(const std::vector<Node *> &p_nodes,
     }
 
     return nullptr;
-}
-
-/**
-  * Sets heuristic to be used for the H cost.
-  *
-  * @param p_heuristic
-  */
-void AStar::Search::setHeuristic(const std::function<unsigned int(Node, Node)> &p_heuristic) {
-    m_heuristic = [p_heuristic](auto &&PH1, auto &&PH2) {
-        return p_heuristic(std::forward<decltype(PH1)>(PH1),
-                           std::forward<decltype(PH2)>(PH2));
-    };
 }
 
 /**
@@ -270,6 +263,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     l_initialNode->velocity = p_initialVelocity;
 
     // Search process
+    bool l_lol = true;
     while (!l_openSet.empty()) {
         l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
@@ -282,6 +276,41 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 l_currentNode = l_iteratorNode;
                 l_iterator = it;
             }
+        }
+
+        if (l_lol) {
+            float l_flDistance = 0;
+            float l_frDistance = 0;
+            float l_rlDistance = 0;
+            float l_rrDistance = 0;
+            Vec2D l_flGridPoses{};
+            Vec2D l_frGridPoses{};
+            Vec2D l_rlGridPoses{};
+            Vec2D l_rrGridPoses{};
+            worldToGrid(l_currentNode->feetConfiguration.flMap, l_flGridPoses);
+            worldToGrid(l_currentNode->feetConfiguration.frMap, l_frGridPoses);
+            worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlGridPoses);
+            worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrGridPoses);
+            m_elevationMapProcessor.validFootstep(l_flGridPoses.x,
+                                                  l_flGridPoses.y,
+                                                  l_flDistance);
+            m_elevationMapProcessor.validFootstep(l_frGridPoses.x,
+                                                  l_frGridPoses.y,
+                                                  l_frDistance);
+            m_elevationMapProcessor.validFootstep(l_rlGridPoses.x,
+                                                  l_rlGridPoses.y,
+                                                  l_rlDistance);
+            m_elevationMapProcessor.validFootstep(l_rrGridPoses.x,
+                                                  l_rrGridPoses.y,
+                                                  l_rrDistance);
+
+            // Log distances of the real feet
+            m_fileStream << l_flDistance << ","
+                         << l_frDistance << ", "
+                         << l_rlDistance << ", "
+                         << l_rrDistance << "\n";
+            m_fileStream.flush();
+            l_lol = false;
         }
 
         ROS_INFO_STREAM(
@@ -311,12 +340,14 @@ void AStar::Search::findPath(const Action &p_initialAction,
         // Flag signaling if valid footstep found
         bool l_validFootstepFound = false;
 
-        for (double &l_nextVelocity: m_velocities) {
+        for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 ROS_DEBUG_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
                 ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
                 ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
+                ROS_INFO_STREAM("Current G: " << l_currentNode->G);
+                ROS_INFO_STREAM("Current H: " << l_currentNode->H);
 
                 // Disallow velocities above 0.5 for non-forward actions
                 if (m_actions[i].x != 1 && l_nextVelocity > 0.5) {
@@ -429,7 +460,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
-                float l_totalCost = l_currentNode->G;
+                float l_footCost = l_hindFootCost + l_frontFootCost;
 
                 if (successor == nullptr) {
                     successor = new Node(m_actions[i],
@@ -437,16 +468,15 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
                                          l_currentNode);
-                    successor->G = l_totalCost;
+                    successor->G = l_footCost;
                     successor->velocity = l_nextVelocity;
-//                    successor->H = m_heuristic(*successor, Node{Action{0, 0, 0},
-//                                                                l_targetGridCoordinates,
-//                                                                p_targetWorldCoordinates,
-//                                                                l_newFeetConfiguration});
-                    successor->H = (l_frontFootCost + l_hindFootCost);
+                    successor->H = 0 * AStar::Heuristic::euclidean(*successor, Node{Action{0, 0, 0},
+                                                                                l_targetGridCoordinates,
+                                                                                p_targetWorldCoordinates,
+                                                                                l_newFeetConfiguration});
                     l_openSet.push_back(successor);
-                } else if (l_totalCost < successor->G) {
-                    successor->G = l_totalCost;
+                } else if (l_footCost < successor->G) {
+                    successor->G = l_footCost;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;
@@ -530,19 +560,6 @@ float AStar::Heuristic::getHeadingDelta(const World3D &p_sourceWorldCoordinates,
 
 /**
  * A* Heuristic class routine that computes
- * the manhattan distance between two points.
- *
- * @param p_sourceNode
- * @param p_targetNode
- * @return manhattan distance
- */
-float AStar::Heuristic::manhattan(const Node &p_sourceNode, const Node &p_targetNode) {
-    auto l_distanceDelta = getDistanceDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
-    return static_cast<float>(10 * (l_distanceDelta.x + l_distanceDelta.y));
-}
-
-/**
- * A* Heuristic class routine that computes
  * the euclidean distance between two points.
  *
  * @param p_sourceNode
@@ -561,17 +578,4 @@ float AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_target
     ROS_INFO_STREAM("Distance heuristic: " << l_distanceHeuristic << "\n");
 
     return l_distanceHeuristic;
-}
-
-/**
- * A* Heuristic class routine that computes
- * the octagonal distance between two points.
- *
- * @param p_sourceNode
- * @param p_targetNode
- * @return octagonal distance
- */
-float AStar::Heuristic::octagonal(const Node &p_sourceNode, const Node &p_targetNode) {
-    auto delta = getDistanceDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
-    return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }

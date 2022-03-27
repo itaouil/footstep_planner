@@ -43,7 +43,7 @@ MAX_HEIGHT = 0.045
 # Global variables
 robot_name = "aliengo"
 path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/" + robot_name + "/step_0.065"
-file_object = open(path + "/accelerations_1m.csv", "a")
+file_object = open(path + "/lol_1m.csv", "a")
 
 
 def clean_max_heights():
@@ -219,6 +219,10 @@ def live_extraction(odom_msg,
                       str(trans_rh[0]) + "," +  # 13
                       str(trans_rh[1]) + "," +  # 14
                       str(trans_rh[2]) + "," +  # 15
+
+                      [[ 2.35069799e-02]
+                       [-2.23739261e-03]
+                       [ 4.39037271e-05]]
 
                       str(odom_msg.pose.pose.position.x) + "," +  # 16
                       str(odom_msg.pose.pose.position.y) + "," +  # 17

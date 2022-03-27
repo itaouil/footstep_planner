@@ -188,7 +188,7 @@ namespace AStar {
         unsigned int m_numberOfActions{};
 
         //! Velocities
-        std::vector<double> m_velocities;
+        std::vector<float> m_velocities;
 
         //! Heuristic function to be used
         std::function<unsigned int(Node, Node)> m_heuristic;

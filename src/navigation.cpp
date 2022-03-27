@@ -309,7 +309,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     // Open file stream file
     if (!m_fileStream.is_open()) {
         m_fileStream.open(
-                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour2/run1.txt");
+                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour2/02.txt");
     }
 
     // Reset configuration
@@ -569,12 +569,12 @@ void Navigation::executeHighLevelCommands() {
     ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
     publishRealCoMPath();
     publishPredictedCoMPath();
-
-    ROS_INFO_STREAM("Publishing predicted footsteps");
-    publishPredictedFootstepSequence();
-
-    ROS_INFO_STREAM("Publishing real footsteps");
-    publishRealFootstepSequence();
+//
+//    ROS_INFO_STREAM("Publishing predicted footsteps");
+//    publishPredictedFootstepSequence();
+//
+//    ROS_INFO_STREAM("Publishing real footsteps");
+//    publishRealFootstepSequence();
 
     // Print planner stats
     m_planner.stats();

@@ -25,7 +25,7 @@ import dynamic_reconfigure.client
 client = None
 robot_name = "aliengo"
 MAX_NON_FWD_VELOCITY = 0.55
-ACCELERATION_ENABLED = True
+ACCELERATION_ENABLED = False
 
 
 def stop(velocity_publisher):
@@ -164,31 +164,31 @@ def joy_publisher():
     rospy.sleep(2)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 1.0, 0.1):
+        for velocity in np.arange(1.0, 1.1, 0.1):
             print(velocity)
 
             # 1s stomping to avoid instability
             stomping(velocity_publisher)
 
-            # Forward walking
-            joy = Joy()
-            joy.header.stamp = rospy.Time.now()
-            joy.header.frame_id = "/dev/input/js0"
-            joy.axes = [0.0, velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-            if ACCELERATION_ENABLED:
-                print("Publishing acceleration forward command")
-                publish_joy_accelerations(joy, velocity_publisher, velocity, "forward")
-            else:
-                print("Publishing continuous forward command")
-                publish_joy_continuous(joy, velocity_publisher)
-
-            # 1s stomping to avoid instability
-            stomping(velocity_publisher)
-
-            # Limit side and rotational velocities to 0.5
-            if not ACCELERATION_ENABLED and velocity > MAX_NON_FWD_VELOCITY:
-                continue
+            # # Forward walking
+            # joy = Joy()
+            # joy.header.stamp = rospy.Time.now()
+            # joy.header.frame_id = "/dev/input/js0"
+            # joy.axes = [0.0, velocity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            # if ACCELERATION_ENABLED:
+            #     print("Publishing acceleration forward command")
+            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "forward")
+            # else:
+            #     print("Publishing continuous forward command")
+            #     publish_joy_continuous(joy, velocity_publisher)
+            #
+            # # 1s stomping to avoid instability
+            # stomping(velocity_publisher)
+            #
+            # # Limit side and rotational velocities to 0.5
+            # if not ACCELERATION_ENABLED and velocity > MAX_NON_FWD_VELOCITY:
+            #     continue
 
             # Clockwise rotation
             joy = Joy()
