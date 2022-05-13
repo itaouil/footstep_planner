@@ -55,19 +55,11 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
             {0, -1, 0}, // Right
             {0, 1,  0}, // Left
             {0, 0,  -1}, // Clockwise
-            {0, 0,  1}, // Counterclockwise
-            {1, 0,  -1}, // Forward + Counterclockwise
-            {1, 0,  1} // Forward + Counterclockwise
+            {0, 0,  1} // Counterclockwise
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-
-    // Open file stream file
-    if (!m_fileStream.is_open()) {
-        m_fileStream.open(
-                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour2/02.txt");
-    }
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 }
 
 /**
@@ -82,7 +74,7 @@ AStar::Search::~Search() = default;
  * @param p_enable
  */
 void AStar::Search::setDiagonalMovement(bool p_enable) {
-    m_numberOfActions = (p_enable ? 7 : 1);
+    m_numberOfActions = (p_enable ? 5 : 1);
 }
 
 /**
@@ -97,9 +89,6 @@ bool AStar::Search::detectCollision(const Vec2D &p_gridCoordinates) const {
     //TODO: add height check
     if (p_gridCoordinates.x < 0 || p_gridCoordinates.x >= static_cast<int>(m_elevationMapGridSizeX) ||
         p_gridCoordinates.y < 0 || p_gridCoordinates.y >= static_cast<int>(m_elevationMapGridSizeY)) {
-        // ROS_INFO("AStar: Collision detected.");
-        // ROS_DEBUG_STREAM(p_gridCoordinates.x << ", " << m_elevationMapGridSizeX);
-        // ROS_DEBUG_STREAM(p_gridCoordinates.y << ", " << m_elevationMapGridSizeY);
         return true;
     }
     return false;
@@ -263,7 +252,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
     l_initialNode->velocity = p_initialVelocity;
 
     // Search process
-    bool l_lol = true;
     while (!l_openSet.empty()) {
         l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
@@ -276,41 +264,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 l_currentNode = l_iteratorNode;
                 l_iterator = it;
             }
-        }
-
-        if (l_lol) {
-            float l_flDistance = 0;
-            float l_frDistance = 0;
-            float l_rlDistance = 0;
-            float l_rrDistance = 0;
-            Vec2D l_flGridPoses{};
-            Vec2D l_frGridPoses{};
-            Vec2D l_rlGridPoses{};
-            Vec2D l_rrGridPoses{};
-            worldToGrid(l_currentNode->feetConfiguration.flMap, l_flGridPoses);
-            worldToGrid(l_currentNode->feetConfiguration.frMap, l_frGridPoses);
-            worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlGridPoses);
-            worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrGridPoses);
-            m_elevationMapProcessor.validFootstep(l_flGridPoses.x,
-                                                  l_flGridPoses.y,
-                                                  l_flDistance);
-            m_elevationMapProcessor.validFootstep(l_frGridPoses.x,
-                                                  l_frGridPoses.y,
-                                                  l_frDistance);
-            m_elevationMapProcessor.validFootstep(l_rlGridPoses.x,
-                                                  l_rlGridPoses.y,
-                                                  l_rlDistance);
-            m_elevationMapProcessor.validFootstep(l_rrGridPoses.x,
-                                                  l_rrGridPoses.y,
-                                                  l_rrDistance);
-
-            // Log distances of the real feet
-            m_fileStream << l_flDistance << ","
-                         << l_frDistance << ", "
-                         << l_rlDistance << ", "
-                         << l_rrDistance << "\n";
-            m_fileStream.flush();
-            l_lol = false;
         }
 
         ROS_INFO_STREAM(
@@ -349,10 +302,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 ROS_INFO_STREAM("Current G: " << l_currentNode->G);
                 ROS_INFO_STREAM("Current H: " << l_currentNode->H);
 
-                // Disallow velocities above 0.5 for non-forward actions
-                if (m_actions[i].x != 1 && l_nextVelocity > 0.5) {
-                    continue;
-                }
+//                // Disallow velocities above 0.5 for non-forward actions
+//                if (m_actions[i].x != 1 && l_nextVelocity > 0.7) {
+//                    continue;
+//                }
 
                 World3D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfiguration;
@@ -365,10 +318,12 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     l_tempNode.velocity = 0.0;
                     l_tempNode.action = Action{0, 0, 0};
                     l_tempNode.feetConfiguration = m_idleFeetConfiguration;
+
+                    // Set map feet configuration based on idle CoM poses of the feet
+                    setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
                 }
 
-                m_model.predictNextState(l_tempNode.velocity != l_nextVelocity,
-                                         l_tempNode.velocity,
+                m_model.predictNextState(l_tempNode.velocity,
                                          l_nextVelocity,
                                          m_actions[i],
                                          p_odomVelocityState,
@@ -393,6 +348,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 if (m_validFootstepsFound < FOOTSTEP_HORIZON) {
                     setFeetConfigurationMapFields(l_newWorldCoordinatesCoM, l_newFeetConfiguration);
 
+                    // New feet configuration grid pose
                     Vec2D l_flGridPose{};
                     Vec2D l_frGridPose{};
                     Vec2D l_rlGridPose{};
@@ -402,19 +358,41 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     worldToGrid(l_newFeetConfiguration.rlMap, l_rlGridPose);
                     worldToGrid(l_newFeetConfiguration.rrMap, l_rrGridPose);
 
+                    // Current feet configuration grid pose
+                    Vec2D l_flPrevGridPose{};
+                    Vec2D l_frPrevGridPose{};
+                    Vec2D l_rlPrevGridPose{};
+                    Vec2D l_rrPrevGridPose{};
+                    worldToGrid(l_currentNode->feetConfiguration.flMap, l_flPrevGridPose);
+                    worldToGrid(l_currentNode->feetConfiguration.frMap, l_frPrevGridPose);
+                    worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlPrevGridPose);
+                    worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrPrevGridPose);
+
                     float l_hindFootDistance = 0;
                     float l_frontFootDistance = 0;
                     if (l_currentNode->feetConfiguration.fr_rl_swinging) {
-                        if (!m_elevationMapProcessor.validFootstep(l_frGridPose.x, l_frGridPose.y,
+                        if (!m_elevationMapProcessor.validFootstep(l_frPrevGridPose.x,
+                                                                   l_frPrevGridPose.y,
+                                                                   l_frGridPose.x,
+                                                                   l_frGridPose.y,
                                                                    l_frontFootDistance) ||
-                            !m_elevationMapProcessor.validFootstep(l_rlGridPose.x, l_rlGridPose.y,
+                            !m_elevationMapProcessor.validFootstep(l_rlPrevGridPose.x,
+                                                                   l_rlPrevGridPose.y,
+                                                                   l_rlGridPose.x,
+                                                                   l_rlGridPose.y,
                                                                    l_hindFootDistance)) {
                             continue;
                         }
                     } else {
-                        if (!m_elevationMapProcessor.validFootstep(l_flGridPose.x, l_flGridPose.y,
+                        if (!m_elevationMapProcessor.validFootstep(l_flPrevGridPose.x,
+                                                                   l_flPrevGridPose.y,
+                                                                   l_flGridPose.x,
+                                                                   l_flGridPose.y,
                                                                    l_frontFootDistance) ||
-                            !m_elevationMapProcessor.validFootstep(l_rrGridPose.x, l_rrGridPose.y,
+                            !m_elevationMapProcessor.validFootstep(l_rrPrevGridPose.x,
+                                                                   l_rrPrevGridPose.y,
+                                                                   l_rrGridPose.x,
+                                                                   l_rrGridPose.y,
                                                                    l_hindFootDistance)) {
                             continue;
                         }
@@ -470,7 +448,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_currentNode);
                     successor->G = l_footCost;
                     successor->velocity = l_nextVelocity;
-                    successor->H = 0 * AStar::Heuristic::euclidean(*successor, Node{Action{0, 0, 0},
+                    successor->H = AStar::Heuristic::euclidean(*successor, Node{Action{0, 0, 0},
                                                                                 l_targetGridCoordinates,
                                                                                 p_targetWorldCoordinates,
                                                                                 l_newFeetConfiguration});
@@ -514,7 +492,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     releaseNodes(l_openSet);
     releaseNodes(l_closedSet);
 
-    ROS_DEBUG_STREAM("Number of expanded nodes: " << l_expandedNodes);
+    ROS_INFO_STREAM("Number of expanded nodes: " << l_expandedNodes);
     ROS_DEBUG_STREAM("Path size: " << p_path.size());
 }
 

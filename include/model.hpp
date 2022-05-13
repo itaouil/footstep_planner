@@ -85,15 +85,15 @@ public:
     /**
      * Compute new CoM in world coordinates.
      *
-     * @param p_angularVelocity
      * @param p_predictedCoMDisplacementX
      * @param p_predictedCoMDisplacementY
+     * @param p_predictedCoMDisplacementTheta,
      * @param p_currentWorldCoordinatesCoM
      * @param p_newWorldCoordinatesCoM
      */
-    void computeNewCoM(double p_angularVelocity,
-                       double p_predictedCoMDisplacementX,
+    void computeNewCoM(double p_predictedCoMDisplacementX,
                        double p_predictedCoMDisplacementY,
+                       double p_predictedCoMDisplacementTheta,
                        const World3D &p_currentWorldCoordinatesCoM,
                        World3D &p_newWorldCoordinatesCoM);
 
@@ -117,7 +117,6 @@ public:
      * the learnt models and extracts new CoM
      * from them.
      *
-     * @param p_accelerating
      * @param p_previousVelocity
      * @param p_currentVelocity
      * @param p_action
@@ -127,8 +126,7 @@ public:
      * @param p_newFeetConfiguration
      * @param p_newWorldCoordinatesCoM
      */
-    void predictNextState(bool p_accelerating,
-                          double p_previousVelocity,
+    void predictNextState(double p_previousVelocity,
                           double p_currentVelocity,
                           const Action &p_action,
                           const geometry_msgs::Twist &p_odomVelocityState,

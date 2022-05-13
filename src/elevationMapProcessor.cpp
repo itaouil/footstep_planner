@@ -158,21 +158,12 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                                                                           0,
                                                                           1);
 
-//        minMaxLoc( l_elevationMapImageFiltered, &minVal, &maxVal);
-//        ROS_INFO_STREAM("Max2 and Min2: " << minVal << ", " << maxVal << ", " << l_elevationMap["elevation_inpainted"].minCoeffOfFinites() << ", " << l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
-
-
         // Update elevation layer
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",
                                                                   l_elevationMap,
                                                                   l_elevationMap["elevation_inpainted"].minCoeffOfFinites(),
                                                                   l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
-
-        // Update elevation layer
-        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
-                                                                  "distance",
-                                                                  l_elevationMap);
 
         // Store latest elevation map
         {
@@ -271,18 +262,29 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
  * @param p_footDistance
  * @return true if valid, otherwise false
  */
-bool ElevationMapProcessor::validFootstep(const int &p_nextRow,
+bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
+                                          const int &p_prevCol,
+                                          const int &p_nextRow,
                                           const int &p_nextCol,
                                           float &p_footDistance) {
-    float l_cellDistance;
+    // Closest obstacle distance to new footstep location, and the
+    // height of the footstep locations for the previous and new
+    // predicted location.
+    float l_newFootDistance, l_newFootstepHeight, l_prevFootstepHeight;
+
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        p_footDistance = l_cellDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
-                                                      m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)}) *
-                                                      m_elevationMapGridResolution;
+        p_footDistance = l_newFootDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
+                                                         m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)}) *
+                                                         m_elevationMapGridResolution;
+
+        l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
+        l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
     }
 
-    return (l_cellDistance > MIN_STAIR_DISTANCE);
+    ROS_INFO_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
+
+    return (l_newFootDistance > MIN_STAIR_DISTANCE);
 }
 
 /**

@@ -142,7 +142,7 @@ private:
      *
      * @param p_path
      */
-    void publishOnlinePredictedFootsteps(const std::vector<Node> &p_path);
+    void publishOnlinePredictedFootsteps(std::vector<Node> &p_path);
 
     /**
      * Publish predicted CoM and

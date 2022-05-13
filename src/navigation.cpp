@@ -309,7 +309,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     // Open file stream file
     if (!m_fileStream.is_open()) {
         m_fileStream.open(
-                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour2/02.txt");
+                "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour3/presentation_run1.txt");
     }
 
     // Reset configuration
@@ -362,22 +362,10 @@ void Navigation::executeHighLevelCommands() {
                 break;
             }
 
-            ROS_INFO_STREAM("Path size: " << m_path.size());
-            ROS_INFO_STREAM("Last executed action: " << m_previousAction.x << ", "
-                                                     << m_previousAction.y << ", "
-                                                     << m_previousAction.theta);
-            ROS_INFO_STREAM("Last executed velocity: " << m_previousVelocity);
-            ROS_INFO_STREAM("Last swinging pair: " << m_swingingFRRL << "\n");
-
-            ROS_INFO_STREAM("Count: " << l_actionInExecution << "/" << FOOTSTEP_HORIZON);
-            ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
-            ROS_INFO_STREAM(
-                    "Action: " << l_node.action.x << ", " << l_node.action.y << ", " << l_node.action.theta << "\n");
-
-            // If two different consecutive actions
-            // bring robot to idle positions first
-            // and then re-plan with the latest
-            // configuration reached
+//            // If two different consecutive actions
+//            // bring robot to idle positions first
+//            // and then re-plan with the latest
+//            // configuration reached
 //            if (l_node.action != m_previousAction and m_previousAction != Action{0, 0, 0}) {
 //                ROS_INFO("Navigation: Different consecutive actions applied. Resetting and re-planning.");
 //
@@ -394,7 +382,7 @@ void Navigation::executeHighLevelCommands() {
             updateVariablesFromCache();
 
             // Set joy command to be sending
-            setJoyCommand(l_node.action, l_node.velocity);
+//            setJoyCommand(l_node.action, l_node.velocity);
 
             // Contact conditions
             bool l_flInContact = false;
@@ -503,7 +491,6 @@ void Navigation::executeHighLevelCommands() {
                 m_swingingFRRL = false;
             }
 
-            // Log data
             // Add to file the predicted and actual poses
             m_fileStream << m_latestRobotPose->pose.pose.position.x << ","
                          << m_latestRobotPose->pose.pose.position.y << ", "
@@ -526,6 +513,7 @@ void Navigation::executeHighLevelCommands() {
                          << l_node.feetConfiguration.rrMap.x << ", "
                          << l_node.feetConfiguration.rrMap.y << ", "
                          << l_node.velocity << "\n";
+            m_fileStream.flush();
 
             // Counter for horizon commands execution
             l_actionInExecution += 1;
@@ -566,11 +554,11 @@ void Navigation::executeHighLevelCommands() {
     // Stopping joy publisher
     stopJoyPublisher();
 
-    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
-    publishRealCoMPath();
-    publishPredictedCoMPath();
-//
-//    ROS_INFO_STREAM("Publishing predicted footsteps");
+//    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
+//    publishRealCoMPath();
+//    publishPredictedCoMPath();
+
+    //    ROS_INFO_STREAM("Publishing predicted footsteps");
 //    publishPredictedFootstepSequence();
 //
 //    ROS_INFO_STREAM("Publishing real footsteps");
@@ -579,8 +567,8 @@ void Navigation::executeHighLevelCommands() {
     // Print planner stats
     m_planner.stats();
 
-    // Close file
-    m_fileStream.close();
+//    // Close file
+//    m_fileStream.close();
 }
 
 /**
@@ -643,7 +631,7 @@ void Navigation::publishPredictedCoMPath() {
  *
  * @param p_path
  */
-void Navigation::publishOnlinePredictedFootsteps(const std::vector<Node> &p_path) {
+void Navigation::publishOnlinePredictedFootsteps(std::vector<Node> &p_path) {
     // Counters
     int j = 0;
 
@@ -663,9 +651,9 @@ void Navigation::publishOnlinePredictedFootsteps(const std::vector<Node> &p_path
         l_predictionCommon.pose.orientation.y = 0;
         l_predictionCommon.pose.orientation.z = 0;
         l_predictionCommon.pose.orientation.w = 1;
-        l_predictionCommon.scale.x = 0.025;
-        l_predictionCommon.scale.y = 0.025;
-        l_predictionCommon.scale.z = 0.025;
+        l_predictionCommon.scale.x = 0.035;
+        l_predictionCommon.scale.y = 0.035;
+        l_predictionCommon.scale.z = 0.035;
 
         visualization_msgs::Marker l_predictedFL = l_predictionCommon;
         l_predictedFL.id = j++;
@@ -869,17 +857,17 @@ void Navigation::publishRealFootstepSequence() {
         return;
     }
 
-    for (unsigned int i = 0; i < m_realFeetPoses.size(); i++) {
-        // Feet configuration array
-        visualization_msgs::MarkerArray l_realFeetConfiguration;
+    // Feet configuration array
+    visualization_msgs::MarkerArray l_realFeetConfiguration;
 
+    for (unsigned int i = 0; i < m_realFeetPoses.size(); i++) {
         // Populate target array
         visualization_msgs::Marker l_targetFootCommonMarker;
         l_targetFootCommonMarker.header.stamp = ros::Time::now();
         l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_targetFootCommonMarker.type = 2;
         l_targetFootCommonMarker.action = 0;
-        l_targetFootCommonMarker.lifetime = ros::Duration(1);
+        l_targetFootCommonMarker.lifetime = ros::Duration(120);
         l_targetFootCommonMarker.pose.orientation.x = 0;
         l_targetFootCommonMarker.pose.orientation.y = 0;
         l_targetFootCommonMarker.pose.orientation.z = 0;
@@ -890,7 +878,14 @@ void Navigation::publishRealFootstepSequence() {
         l_targetFootCommonMarker.color.r = 0;
         l_targetFootCommonMarker.color.g = 1;
         l_targetFootCommonMarker.color.b = 0;
-        l_targetFootCommonMarker.color.a = 0.8;
+        l_targetFootCommonMarker.color.a = 0.5;
+
+        if (m_predictedFootsteps[i].rlMap.z < 0.04 || m_predictedFootsteps[i].rrMap.z < 0.04) {
+            m_predictedFootsteps[i].flMap.z = 0.18;
+            m_predictedFootsteps[i].frMap.z = 0.18;
+            m_predictedFootsteps[i].rlMap.z = 0.18;
+            m_predictedFootsteps[i].rrMap.z = 0.18;
+        }
 
         visualization_msgs::Marker l_targetCoMMarker = l_targetFootCommonMarker;
         l_targetCoMMarker.id = j++;
@@ -922,7 +917,7 @@ void Navigation::publishRealFootstepSequence() {
         l_targetRRFootMarker.pose.position.y = m_predictedFootsteps[i].rrMap.y;
         l_targetRRFootMarker.pose.position.z = m_predictedFootsteps[i].rrMap.z;
 
-        l_realFeetConfiguration.markers.push_back(l_targetCoMMarker);
+//        l_realFeetConfiguration.markers.push_back(l_targetCoMMarker);
         l_realFeetConfiguration.markers.push_back(l_targetFLFootMarker);
         l_realFeetConfiguration.markers.push_back(l_targetFRFootMarker);
         l_realFeetConfiguration.markers.push_back(l_targetRLFootMarker);
@@ -934,7 +929,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_realFootCommonMarker.type = 2;
         l_realFootCommonMarker.action = 0;
-        l_realFootCommonMarker.lifetime = ros::Duration(1);
+        l_realFootCommonMarker.lifetime = ros::Duration(120);
         l_realFootCommonMarker.pose.orientation.x = 0;
         l_realFootCommonMarker.pose.orientation.y = 0;
         l_realFootCommonMarker.pose.orientation.z = 0;
@@ -945,7 +940,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFootCommonMarker.color.r = 0;
         l_realFootCommonMarker.color.g = 0;
         l_realFootCommonMarker.color.b = 1;
-        l_realFootCommonMarker.color.a = 0.8;
+        l_realFootCommonMarker.color.a = 0.5;
 
         visualization_msgs::Marker l_realCoMMarker = l_realFootCommonMarker;
         l_realCoMMarker.id = j++;
@@ -977,16 +972,14 @@ void Navigation::publishRealFootstepSequence() {
         l_realRRFootMarker.pose.position.y = m_realFeetPoses[i][3].transform.translation.y;
         l_realRRFootMarker.pose.position.z = m_predictedFootsteps[i].rrMap.z;
 
-        l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
+//        l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
         l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);
         l_realFeetConfiguration.markers.push_back(l_realFRFootMarker);
         l_realFeetConfiguration.markers.push_back(l_realRLFootMarker);
         l_realFeetConfiguration.markers.push_back(l_realRRFootMarker);
-
-        m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
-
-        ros::Duration(1).sleep();
     }
+
+    m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
 }
 
 int main(int argc, char **argv) {
