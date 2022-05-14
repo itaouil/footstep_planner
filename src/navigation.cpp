@@ -51,30 +51,10 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
-    // FL foot pose subscriber and cache setup
-    m_flFootPoseSubscriber.subscribe(m_nh, FL_FOOT_POSE_TOPIC, 1);
-    m_flFootPoseCache.connectInput(m_flFootPoseSubscriber);
-    m_flFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // FR foot pose subscriber and cache setup
-    m_frFootPoseSubscriber.subscribe(m_nh, FR_FOOT_POSE_TOPIC, 1);
-    m_frFootPoseCache.connectInput(m_frFootPoseSubscriber);
-    m_frFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // RL foot pose subscriber and cache setup
-    m_rlFootPoseSubscriber.subscribe(m_nh, RL_FOOT_POSE_TOPIC, 1);
-    m_rlFootPoseCache.connectInput(m_rlFootPoseSubscriber);
-    m_rlFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // RR foot pose subscriber and cache setup
-    m_rrFootPoseSubscriber.subscribe(m_nh, RR_FOOT_POSE_TOPIC, 1);
-    m_rrFootPoseCache.connectInput(m_rrFootPoseSubscriber);
-    m_rrFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // Contact forces subscriber and cache setup
-    m_contactForcesSubscriber.subscribe(m_nh, CONTACT_FORCES_TOPIC, 1);
-    m_contactForcesCache.connectInput(m_contactForcesSubscriber);
-    m_contactForcesCache.setCacheSize(CACHE_SIZE);
+    // High state subscriber and cache setup
+    m_highStateSubscriber.subscribe(m_nh, HIGH_STATE_TOPIC, 1);
+    m_highStateCache.connectInput(m_highStateSubscriber);
+    m_highStateCache.setCacheSize(CACHE_SIZE);
 
     // Acquire initial height map
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
@@ -290,11 +270,16 @@ void Navigation::updateVariablesFromCache() {
     ros::spinOnce();
 
     m_latestRobotPose = m_robotPoseCache.getElemBeforeTime(m_robotPoseCache.getLatestTime());
-    m_latestFLFootPose = m_flFootPoseCache.getElemBeforeTime(m_flFootPoseCache.getLatestTime());
-    m_latestFRFootPose = m_frFootPoseCache.getElemBeforeTime(m_frFootPoseCache.getLatestTime());
-    m_latestRLFootPose = m_rlFootPoseCache.getElemBeforeTime(m_rlFootPoseCache.getLatestTime());
-    m_latestRRFootPose = m_rrFootPoseCache.getElemBeforeTime(m_rrFootPoseCache.getLatestTime());
-    m_latestContactForces = m_contactForcesCache.getElemBeforeTime(m_contactForcesCache.getLatestTime());
+    m_latestHighState = m_highStateCache.getElemBeforeTime(m_highStateCache.getLatestTime());
+
+    m_latestFLFootPose = m_latestHighState->high_state.footPosition2Body[1];
+    m_latestFRFootPose = m_latestHighState->high_state.footPosition2Body[0];
+    m_latestRLFootPose = m_latestHighState->high_state.footPosition2Body[3];
+    m_latestRRFootPose = m_latestHighState->high_state.footPosition2Body[2];
+    m_latestContactForces = {m_latestHighState->high_state.footForce[1], 
+                             m_latestHighState->high_state.footForce[0],
+                             m_latestHighState->high_state.footForce[3],
+                             m_latestHighState->high_state.footForce[2]};
 }
 
 /**
@@ -325,11 +310,11 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     m_predictionInputCoM.push_back(*m_latestRobotPose);
 
     // Save feet poses input to planner
-    std::vector<wolf_controller::CartesianTask> l_feetConfiguration;
-    l_feetConfiguration.push_back(*m_latestFLFootPose);
-    l_feetConfiguration.push_back(*m_latestFRFootPose);
-    l_feetConfiguration.push_back(*m_latestRLFootPose);
-    l_feetConfiguration.push_back(*m_latestRRFootPose);
+    std::vector<unitree_legged_msgs::Cartesian> l_feetConfiguration;
+    l_feetConfiguration.push_back(m_latestFLFootPose);
+    l_feetConfiguration.push_back(m_latestFRFootPose);
+    l_feetConfiguration.push_back(m_latestRLFootPose);
+    l_feetConfiguration.push_back(m_latestRRFootPose);
     m_predictionInputFeet.push_back(l_feetConfiguration);
 
     // Plan path
@@ -405,10 +390,10 @@ void Navigation::executeHighLevelCommands() {
                 ros::spinOnce();
 
                 // Get feet forces
-                auto l_flForceZ = m_latestContactForces->contact_forces[0].force.z;
-                auto l_rlForceZ = m_latestContactForces->contact_forces[1].force.z;
-                auto l_frForceZ = m_latestContactForces->contact_forces[2].force.z;
-                auto l_rrForceZ = m_latestContactForces->contact_forces[3].force.z;
+                auto l_flForceZ = m_latestContactForces[0];
+                auto l_rlForceZ = m_latestContactForces[1];
+                auto l_frForceZ = m_latestContactForces[2];
+                auto l_rrForceZ = m_latestContactForces[3];
 
                 // Check if height peak was reached
                 if (!l_swingingFeetOutOfContact &&
@@ -483,9 +468,9 @@ void Navigation::executeHighLevelCommands() {
             // Update planning variables
             m_previousAction = l_node.action;
             m_previousVelocity = l_node.velocity;
-            if (m_latestFRFootPose->pose_actual.position.x < m_latestFLFootPose->pose_actual.position.x) {
-                ROS_INFO_STREAM("FR and FL x relatively: " << m_latestFRFootPose->pose_actual.position.x << ", "
-                                                           << m_latestFLFootPose->pose_actual.position.x);
+            if (m_latestFRFootPose.x < m_latestFLFootPose.x) {
+                ROS_INFO_STREAM("FR and FL x relatively: " << m_latestFRFootPose.x << ", "
+                                                           << m_latestFLFootPose.x);
                 m_swingingFRRL = true;
             } else {
                 m_swingingFRRL = false;
@@ -533,11 +518,11 @@ void Navigation::executeHighLevelCommands() {
             m_predictionInputCoM.push_back(*m_latestRobotPose);
 
             // Save feet poses input to planner
-            std::vector<wolf_controller::CartesianTask> l_feetConfiguration;
-            l_feetConfiguration.push_back(*m_latestFLFootPose);
-            l_feetConfiguration.push_back(*m_latestFRFootPose);
-            l_feetConfiguration.push_back(*m_latestRLFootPose);
-            l_feetConfiguration.push_back(*m_latestRRFootPose);
+            std::vector<unitree_legged_msgs::Cartesian> l_feetConfiguration;
+            l_feetConfiguration.push_back(m_latestFLFootPose);
+            l_feetConfiguration.push_back(m_latestFRFootPose);
+            l_feetConfiguration.push_back(m_latestRLFootPose);
+            l_feetConfiguration.push_back(m_latestRRFootPose);
             m_predictionInputFeet.push_back(l_feetConfiguration);
 
             // Plan

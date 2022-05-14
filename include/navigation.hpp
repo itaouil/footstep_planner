@@ -31,9 +31,8 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
-#include <wolf_controller/ContactForces.h>
-#include <wolf_controller/CartesianTask.h>
-#include <wolf_controller/ComTask.h>
+#include <unitree_legged_msgs/HighStateStamped.h>
+#include <unitree_legged_msgs/Cartesian.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Planner
@@ -184,25 +183,9 @@ private:
     message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
-    //! FL foot pose cache
-    message_filters::Cache<wolf_controller::CartesianTask> m_flFootPoseCache;
-    message_filters::Subscriber<wolf_controller::CartesianTask> m_flFootPoseSubscriber;
-
-    //! FR foot pose cache
-    message_filters::Cache<wolf_controller::CartesianTask> m_frFootPoseCache;
-    message_filters::Subscriber<wolf_controller::CartesianTask> m_frFootPoseSubscriber;
-
-    //! RL foot pose cache
-    message_filters::Cache<wolf_controller::CartesianTask> m_rlFootPoseCache;
-    message_filters::Subscriber<wolf_controller::CartesianTask> m_rlFootPoseSubscriber;
-
-    //! RR foot pose cache
-    message_filters::Cache<wolf_controller::CartesianTask> m_rrFootPoseCache;
-    message_filters::Subscriber<wolf_controller::CartesianTask> m_rrFootPoseSubscriber;
-
-    //! Feet contact forces cache
-    message_filters::Cache<wolf_controller::ContactForces> m_contactForcesCache;
-    message_filters::Subscriber<wolf_controller::ContactForces> m_contactForcesSubscriber;
+    //! High state cache
+    message_filters::Cache<unitree_legged_msgs::HighStateStamped> m_highStateCache;
+    message_filters::Subscriber<unitree_legged_msgs::HighStateStamped> m_highStateSubscriber;
 
     //! Commanded velocities
     std::vector<float> m_velocities;
@@ -210,44 +193,37 @@ private:
     //! Goal message
     geometry_msgs::PoseStamped m_goalMsg;
 
-    //! Predicted feet poses
+    //! Predicted CoM and feet poses
+    std::vector<World3D> m_predictedCoMPoses;
     std::vector<FeetConfiguration> m_predictedFootsteps;
 
-    //! Predicted CoM poses
-    std::vector<World3D> m_predictedCoMPoses;
-
-    //! Real CoM poses
+    //! Real CoM and feet poses
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
-
-    //! Real feet poses
     std::vector<std::vector<geometry_msgs::TransformStamped>> m_realFeetPoses;
 
-    //! CoM prediction input
+    //! CoM and feet prediction input
     std::vector<nav_msgs::Odometry> m_predictionInputCoM;
+    std::vector<std::vector<unitree_legged_msgs::Cartesian>> m_predictionInputFeet;
 
-    //! Feet prediction input
-    std::vector<std::vector<wolf_controller::CartesianTask>> m_predictionInputFeet;
-
-    //! Current swinging pair
+    //! Planner variables
     bool m_swingingFRRL;
-
-    //! Current action given to planner
     Action m_previousAction;
-
-    //! Current velocity given to planner
     double m_previousVelocity;
 
     //! Latest robot pose
     boost::shared_ptr<nav_msgs::Odometry const> m_latestRobotPose;
 
+    //! Latest high state message
+    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> m_latestHighState;
+    
     //! Latest contact forces message
-    boost::shared_ptr<wolf_controller::ContactForces const> m_latestContactForces;
+    std::vector<int16_t> m_latestContactForces;
 
     //! Latest relative feet poses
-    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestFLFootPose;
-    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestFRFootPose;
-    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestRLFootPose;
-    boost::shared_ptr<wolf_controller::CartesianTask const> m_latestRRFootPose;
+    unitree_legged_msgs::Cartesian m_latestFLFootPose;
+    unitree_legged_msgs::Cartesian m_latestFRFootPose;
+    unitree_legged_msgs::Cartesian m_latestRLFootPose;
+    unitree_legged_msgs::Cartesian m_latestRRFootPose;
 
     //! Joy command
     sensor_msgs::Joy m_joy;

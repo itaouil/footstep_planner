@@ -15,22 +15,18 @@
 // Published topics
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
-const std::string VELOCITY_CMD_TOPIC("/aliengo/wolf_controller/joy");
+const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/high_cmd");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
-const std::string ROBOT_POSE_TOPIC("/aliengo/ground_truth");
-const std::string FL_FOOT_POSE_TOPIC("/aliengo/wolf_controller/lf_foot");
-const std::string FR_FOOT_POSE_TOPIC("/aliengo/wolf_controller/rf_foot");
-const std::string RL_FOOT_POSE_TOPIC("/aliengo/wolf_controller/lh_foot");
-const std::string RR_FOOT_POSE_TOPIC("/aliengo/wolf_controller/rh_foot");
+const std::string ROBOT_POSE_TOPIC("/t265/odom/sample");
+const std::string HIGH_STATE_TOPIC("/aliengo_bridge/high_state");
 const std::string HEIGHT_MAP_TOPIC("/elevation_mapping/elevation_map_raw");
-const std::string CONTACT_FORCES_TOPIC("/aliengo/wolf_controller/contact_forces");
 
 // TF reference frames
-const std::string ROBOT_REFERENCE_FRAME("trunk");
-const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
+const std::string ROBOT_REFERENCE_FRAME("base");
+const std::string HEIGHT_MAP_REFERENCE_FRAME("t265_odom_frame");
 
 // Publish processed elevation map
 const bool PUBLISH(true);

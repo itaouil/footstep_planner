@@ -16,6 +16,7 @@ set(
         tf_conversions
         message_filters
         message_generation
+        unitree_legged_msgs
 )
 
 find_package(catkin REQUIRED

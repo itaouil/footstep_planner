@@ -22,25 +22,10 @@ Planner::Planner(ros::NodeHandle &p_nh) :
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
-    // FL foot pose subscriber and cache setup
-    m_flFootPoseSubscriber.subscribe(m_nh, FL_FOOT_POSE_TOPIC, 1);
-    m_flFootPoseCache.connectInput(m_flFootPoseSubscriber);
-    m_flFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // FR foot pose subscriber and cache setup
-    m_frFootPoseSubscriber.subscribe(m_nh, FR_FOOT_POSE_TOPIC, 1);
-    m_frFootPoseCache.connectInput(m_frFootPoseSubscriber);
-    m_frFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // RL foot pose subscriber and cache setup
-    m_rlFootPoseSubscriber.subscribe(m_nh, RL_FOOT_POSE_TOPIC, 1);
-    m_rlFootPoseCache.connectInput(m_rlFootPoseSubscriber);
-    m_rlFootPoseCache.setCacheSize(CACHE_SIZE);
-
-    // RR foot pose subscriber and cache setup
-    m_rrFootPoseSubscriber.subscribe(m_nh, RR_FOOT_POSE_TOPIC, 1);
-    m_rrFootPoseCache.connectInput(m_rrFootPoseSubscriber);
-    m_rrFootPoseCache.setCacheSize(CACHE_SIZE);
+    // High state subscriber and cache setup
+    m_highStateSubscriber.subscribe(m_nh, HIGH_STATE_TOPIC, 1);
+    m_highStateCache.connectInput(m_highStateSubscriber);
+    m_highStateCache.setCacheSize(CACHE_SIZE);
 }
 
 Planner::~Planner() = default;
@@ -55,28 +40,9 @@ Planner::~Planner() = default;
 void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &p_robotPose,
                                    FeetConfiguration &p_feetConfiguration,
                                    const bool &p_swingingFRRL) {
-    // Time of cache extraction
-    const ros::Time l_latestPoseTime = ros::Time::now();
-
-    // Get the latest FL foot pose from the cache
-    boost::shared_ptr<wolf_controller::CartesianTask const> l_flFootPose =
-            m_flFootPoseCache.getElemBeforeTime(
-                    l_latestPoseTime);
-
-    // Get the latest FR foot pose from the cache
-    boost::shared_ptr<wolf_controller::CartesianTask const> l_frFootPose =
-            m_frFootPoseCache.getElemBeforeTime(
-                    l_latestPoseTime);
-
-    // Get the latest RL foot pose from the cache
-    boost::shared_ptr<wolf_controller::CartesianTask const> l_rlFootPose =
-            m_rlFootPoseCache.getElemBeforeTime(
-                    l_latestPoseTime);
-
-    // Get the latest RR foot pose from the cache
-    boost::shared_ptr<wolf_controller::CartesianTask const> l_rrFootPose =
-            m_rrFootPoseCache.getElemBeforeTime(
-                    l_latestPoseTime);
+    // Get the latest high state from the cache
+    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_highState =
+            m_highStateCache.getElemBeforeTime(ros::Time::now());
 
     // Transform feet poses from CoM frame to map frame
     geometry_msgs::TransformStamped l_flMap;
@@ -105,14 +71,14 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
     p_feetConfiguration.rrMap.y = l_rrMap.transform.translation.y;
 
     // Populate CoM feet poses entry
-    p_feetConfiguration.flCoM.x = l_flFootPose->pose_actual.position.x;
-    p_feetConfiguration.flCoM.y = l_flFootPose->pose_actual.position.y;
-    p_feetConfiguration.frCoM.x = l_frFootPose->pose_actual.position.x;
-    p_feetConfiguration.frCoM.y = l_frFootPose->pose_actual.position.y;
-    p_feetConfiguration.rlCoM.x = l_rlFootPose->pose_actual.position.x;
-    p_feetConfiguration.rlCoM.y = l_rlFootPose->pose_actual.position.y;
-    p_feetConfiguration.rrCoM.x = l_rrFootPose->pose_actual.position.x;
-    p_feetConfiguration.rrCoM.y = l_rrFootPose->pose_actual.position.y;
+    p_feetConfiguration.flCoM.x = l_highState->high_state.footPosition2Body[1].x;
+    p_feetConfiguration.flCoM.y = l_highState->high_state.footPosition2Body[1].y;
+    p_feetConfiguration.frCoM.x = l_highState->high_state.footPosition2Body[0].x;
+    p_feetConfiguration.frCoM.y = l_highState->high_state.footPosition2Body[0].y;
+    p_feetConfiguration.rlCoM.x = l_highState->high_state.footPosition2Body[3].x;
+    p_feetConfiguration.rlCoM.y = l_highState->high_state.footPosition2Body[3].y;
+    p_feetConfiguration.rrCoM.x = l_highState->high_state.footPosition2Body[2].x;
+    p_feetConfiguration.rrCoM.y = l_highState->high_state.footPosition2Body[2].y;
 
 //    ROS_INFO_STREAM("Planner: CoM (MAP) " << p_robotPose->pose.pose.position.x << ", " << p_robotPose->pose.pose.position.y);
 //
@@ -129,12 +95,6 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
 //    ROS_INFO_STREAM("Planner: RR (COM) " << p_feetConfiguration.rrCoM.x << ", " << p_feetConfiguration.rrCoM.y << "\n");
 //
 //    ros::Duration(5).sleep();
-
-//    // FR/RL always swing first
-//    if (l_frFootPose->pose_actual.position.z > l_flFootPose->pose_actual.position.z ||
-//        l_frFootPose->pose_actual.position.x > l_flFootPose->pose_actual.position.z) {
-//        p_feetConfiguration.fr_rl_swinging = true;
-//    }
 
     p_feetConfiguration.fr_rl_swinging = p_swingingFRRL;
 }
