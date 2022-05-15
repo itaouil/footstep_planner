@@ -50,10 +50,10 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
     geometry_msgs::TransformStamped l_rlMap;
     geometry_msgs::TransformStamped l_rrMap;
     try{
-        l_flMap = m_buffer.lookupTransform("world", "lf_foot", ros::Time(0));
-        l_frMap = m_buffer.lookupTransform("world", "rf_foot", ros::Time(0));
-        l_rlMap = m_buffer.lookupTransform("world", "lh_foot", ros::Time(0));
-        l_rrMap = m_buffer.lookupTransform("world", "rh_foot", ros::Time(0));
+        l_flMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FL_foot", ros::Time(0));
+        l_frMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FR_foot", ros::Time(0));
+        l_rlMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RL_foot", ros::Time(0));
+        l_rrMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RR_foot", ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
         ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
@@ -71,14 +71,14 @@ void Planner::getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &
     p_feetConfiguration.rrMap.y = l_rrMap.transform.translation.y;
 
     // Populate CoM feet poses entry
-    p_feetConfiguration.flCoM.x = l_highState->high_state.footPosition2Body[1].x;
-    p_feetConfiguration.flCoM.y = l_highState->high_state.footPosition2Body[1].y;
-    p_feetConfiguration.frCoM.x = l_highState->high_state.footPosition2Body[0].x;
-    p_feetConfiguration.frCoM.y = l_highState->high_state.footPosition2Body[0].y;
-    p_feetConfiguration.rlCoM.x = l_highState->high_state.footPosition2Body[3].x;
-    p_feetConfiguration.rlCoM.y = l_highState->high_state.footPosition2Body[3].y;
-    p_feetConfiguration.rrCoM.x = l_highState->high_state.footPosition2Body[2].x;
-    p_feetConfiguration.rrCoM.y = l_highState->high_state.footPosition2Body[2].y;
+    p_feetConfiguration.flCoM.x = l_highState->footPosition2Body[1].x;
+    p_feetConfiguration.flCoM.y = l_highState->footPosition2Body[1].y;
+    p_feetConfiguration.frCoM.x = l_highState->footPosition2Body[0].x;
+    p_feetConfiguration.frCoM.y = l_highState->footPosition2Body[0].y;
+    p_feetConfiguration.rlCoM.x = l_highState->footPosition2Body[3].x;
+    p_feetConfiguration.rlCoM.y = l_highState->footPosition2Body[3].y;
+    p_feetConfiguration.rrCoM.x = l_highState->footPosition2Body[2].x;
+    p_feetConfiguration.rrCoM.y = l_highState->footPosition2Body[2].y;
 
 //    ROS_INFO_STREAM("Planner: CoM (MAP) " << p_robotPose->pose.pose.position.x << ", " << p_robotPose->pose.pose.position.y);
 //

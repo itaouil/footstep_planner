@@ -26,94 +26,6 @@ Model::Model(ros::NodeHandle &p_nh) :
  */
 Model::~Model() = default;
 
-///**
-// * Populates the respective model
-// * coefficients vectors required for
-// * the prediction process of continuous
-// * velocity commands.
-// */
-//void Model::setModelsCoefficients() {
-//    // CoM models coefficients when FR/RL are swinging
-//    m_fr_rl_com_x.resize(15);
-//    m_fr_rl_com_x << 1.48641050e-02,  1.07239764e-02,  1.40597484e-04,
-//            1.20672771e-01, -3.23863334e-02, -1.57938089e-05,
-//            9.72984145e-02, -3.49357179e-02,  1.38407569e-01,
-//            -5.54173144e-02,  1.46893567e-01, -7.03063941e-02,
-//            6.74325930e-02, -3.87290870e-02, -0.0041092;
-//
-//    m_fr_rl_com_y.resize(15);
-//    m_fr_rl_com_y << 1.68883095e-02,  1.63399567e-02,  3.46143540e-05,
-//            -2.81771090e-02,  1.50141917e-01,  2.87168983e-04,
-//            2.17650440e-02,  4.78527106e-02,  8.21699342e-02,
-//            1.83301631e-01,  9.41406640e-02,  1.62310957e-01,
-//            2.71870847e-04,  3.38683919e-02, -0.00285801;
-//
-//    m_fr_rl_com_theta.resize(15);
-//    m_fr_rl_com_theta << -0.00680172,  0.00295698,  0.10619207,  0.00227804, -0.00216108,
-//            0.02926511,  0.01948711, -0.02309218,  0.04157076, -0.02121429,
-//            0.01611205, -0.03096961,  0.01646793,  0.00401436, 0.00014209;
-//
-//    // CoM models coefficients when FL/RR are swinging
-//    m_fl_rr_com_x.resize(15);
-//    m_fl_rr_com_x << 5.46146671e-03, -1.27618040e-02,  1.48893243e-04,
-//            1.19966241e-01,  3.41303022e-02, -2.83100214e-05,
-//            1.79234558e-01, -5.00492537e-02,  1.54384309e-01,
-//            -9.51229442e-03,  1.08994564e-01, -3.91748305e-02,
-//            1.54093096e-01, -8.59588347e-03, -0.00371198;
-//    m_fl_rr_com_y.resize(15);
-//    m_fl_rr_com_y << -1.86944153e-02,  1.39895138e-02, -1.02943929e-04,
-//            3.28420020e-02,  1.51798403e-01, -3.46083528e-04,
-//            4.56170763e-02,  1.94637776e-01,  2.13227006e-02,
-//            7.24630542e-02,  3.49768962e-03,  3.62617138e-02,
-//            2.51241432e-02,  2.16634793e-01, 0.00170945;
-//    m_fl_rr_com_theta.resize(15);
-//    m_fl_rr_com_theta << -7.78555785e-05,  3.29032506e-03,  1.07716470e-01,
-//            -1.66360459e-03, -2.57589385e-03,  2.83048070e-02,
-//            2.50267525e-02,  1.53141296e-02,  3.45920475e-02,
-//            6.10195349e-03,  1.14361089e-02, -2.63185807e-03,
-//            2.34727112e-02,  3.79376771e-02, -0.00029858;
-//
-//    // FL models coefficients
-//    m_fl_swinging_x.resize(15);
-//    m_fl_swinging_x << 0.0541168 , -0.00122099, -0.03185485,  0.21592374,  0.02457934,
-//            -0.01063843, -0.05207901,  0.19040769,  0.03366389, -0.01405539,
-//            0.05717328, -0.00057196, -0.04220609,  0.16169525, -0.00678232;
-//    m_fl_swinging_y.resize(15);
-//    m_fl_swinging_y << -0.0055751 ,  0.06842117,  0.03693887,  0.02111909,  0.2211869 ,
-//            0.02227369, -0.00835656, -0.16485621, -0.03163174, -0.00659666,
-//            -0.04289936,  0.00601045,  0.00410085, -0.15343558, -8.44438176e-06;
-//
-//    // FR models coefficients
-//    m_fr_swinging_x.resize(15);
-//    m_fr_swinging_x << 0.05753474,  0.00730146,  0.03195167,  0.22221655, -0.02572365,
-//            0.01066946,  0.0108929 ,  0.01689387, -0.20528239, -0.02649746,
-//            -0.1606461 , -0.03312524, -0.00557945, -0.01746235, -0.00694543;
-//    m_fr_swinging_y.resize(15);
-//    m_fr_swinging_y << 0.01406054,  0.05526127, -0.0391421 , -0.01872493,  0.23798657,
-//            -0.02364127, -0.03359998, -0.01737045, -0.16458746, -0.08436472,
-//            -0.14878576, -0.07960723, -0.02718934, -0.02592465, -7.63642077e-05;
-//
-//    // RL models coefficients
-//    m_rl_swinging_x.resize(15);
-//    m_rl_swinging_x << 0.06331165,  0.00620604, -0.03234426,  0.21787206, -0.01944204,
-//            -0.01082508,  0.00622113,  0.01105364, -0.18793561, -0.04146494,
-//            -0.1776276 , -0.03693061,  0.00863838,  0.00356578, -0.00846886;
-//    m_rl_swinging_y.resize(15);
-//    m_rl_swinging_y << 0.01406054,  0.05526127, -0.0391421 , -0.01872493,  0.23798657,
-//            -0.02364127, -0.03359998, -0.01737045, -0.16458746, -0.08436472,
-//            -0.14878576, -0.07960723, -0.02718934, -0.02592465, -7.63642077e-05;
-//
-//    // RR models coefficients
-//    m_rr_swinging_x.resize(15);
-//    m_rr_swinging_x << 0.06017862, -0.00404809,  0.03215142,  0.21189325,  0.01880326,
-//            0.01101674, -0.03345333,  0.18459812,  0.0455406 ,  0.0103521 ,
-//            0.04855607, -0.00673935, -0.04887444,  0.18304289, -0.00836649;
-//    m_rr_swinging_y.resize(15);
-//    m_rr_swinging_y << -0.00643869,  0.06654381, -0.03887609,  0.02252289,  0.22281168,
-//            -0.02333518,  0.0044337 , -0.15985902, -0.04827129, -0.00449349,
-//            -0.0199992 ,  0.00200495, -0.00601401, -0.18484341, -0.00218598;
-//}
-
 /**
  * Populates the respective model
  * coefficients vectors required for
@@ -502,18 +414,18 @@ void Model::predictNextState(double p_previousVelocity,
     l_footCommonMarker.pose.orientation.y = 0;
     l_footCommonMarker.pose.orientation.z = 0;
     l_footCommonMarker.pose.orientation.w = 1;
-    l_footCommonMarker.scale.x = 0.035;
-    l_footCommonMarker.scale.y = 0.035;
-    l_footCommonMarker.scale.z = 0.035;
+    l_footCommonMarker.scale.x = 0.04;
+    l_footCommonMarker.scale.y = 0.04;
+    l_footCommonMarker.scale.z = 0.04;
     l_footCommonMarker.color.r = 0;
     l_footCommonMarker.color.g = 1;
     l_footCommonMarker.color.b = 0;
-    l_footCommonMarker.color.a = 0.5;
+    l_footCommonMarker.color.a = 0.7;
 
     visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
     l_CoMMarker.id = j++;
     l_CoMMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x;
+    l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x - 0.33118;
     l_CoMMarker.pose.position.y = p_newWorldCoordinatesCoM.y;
     l_CoMMarker.pose.position.z = 0;
 

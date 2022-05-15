@@ -271,15 +271,14 @@ void Navigation::updateVariablesFromCache() {
 
     m_latestRobotPose = m_robotPoseCache.getElemBeforeTime(m_robotPoseCache.getLatestTime());
     m_latestHighState = m_highStateCache.getElemBeforeTime(m_highStateCache.getLatestTime());
-
-    m_latestFLFootPose = m_latestHighState->high_state.footPosition2Body[1];
-    m_latestFRFootPose = m_latestHighState->high_state.footPosition2Body[0];
-    m_latestRLFootPose = m_latestHighState->high_state.footPosition2Body[3];
-    m_latestRRFootPose = m_latestHighState->high_state.footPosition2Body[2];
-    m_latestContactForces = {m_latestHighState->high_state.footForce[1], 
-                             m_latestHighState->high_state.footForce[0],
-                             m_latestHighState->high_state.footForce[3],
-                             m_latestHighState->high_state.footForce[2]};
+    m_latestFLFootPose = m_latestHighState->footPosition2Body[1];
+    m_latestFRFootPose = m_latestHighState->footPosition2Body[0];
+    m_latestRLFootPose = m_latestHighState->footPosition2Body[3];
+    m_latestRRFootPose = m_latestHighState->footPosition2Body[2];
+    m_latestContactForces = {m_latestHighState->footForce[1], 
+                             m_latestHighState->footForce[0],
+                             m_latestHighState->footForce[3],
+                             m_latestHighState->footForce[2]};
 }
 
 /**
@@ -445,11 +444,11 @@ void Navigation::executeHighLevelCommands() {
             geometry_msgs::TransformStamped l_rrMap;
             geometry_msgs::TransformStamped l_comMap;
             try {
-                l_flMap = m_buffer.lookupTransform("world", "lf_foot", ros::Time(0));
-                l_frMap = m_buffer.lookupTransform("world", "rf_foot", ros::Time(0));
-                l_rlMap = m_buffer.lookupTransform("world", "lh_foot", ros::Time(0));
-                l_rrMap = m_buffer.lookupTransform("world", "rh_foot", ros::Time(0));
-                l_comMap = m_buffer.lookupTransform("world", "trunk", ros::Time(0));
+                l_flMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FL_foot", ros::Time(0));
+                l_frMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FR_foot", ros::Time(0));
+                l_rlMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RL_foot", ros::Time(0));
+                l_rrMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RR_foot", ros::Time(0));
+                l_comMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "base", ros::Time(0));
             }
             catch (tf2::TransformException &ex) {
                 ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
