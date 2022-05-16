@@ -241,10 +241,10 @@ void Navigation::updateVariablesFromCache() {
     m_latestFRFootPose = m_latestHighState->footPosition2Body[0];
     m_latestRLFootPose = m_latestHighState->footPosition2Body[3];
     m_latestRRFootPose = m_latestHighState->footPosition2Body[2];
-    m_latestContactForces = {m_latestHighState->footForce[1], 
-                             m_latestHighState->footForce[0],
-                             m_latestHighState->footForce[3],
-                             m_latestHighState->footForce[2]};
+    m_latestContactForces = {m_latestHighState->footForce[0], 
+                             m_latestHighState->footForce[1],
+                             m_latestHighState->footForce[2],
+                             m_latestHighState->footForce[3]};
 }
 
 /**
@@ -352,14 +352,14 @@ void Navigation::executeHighLevelCommands() {
                 ros::spinOnce();
 
                 // Get feet forces
-                auto l_flForceZ = m_latestContactForces[0];
-                auto l_frForceZ = m_latestContactForces[1];
+                auto l_flForceZ = m_latestContactForces[1];
+                auto l_frForceZ = m_latestContactForces[0];
                 auto l_rrForceZ = m_latestContactForces[2];
                 auto l_rlForceZ = m_latestContactForces[3];
 
                 // Check if height peak was reached
                 if (!l_swingingFeetOutOfContact &&
-                    ((l_flForceZ < 10 && l_rrForceZ < 10) || (l_frForceZ < 10 && l_rlForceZ < 10))) {
+                    ((l_flForceZ < 5 && l_rrForceZ < 5) || (l_frForceZ < 5 && l_rlForceZ < 5))) {
                     l_swingingFeetOutOfContact = true;
                     ROS_INFO_STREAM("Navigation: Feet got out of contact: " << l_flForceZ << ", " << l_frForceZ << ", "
                                                                             << l_rlForceZ << ", " << l_rrForceZ);
@@ -369,19 +369,19 @@ void Navigation::executeHighLevelCommands() {
                 // peak has been reached by any of the
                 // two swinging feet
                 if (l_swingingFeetOutOfContact) {
-                    if (!l_flInContact && l_flForceZ >= 60) {
+                    if (!l_flInContact && l_flForceZ >= 40) {
                         l_flInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rlInContact && l_rlForceZ >= 60) {
+                    if (!l_rlInContact && l_rlForceZ >= 40) {
                         l_rlInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_frInContact && l_frForceZ >= 60) {
+                    if (!l_frInContact && l_frForceZ >= 40) {
                         l_frInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rrInContact && l_rrForceZ >= 60) {
+                    if (!l_rrInContact && l_rrForceZ >= 40) {
                         l_rrInContact = true;
                         l_feetInContact += 1;
                     }
@@ -779,9 +779,9 @@ void Navigation::publishPredictedFootstepSequence() {
         l_inputFootCommon.scale.x = 0.04;
         l_inputFootCommon.scale.y = 0.04;
         l_inputFootCommon.scale.z = 0.04;
-        l_inputFootCommon.color.r = 0;
+        l_inputFootCommon.color.r = 1;
         l_inputFootCommon.color.g = 0;
-        l_inputFootCommon.color.b = 1;
+        l_inputFootCommon.color.b = 0;
         l_inputFootCommon.color.a = 0.5;
 
         visualization_msgs::Marker l_inputCoM = l_inputFootCommon;
@@ -925,25 +925,25 @@ void Navigation::publishRealFootstepSequence() {
         l_realFLFootMarker.id = j++;
         l_realFLFootMarker.pose.position.x = m_realFeetPoses[i][0].transform.translation.x;
         l_realFLFootMarker.pose.position.y = m_realFeetPoses[i][0].transform.translation.y;
-        l_realFLFootMarker.pose.position.z = m_predictedFootsteps[i].flMap.z;
+        l_realFLFootMarker.pose.position.z = m_realFeetPoses[i][0].transform.translation.z;
 
         visualization_msgs::Marker l_realFRFootMarker = l_realFootCommonMarker;
         l_realFRFootMarker.id = j++;
         l_realFRFootMarker.pose.position.x = m_realFeetPoses[i][1].transform.translation.x;
         l_realFRFootMarker.pose.position.y = m_realFeetPoses[i][1].transform.translation.y;
-        l_realFRFootMarker.pose.position.z = m_predictedFootsteps[i].frMap.z;
+        l_realFRFootMarker.pose.position.z = m_realFeetPoses[i][1].transform.translation.z;
 
         visualization_msgs::Marker l_realRLFootMarker = l_realFootCommonMarker;
         l_realRLFootMarker.id = j++;
         l_realRLFootMarker.pose.position.x = m_realFeetPoses[i][2].transform.translation.x;
         l_realRLFootMarker.pose.position.y = m_realFeetPoses[i][2].transform.translation.y;
-        l_realRLFootMarker.pose.position.z = m_predictedFootsteps[i].rlMap.z;
+        l_realRLFootMarker.pose.position.z = m_realFeetPoses[i][2].transform.translation.z;
 
         visualization_msgs::Marker l_realRRFootMarker = l_realFootCommonMarker;
         l_realRRFootMarker.id = j++;
         l_realRRFootMarker.pose.position.x = m_realFeetPoses[i][3].transform.translation.x;
         l_realRRFootMarker.pose.position.y = m_realFeetPoses[i][3].transform.translation.y;
-        l_realRRFootMarker.pose.position.z = m_predictedFootsteps[i].rrMap.z;
+        l_realRRFootMarker.pose.position.z = m_realFeetPoses[i][3].transform.translation.z;
 
 //        l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
         l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);
