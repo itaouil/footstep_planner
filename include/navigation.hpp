@@ -27,12 +27,12 @@
 
 // ROS messages
 #include <nav_msgs/Path.h>
-#include <sensor_msgs/Joy.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
-#include <unitree_legged_msgs/HighStateStamped.h>
+#include <unitree_legged_msgs/HighCmd.h>
 #include <unitree_legged_msgs/Cartesian.h>
+#include <unitree_legged_msgs/HighStateStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // Planner
@@ -52,44 +52,31 @@ public:
 
 private:
     /**
-     * Stopping behaviour.
+     * Threaded cmd publisher.
      */
-    void halt();
-
-    /**
-     * Stomping behaviour.
-     */
-    void stomp();
-
-    /**
-     * Reset the robot configuration.
-     */
-    void resetConfiguration();
-
-    /**
-     * Threaded joy publisher.
-     */
-    void joyPublisher();
+    void cmdPublisher();
 
     /**
      * Start execution of
-     * threaded joy publisher.
+     * threaded high cmd 
+     * publisher.
      */
-    void startJoyPublisher();
+    void startCmdPublisher();
 
     /**
      * Stop execution of
-     * threaded joy publisher.
+     * threaded high cmd 
+     * publisher.
      */
-    void stopJoyPublisher();
+    void stopCmdPublisher();
 
     /**
-     * Construct joy command to send.
+     * Construct cmd to send.
      *
      * @param p_action
      * @param p_velocity
      */
-    void setJoyCommand(const Action &p_action, const double &p_velocity);
+    void setCmd(const Action &p_action, const double &p_velocity);
 
     /**
      * Perform rotation movement to
@@ -210,8 +197,8 @@ private:
     Action m_previousAction;
     double m_previousVelocity;
 
-    //! Latest robot pose
-    boost::shared_ptr<nav_msgs::Odometry const> m_latestRobotPose;
+    //! Latest CoM pose
+    nav_msgs::Odometry m_latestCoMPose;
 
     //! Latest high state message
     boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> m_latestHighState;
@@ -225,11 +212,11 @@ private:
     unitree_legged_msgs::Cartesian m_latestRLFootPose;
     unitree_legged_msgs::Cartesian m_latestRRFootPose;
 
-    //! Joy command
-    sensor_msgs::Joy m_joy;
+    //! High level command
+    unitree_legged_msgs::HighCmd m_cmd;
 
-    //! Publish or not
-    bool m_startedJoyPublisher;
+    //! Cmd publisher thread variable
+    bool m_startedCmdPublisher;
 
     //! Thread object for joy publishing
     std::thread m_thread;

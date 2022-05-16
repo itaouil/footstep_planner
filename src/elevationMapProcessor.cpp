@@ -165,6 +165,11 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                                                                   l_elevationMap["elevation_inpainted"].minCoeffOfFinites(),
                                                                   l_elevationMap["elevation_inpainted"].maxCoeffOfFinites());
 
+        // Update distance transform layer
+        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
+                                                                  "distance",
+                                                                  l_elevationMap);
+
         // Store latest elevation map
         {
             std::lock_guard<std::mutex> l_lockGuard(m_mutex);
@@ -280,9 +285,12 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
 
         l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
         l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
+
+        ROS_DEBUG_STREAM("Valid foot location: " << p_nextRow << ", " << p_nextCol << ", " << l_newFootDistance);
+
     }
 
-    ROS_INFO_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
+    ROS_DEBUG_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
 
     return (l_newFootDistance > MIN_STAIR_DISTANCE);
 }

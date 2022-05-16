@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    m_velocities = {0.1, 0.2};
 }
 
 /**
@@ -266,7 +266,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
             }
         }
 
-        ROS_INFO_STREAM(
+        ROS_DEBUG_STREAM(
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
 
         // If target was reached or already planned
@@ -296,11 +296,11 @@ void AStar::Search::findPath(const Action &p_initialAction,
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 ROS_DEBUG_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
-                ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
+                ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
+                ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
-                ROS_INFO_STREAM("Current G: " << l_currentNode->G);
-                ROS_INFO_STREAM("Current H: " << l_currentNode->H);
+                ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
+                ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
 
 //                // Disallow velocities above 0.5 for non-forward actions
 //                if (m_actions[i].x != 1 && l_nextVelocity > 0.7) {
@@ -413,8 +413,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     l_frontFootCost = (l_frontFootDistance >= MIN_FOOT_DISTANCE) ? 0.0 :
                                       (MIN_FOOT_DISTANCE - l_frontFootDistance);
 
-                    ROS_INFO_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
-                    ROS_INFO_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
+                    ROS_DEBUG_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
+                    ROS_DEBUG_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
 
                     ROS_DEBUG_STREAM(
                             "Heights: " << l_newFeetConfiguration.flMap.z << ", "
@@ -479,7 +479,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // (i.e. the starting action as this was already executed)
     // which happens to be the root node (i.e. null parent)
     while (l_currentNode != nullptr && l_currentNode->parent != nullptr) {
-        ROS_INFO_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
+        ROS_DEBUG_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
                                     << l_currentNode->action.theta);
         p_path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
@@ -492,7 +492,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     releaseNodes(l_openSet);
     releaseNodes(l_closedSet);
 
-    ROS_INFO_STREAM("Number of expanded nodes: " << l_expandedNodes);
+    ROS_DEBUG_STREAM("Number of expanded nodes: " << l_expandedNodes);
     ROS_DEBUG_STREAM("Path size: " << p_path.size());
 }
 
@@ -553,7 +553,7 @@ float AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_target
 
     ROS_DEBUG_STREAM("Angle Delta: " << l_angleDelta);
     ROS_DEBUG_STREAM("Angle heuristic: " << l_angleHeuristic);
-    ROS_INFO_STREAM("Distance heuristic: " << l_distanceHeuristic << "\n");
+    ROS_DEBUG_STREAM("Distance heuristic: " << l_distanceHeuristic << "\n");
 
     return l_distanceHeuristic;
 }

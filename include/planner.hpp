@@ -87,7 +87,7 @@ private:
      * @param p_feetConfiguration
      * @param p_swingingFRRL
      */
-    void getFeetConfiguration(boost::shared_ptr<nav_msgs::Odometry const> &p_robotPose,
+    void getFeetConfiguration(const nav_msgs::Odometry &p_robotPose,
                               FeetConfiguration &p_feetConfiguration,
                               const bool &p_swingingFRRL);
 

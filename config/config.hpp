@@ -15,7 +15,7 @@
 // Published topics
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
-const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/high_cmd");
+const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/cmd");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
@@ -32,7 +32,7 @@ const std::string HEIGHT_MAP_REFERENCE_FRAME("t265_odom_frame");
 const bool PUBLISH(true);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(0.1);
+const double GRADIENT_THRESHOLD(0.7);
 
 // Max footstep height
 const float MIN_FOOT_DISTANCE(0.07);
@@ -53,10 +53,10 @@ const double TIMESTAMP(0.33);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(20);
+const unsigned int FOOTSTEP_HORIZON(5);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.03);
+const double MIN_STAIR_DISTANCE(0.01);
 
 // Angle tolerance between target and robot rotation
 const double ANGLE_DIFFERENCE_TOLERANCE(2);
