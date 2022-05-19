@@ -38,8 +38,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset5_aliengo_real/step_0.18"
-file_object = open(path + "/counter.csv", "a")
+path = "/home/user/taouil/workspace/aliengo_ws/src/footstep_planner/data/dataset5_aliengo_real"
+file_object = open(path + "/forward.csv", "a")
 
 
 def clean_max_heights():
@@ -148,12 +148,12 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
-def live_extraction(odom, cmd, state):
+def live_extraction(cmd, state):
     # Globals
     global file_object
 
     # Check at this time a valid footstep is detected
-    is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state.state)
+    is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
 
     # If not a valid footstep, skip callback
     if not is_valid_footstep:
@@ -161,44 +161,44 @@ def live_extraction(odom, cmd, state):
 
     file_object.write(str(time.time()) + "," +  # 0
 
-                      str(cmd.cmd.velocity[0]) + "," +  # 1
-                      str(cmd.cmd.velocity[1]) + "," +  # 2
-                      str(cmd.cmd.yawSpeed) + "," +     # 3
+                      str(cmd.velocity[0]) + "," +  # 1
+                      str(cmd.velocity[1]) + "," +  # 2
+                      str(cmd.yawSpeed) + "," +     # 3
 
-                      str(state.state.footPosition2Body[1].x) + "," +  # 4
-                      str(state.state.footPosition2Body[1].y) + "," +  # 5
-                      str(state.state.footPosition2Body[1].z) + "," +  # 6
-                      str(state.state.footPosition2Body[0].x) + "," +  # 7
-                      str(state.state.footPosition2Body[0].y) + "," +  # 8
-                      str(state.state.footPosition2Body[0].z) + "," +  # 9
-                      str(state.state.footPosition2Body[3].x) + "," +  # 10
-                      str(state.state.footPosition2Body[3].y) + "," +  # 11
-                      str(state.state.footPosition2Body[3].z) + "," +  # 12
-                      str(state.state.footPosition2Body[2].x) + "," +  # 13
-                      str(state.state.footPosition2Body[2].y) + "," +  # 14
-                      str(state.state.footPosition2Body[2].z) + "," +  # 15
+                      str(state.footPosition2Body[1].x) + "," +  # 4
+                      str(state.footPosition2Body[1].y) + "," +  # 5
+                      str(state.footPosition2Body[1].z) + "," +  # 6
+                      str(state.footPosition2Body[0].x) + "," +  # 7
+                      str(state.footPosition2Body[0].y) + "," +  # 8
+                      str(state.footPosition2Body[0].z) + "," +  # 9
+                      str(state.footPosition2Body[3].x) + "," +  # 10
+                      str(state.footPosition2Body[3].y) + "," +  # 11
+                      str(state.footPosition2Body[3].z) + "," +  # 12
+                      str(state.footPosition2Body[2].x) + "," +  # 13
+                      str(state.footPosition2Body[2].y) + "," +  # 14
+                      str(state.footPosition2Body[2].z) + "," +  # 15
 
-                      str(state.state.position[0]) + "," +  # 16
-                      str(state.state.position[1]) + "," +  # 17
-                      str(state.state.position[2]) + "," +  # 18
+                      str(state.position[0]) + "," +  # 16
+                      str(state.position[1]) + "," +  # 17
+                      str(state.position[2]) + "," +  # 18
 
-                      str(state.state.velocity[0]) + "," +  # 19
-                      str(state.state.velocity[1]) + "," +  # 20
-                      str(state.state.velocity[2]) + "," +  # 21
-                      str(state.state.yawSpeed) + "," +  # 22
+                      str(state.velocity[0]) + "," +  # 19
+                      str(state.velocity[1]) + "," +  # 20
+                      str(state.velocity[2]) + "," +  # 21
+                      str(state.yawSpeed) + "," +  # 22
 
-                      str(state.state.footSpeed2Body[1].x) + "," +  # 23
-                      str(state.state.footSpeed2Body[1].y) + "," +  # 24
-                      str(state.state.footSpeed2Body[1].z) + "," +  # 25
-                      str(state.state.footSpeed2Body[0].x) + "," +  # 26
-                      str(state.state.footSpeed2Body[0].y) + "," +  # 27
-                      str(state.state.footSpeed2Body[0].z) + "," +  # 28
-                      str(state.state.footSpeed2Body[3].x) + "," +  # 29
-                      str(state.state.footSpeed2Body[3].y) + "," +  # 30
-                      str(state.state.footSpeed2Body[3].z) + "," +  # 31
-                      str(state.state.footSpeed2Body[2].x) + "," +  # 32
-                      str(state.state.footSpeed2Body[2].y) + "," +  # 33
-                      str(state.state.footSpeed2Body[2].z) + "," +  # 34
+                      str(state.footSpeed2Body[1].x) + "," +  # 23
+                      str(state.footSpeed2Body[1].y) + "," +  # 24
+                      str(state.footSpeed2Body[1].z) + "," +  # 25
+                      str(state.footSpeed2Body[0].x) + "," +  # 26
+                      str(state.footSpeed2Body[0].y) + "," +  # 27
+                      str(state.footSpeed2Body[0].z) + "," +  # 28
+                      str(state.footSpeed2Body[3].x) + "," +  # 29
+                      str(state.footSpeed2Body[3].y) + "," +  # 30
+                      str(state.footSpeed2Body[3].z) + "," +  # 31
+                      str(state.footSpeed2Body[2].x) + "," +  # 32
+                      str(state.footSpeed2Body[2].y) + "," +  # 33
+                      str(state.footSpeed2Body[2].z) + "," +  # 34
 
                       str(odom.pose.pose.position.x) + "," +  # 35
                       str(odom.pose.pose.position.y) + "," +  # 36
@@ -214,6 +214,15 @@ def live_extraction(odom, cmd, state):
                       str(odom.twist.twist.angular.y) + "," +  # 46
                       str(odom.twist.twist.angular.z) + "," +  # 47
 
+                      str(state.imu.quaternion[0]) + "," +
+                      str(state.imu.quaternion[1]) + "," +
+                      str(state.imu.quaternion[2]) + "," +
+                      str(state.imu.quaternion[3]) + "," +
+
+                      str(state.imu.rpy[0]) + "," +
+                      str(state.imu.rpy[1]) + "," +
+                      str(state.imu.rpy[2]) + "," +
+
                       str(fl_moving) + "," +  # 48
                       str(fr_moving) + "," +  # 49
                       str(rl_moving) + "," +  # 50
@@ -225,22 +234,23 @@ def main():
     global client
     global publisher
 
+    print("Starting node")
+
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
     # Set initial velocity
-    rospy.set_param("/height_threshold", 0.015)
+    rospy.set_param("/height_threshold", 0.01)
 
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=1)
 
-    odom_sub = message_filters.Subscriber("/t265/odom/sample2", Odometry)
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/high_cmd2", HighCmdStamped)
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state2", HighStateStamped)
+    odom_sub = message_filters.Subscriber("/t265/odom/sample", Odometry)
+    cmd_sub = message_filters.Subscriber("/aliengo_bridge/high_cmd", HighCmdStamped)
+    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped)
 
-    ts = message_filters.TimeSynchronizer([odom_sub,
-                                           cmd_sub,
+    ts = message_filters.TimeSynchronizer([cmd_sub,
                                            state_sub], 10)
 
     ts.registerCallback(live_extraction)

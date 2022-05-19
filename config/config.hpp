@@ -31,6 +31,9 @@ const std::string HEIGHT_MAP_REFERENCE_FRAME("t265_odom_frame");
 // Publish processed elevation map
 const bool PUBLISH(true);
 
+// Publish CoM and feet visualization
+const bool VISUALIZE(true);
+
 // Gradient threshold
 const double GRADIENT_THRESHOLD(0.7);
 
@@ -41,19 +44,16 @@ const float MIN_FOOT_DISTANCE(0.07);
 const float MAX_FOOTSTEP_HEIGHT(0.07);
 
 // Cache size for the robot pose
-const unsigned int CACHE_SIZE(200);
+const unsigned int CACHE_SIZE(10);
 
 // Height map acquiring flag
 const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
-
-// Time taken for a footstep (approx)
-const double TIMESTAMP(0.33);
 
 // Whether to allow or disallow diagonal moves
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(2);
 
 // Minimum distance for cell to be considered traversable
 const double MIN_STAIR_DISTANCE(0.01);

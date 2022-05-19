@@ -39,16 +39,14 @@ def odom_callback(msg):
 
 
 def cmd_callback(msg):
-    new_cmd = HighCmdStamped()
+    new_cmd = msg
     new_cmd.header.stamp = rospy.Time.now()
-    new_cmd.cmd = msg
     high_cmd_pub.publish(new_cmd)
 
 
 def state_callback(msg):
-    new_state = HighStateStamped()
+    new_state = msg
     new_state.header.stamp = rospy.Time.now()
-    new_state.state = msg
     high_state_pub.publish(new_state)
 
     # if odom_t265:
@@ -70,8 +68,8 @@ def main():
     high_state_pub = rospy.Publisher("/aliengo_bridge/high_state2", HighStateStamped, queue_size=1)
 
     odom_sub = rospy.Subscriber("/t265/odom/sample", Odometry, odom_callback)
-    high_cmd_sub = rospy.Subscriber("/aliengo_bridge/high_cmd", HighCmd, cmd_callback)
-    high_state_sub = rospy.Subscriber("/aliengo_bridge/high_state", HighState, state_callback)
+    high_cmd_sub = rospy.Subscriber("/aliengo_bridge/high_cmd", HighCmdStamped, cmd_callback)
+    high_state_sub = rospy.Subscriber("/aliengo_bridge/high_state", HighStateStamped, state_callback)
 
     rospy.spin()
 

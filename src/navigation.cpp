@@ -223,6 +223,46 @@ void Navigation::setCmd(const Action &p_action, const double &p_velocity) {
 }
 
 /**
+ * Store CoM and feet map coordinates.
+ * 
+ * @param real
+ */
+void Navigation::storeMapCoordinates(const bool real) {
+    updateVariablesFromCache();
+
+    std::vector<unitree_legged_msgs::Cartesian> l_feetConfiguration;
+    unitree_legged_msgs::Cartesian l_fl;
+    l_fl.x = m_latestCoMPose.pose.pose.position.x + m_latestFLFootPose.x;
+    l_fl.y = m_latestCoMPose.pose.pose.position.y + m_latestFLFootPose.y;
+    l_fl.z = m_latestCoMPose.pose.pose.position.z + m_latestFLFootPose.z;
+    unitree_legged_msgs::Cartesian l_fr;
+    l_fr.x = m_latestCoMPose.pose.pose.position.x + m_latestFRFootPose.x;
+    l_fr.y = m_latestCoMPose.pose.pose.position.y + m_latestFRFootPose.y;
+    l_fr.z = m_latestCoMPose.pose.pose.position.z + m_latestFRFootPose.z;
+    unitree_legged_msgs::Cartesian l_rl;
+    l_rl.x = m_latestCoMPose.pose.pose.position.x + m_latestRLFootPose.x;
+    l_rl.y = m_latestCoMPose.pose.pose.position.y + m_latestRLFootPose.y;
+    l_rl.z = m_latestCoMPose.pose.pose.position.z + m_latestRLFootPose.z;
+    unitree_legged_msgs::Cartesian l_rr;
+    l_rr.x = m_latestCoMPose.pose.pose.position.x + m_latestRRFootPose.x;
+    l_rr.y = m_latestCoMPose.pose.pose.position.y + m_latestRRFootPose.y;
+    l_rr.z = m_latestCoMPose.pose.pose.position.z + m_latestRRFootPose.z;
+    l_feetConfiguration.push_back(l_fl);
+    l_feetConfiguration.push_back(l_fr);
+    l_feetConfiguration.push_back(l_rl);
+    l_feetConfiguration.push_back(l_rr);
+
+    if (real) {
+        m_realCoMPoses.push_back(m_latestCoMPose);
+        m_realFeetPoses.push_back(l_feetConfiguration);
+    }
+    else {
+        m_predictionInputCoM.push_back(m_latestCoMPose);
+        m_predictionInputFeet.push_back(l_feetConfiguration);
+    }
+}
+
+/**
  * Update variables from caches.
  */
 void Navigation::updateVariablesFromCache() {
@@ -241,10 +281,10 @@ void Navigation::updateVariablesFromCache() {
     m_latestFRFootPose = m_latestHighState->footPosition2Body[0];
     m_latestRLFootPose = m_latestHighState->footPosition2Body[3];
     m_latestRRFootPose = m_latestHighState->footPosition2Body[2];
-    m_latestContactForces = {m_latestHighState->footForce[0], 
-                             m_latestHighState->footForce[1],
-                             m_latestHighState->footForce[2],
-                             m_latestHighState->footForce[3]};
+    m_latestContactForces = {m_latestHighState->footForce[1], 
+                             m_latestHighState->footForce[0],
+                             m_latestHighState->footForce[3],
+                             m_latestHighState->footForce[2]};
 }
 
 /**
@@ -309,22 +349,6 @@ void Navigation::executeHighLevelCommands() {
                 break;
             }
 
-//            // If two different consecutive actions
-//            // bring robot to idle positions first
-//            // and then re-plan with the latest
-//            // configuration reached
-//            if (l_node.action != m_previousAction and m_previousAction != Action{0, 0, 0}) {
-//                ROS_INFO("Navigation: Different consecutive actions applied. Resetting and re-planning.");
-//
-//                // Stop cmd publishing and reset
-//                stopCmdPublisher();
-//
-//                // Plan new path
-//                m_planner.plan(m_goalMsg, m_previousAction, m_previousVelocity, m_swingingFRRL, m_path);
-//
-//                break;
-//            }
-
             // Update global variables from cache
             updateVariablesFromCache();
             
@@ -352,12 +376,13 @@ void Navigation::executeHighLevelCommands() {
                 ros::spinOnce();
 
                 // Get feet forces
-                auto l_flForceZ = m_latestContactForces[1];
-                auto l_frForceZ = m_latestContactForces[0];
-                auto l_rrForceZ = m_latestContactForces[2];
-                auto l_rlForceZ = m_latestContactForces[3];
+                auto l_flForceZ = m_latestContactForces[0];
+                auto l_frForceZ = m_latestContactForces[1];
+                auto l_rlForceZ = m_latestContactForces[2];
+                auto l_rrForceZ = m_latestContactForces[3];
 
-                // Check if height peak was reached
+                // Check for when swinging feet 
+                // are out of contact with the ground
                 if (!l_swingingFeetOutOfContact &&
                     ((l_flForceZ < 5 && l_rrForceZ < 5) || (l_frForceZ < 5 && l_rlForceZ < 5))) {
                     l_swingingFeetOutOfContact = true;
@@ -365,67 +390,46 @@ void Navigation::executeHighLevelCommands() {
                                                                             << l_rlForceZ << ", " << l_rrForceZ);
                 }
 
-                // Update contact booleans once height
-                // peak has been reached by any of the
-                // two swinging feet
+                // Once feet are out of contact with
+                // the ground check for when all feet
+                // are once again back in contact
                 if (l_swingingFeetOutOfContact) {
-                    if (!l_flInContact && l_flForceZ >= 40) {
+                    if (!l_flInContact && l_flForceZ >= 30) {
                         l_flInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rlInContact && l_rlForceZ >= 40) {
+                    if (!l_rlInContact && l_rlForceZ >= 30) {
                         l_rlInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_frInContact && l_frForceZ >= 40) {
+                    if (!l_frInContact && l_frForceZ >= 30) {
                         l_frInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rrInContact && l_rrForceZ >= 40) {
+                    if (!l_rrInContact && l_rrForceZ >= 30) {
                         l_rrInContact = true;
                         l_feetInContact += 1;
                     }
                 }
             }
 
-            ROS_INFO_STREAM("Time at e.o.c: " << ros::Time::now().toSec() - l_startTime.toSec());
+            ROS_INFO_STREAM("E.O.C: " << ros::Time::now().toSec() - l_startTime.toSec() << ", "
+                                      << m_latestFLFootPose.z << ", " 
+                                      << m_latestFRFootPose.z << ", "
+                                      << m_latestRLFootPose.z << ", "
+                                      << m_latestRRFootPose.z);
 
             // Add commanded velocity
             m_velocities.push_back(l_node.velocity);
 
-            // Add predicted CoM and footsteps
+            // Store predicted CoM and swinging feet
+            // map coordinates for visualization purposes
             m_predictedCoMPoses.push_back(l_node.worldCoordinates);
             m_predictedFootsteps.push_back(l_node.feetConfiguration);
 
-            // Update global variables from cache
-            updateVariablesFromCache();
-
-            // Get current feet poses
-            geometry_msgs::TransformStamped l_flMap;
-            geometry_msgs::TransformStamped l_frMap;
-            geometry_msgs::TransformStamped l_rlMap;
-            geometry_msgs::TransformStamped l_rrMap;
-            geometry_msgs::TransformStamped l_comMap;
-            try {
-                l_flMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FL_foot", ros::Time(0));
-                l_frMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FR_foot", ros::Time(0));
-                l_rlMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RL_foot", ros::Time(0));
-                l_rrMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RR_foot", ros::Time(0));
-                l_comMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "base", ros::Time(0));
-            }
-            catch (tf2::TransformException &ex) {
-                ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
-                return;
-            }
-
-            // Add actual CoM and footsteps
-            std::vector<geometry_msgs::TransformStamped> l_feetConfiguration;
-            l_feetConfiguration.push_back(l_flMap);
-            l_feetConfiguration.push_back(l_frMap);
-            l_feetConfiguration.push_back(l_rlMap);
-            l_feetConfiguration.push_back(l_rrMap);
-            m_realCoMPoses.push_back(m_latestCoMPose);
-            m_realFeetPoses.push_back(l_feetConfiguration);
+            // Store actual CoM and feet poses in map
+            // coordinates for visualization purposes
+            storeMapCoordinates(true);
 
             // Update planning variables
             m_previousAction = l_node.action;
@@ -469,70 +473,14 @@ void Navigation::executeHighLevelCommands() {
             ros::spinOnce();
         }
 
-        // Plan new path if goal not yet reached
+        // Re-planning if goal not within reach
         if ((std::abs(m_latestCoMPose.pose.pose.position.x - m_goalMsg.pose.position.x) > 0.01 ||
-             std::abs(m_latestCoMPose.pose.pose.position.y - m_goalMsg.pose.position.y) > 0.01) &&
+             std::abs(m_latestCoMPose.pose.pose.position.y - m_goalMsg.pose.position.y) > 0.2) &&
             m_latestCoMPose.pose.pose.position.x <= m_goalMsg.pose.position.x) {
-            // Update global variables from cache
-            updateVariablesFromCache();
+            // Store actual CoM and feet poses in map
+            // coordinates for visualization purposes
+            storeMapCoordinates(false);
 
-            // Save CoM input to planner
-            m_predictionInputCoM.push_back(m_latestCoMPose);
-
-            // Save feet poses input to planner
-            // std::vector<unitree_legged_msgs::Cartesian> l_feetConfiguration;
-            // l_feetConfiguration.push_back(m_latestFLFootPose);
-            // l_feetConfiguration.push_back(m_latestFRFootPose);
-            // l_feetConfiguration.push_back(m_latestRLFootPose);
-            // l_feetConfiguration.push_back(m_latestRRFootPose);
-
-            // Get current feet poses
-            geometry_msgs::TransformStamped l_flMap;
-            geometry_msgs::TransformStamped l_frMap;
-            geometry_msgs::TransformStamped l_rlMap;
-            geometry_msgs::TransformStamped l_rrMap;
-            geometry_msgs::TransformStamped l_comMap;
-            try {
-                l_flMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FL_foot", ros::Time(0));
-                l_frMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FR_foot", ros::Time(0));
-                l_rlMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RL_foot", ros::Time(0));
-                l_rrMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RR_foot", ros::Time(0));
-            }
-            catch (tf2::TransformException &ex) {
-                ROS_WARN("Planner: Could not transform feet poses to map frame.");
-                return;
-            }
-
-            // Transform stamped to cartesian foot
-            unitree_legged_msgs::Cartesian l_fl;
-            l_fl.x = l_flMap.transform.translation.x;
-            l_fl.y = l_flMap.transform.translation.y;
-            l_fl.z = l_flMap.transform.translation.z;
-
-            unitree_legged_msgs::Cartesian l_fr;
-            l_fr.x = l_frMap.transform.translation.x;
-            l_fr.y = l_frMap.transform.translation.y;
-            l_fr.z = l_frMap.transform.translation.z;
-
-            unitree_legged_msgs::Cartesian l_rl;
-            l_rl.x = l_rlMap.transform.translation.x;
-            l_rl.y = l_rlMap.transform.translation.y;
-            l_rl.z = l_rlMap.transform.translation.z;
-
-            unitree_legged_msgs::Cartesian l_rr;
-            l_rr.x = l_rrMap.transform.translation.x;
-            l_rr.y = l_rrMap.transform.translation.y;
-            l_rr.z = l_rrMap.transform.translation.z;
-
-            // Add actual CoM and footsteps
-            std::vector<unitree_legged_msgs::Cartesian> l_feetConfiguration;
-            l_feetConfiguration.push_back(l_fl);
-            l_feetConfiguration.push_back(l_fr);
-            l_feetConfiguration.push_back(l_rl);
-            l_feetConfiguration.push_back(l_rr);
-            m_predictionInputFeet.push_back(l_feetConfiguration);
-
-            // Plan
             m_planner.plan(m_goalMsg, m_previousAction, m_previousVelocity, m_swingingFRRL, m_path);
         } else {
             ROS_INFO("Navigation: Goal has been reached.");
@@ -546,18 +494,21 @@ void Navigation::executeHighLevelCommands() {
     // Stop cmd publisher
     stopCmdPublisher();
 
-    ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
-    publishRealCoMPath();
-    publishPredictedCoMPath();
-
-    ROS_INFO_STREAM("Publishing predicted footsteps");
-    publishPredictedFootstepSequence();
-
-    ROS_INFO_STREAM("Publishing real footsteps");
-    publishRealFootstepSequence();
-
     // Print planner stats
     m_planner.stats();
+
+    // Visualize CoM and feet results
+    if (VISUALIZE) {
+        ROS_INFO_STREAM("Publishing predicted and real CoM trajectories");
+        publishRealCoMPath();
+        publishPredictedCoMPath();
+
+        ROS_INFO_STREAM("Publishing predicted footsteps");
+        publishPredictedFootstepSequence();
+
+        ROS_INFO_STREAM("Publishing real footsteps");
+        publishRealFootstepSequence();
+    }
 
 //    // Close file
 //    m_fileStream.close();
@@ -923,27 +874,27 @@ void Navigation::publishRealFootstepSequence() {
 
         visualization_msgs::Marker l_realFLFootMarker = l_realFootCommonMarker;
         l_realFLFootMarker.id = j++;
-        l_realFLFootMarker.pose.position.x = m_realFeetPoses[i][0].transform.translation.x;
-        l_realFLFootMarker.pose.position.y = m_realFeetPoses[i][0].transform.translation.y;
-        l_realFLFootMarker.pose.position.z = m_realFeetPoses[i][0].transform.translation.z;
+        l_realFLFootMarker.pose.position.x = m_realFeetPoses[i][0].x;
+        l_realFLFootMarker.pose.position.y = m_realFeetPoses[i][0].y;
+        l_realFLFootMarker.pose.position.z = m_realFeetPoses[i][0].z;
 
         visualization_msgs::Marker l_realFRFootMarker = l_realFootCommonMarker;
         l_realFRFootMarker.id = j++;
-        l_realFRFootMarker.pose.position.x = m_realFeetPoses[i][1].transform.translation.x;
-        l_realFRFootMarker.pose.position.y = m_realFeetPoses[i][1].transform.translation.y;
-        l_realFRFootMarker.pose.position.z = m_realFeetPoses[i][1].transform.translation.z;
+        l_realFRFootMarker.pose.position.x = m_realFeetPoses[i][1].x;
+        l_realFRFootMarker.pose.position.y = m_realFeetPoses[i][1].y;
+        l_realFRFootMarker.pose.position.z = m_realFeetPoses[i][1].z;
 
         visualization_msgs::Marker l_realRLFootMarker = l_realFootCommonMarker;
         l_realRLFootMarker.id = j++;
-        l_realRLFootMarker.pose.position.x = m_realFeetPoses[i][2].transform.translation.x;
-        l_realRLFootMarker.pose.position.y = m_realFeetPoses[i][2].transform.translation.y;
-        l_realRLFootMarker.pose.position.z = m_realFeetPoses[i][2].transform.translation.z;
+        l_realRLFootMarker.pose.position.x = m_realFeetPoses[i][2].x;
+        l_realRLFootMarker.pose.position.y = m_realFeetPoses[i][2].y;
+        l_realRLFootMarker.pose.position.z = m_realFeetPoses[i][2].z;
 
         visualization_msgs::Marker l_realRRFootMarker = l_realFootCommonMarker;
         l_realRRFootMarker.id = j++;
-        l_realRRFootMarker.pose.position.x = m_realFeetPoses[i][3].transform.translation.x;
-        l_realRRFootMarker.pose.position.y = m_realFeetPoses[i][3].transform.translation.y;
-        l_realRRFootMarker.pose.position.z = m_realFeetPoses[i][3].transform.translation.z;
+        l_realRRFootMarker.pose.position.x = m_realFeetPoses[i][3].x;
+        l_realRRFootMarker.pose.position.y = m_realFeetPoses[i][3].y;
+        l_realRRFootMarker.pose.position.z = m_realFeetPoses[i][3].z;
 
 //        l_realFeetConfiguration.markers.push_back(l_realCoMMarker);
         l_realFeetConfiguration.markers.push_back(l_realFLFootMarker);

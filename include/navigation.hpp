@@ -86,30 +86,26 @@ private:
     void buildInitialHeightMap();
 
     /**
+     * Publish predicted CoM path.
+     */
+    void publishRealCoMPath();
+
+    /**
      * Update variables from caches.
      */
     void updateVariablesFromCache();
 
     /**
-     * Sets goal message and calls
-     * planner to plan the path to
-     * the goal.
-     *
-     * @param p_goalMsg
+     * Store CoM and feet map coordinates.
+     * 
+     * @param type
      */
-    void goalCallback(const geometry_msgs::PoseStamped &p_goalMsg);
+    void storeMapCoordinates(const bool real);
 
     /**
      * Execute planned velocity commands.
      */
     void executeHighLevelCommands();
-
-    /**
-     * Publish predicted CoM path.
-     *
-     * @param p_path
-     */
-    void publishRealCoMPath();
 
     /**
      * Publish predicted CoM path.
@@ -123,18 +119,27 @@ private:
     void publishRealFootstepSequence();
 
     /**
+     * Publish predicted CoM and
+     * footstep sequence.
+     */
+    void publishPredictedFootstepSequence();
+    
+    /**
+     * Sets goal message and calls
+     * planner to plan the path to
+     * the goal.
+     *
+     * @param p_goalMsg
+     */
+    void goalCallback(const geometry_msgs::PoseStamped &p_goalMsg);
+
+    /**
      * Publish online the
      * predicted footsteps.
      *
      * @param p_path
      */
     void publishOnlinePredictedFootsteps(std::vector<Node> &p_path);
-
-    /**
-     * Publish predicted CoM and
-     * footstep sequence.
-     */
-    void publishPredictedFootstepSequence();
 
     //! ROS rate
     ros::Rate m_rate;
@@ -186,7 +191,7 @@ private:
 
     //! Real CoM and feet poses
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
-    std::vector<std::vector<geometry_msgs::TransformStamped>> m_realFeetPoses;
+    std::vector<std::vector<unitree_legged_msgs::Cartesian>> m_realFeetPoses;
 
     //! CoM and feet prediction input
     std::vector<nav_msgs::Odometry> m_predictionInputCoM;
