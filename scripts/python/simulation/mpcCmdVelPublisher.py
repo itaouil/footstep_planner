@@ -18,7 +18,7 @@ import random
 
 import rospy
 import numpy as np
-from sensor_msgs.msg import Joy
+from dls_messages.msg import mpc_signal_in
 import dynamic_reconfigure.client
 
 # Global variables

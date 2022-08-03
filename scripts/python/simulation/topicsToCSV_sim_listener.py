@@ -42,8 +42,8 @@ MAX_HEIGHT = 0.045
 
 # Global variables
 robot_name = "aliengo"
-path = "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/" + robot_name + "/step_0.065"
-file_object = open(path + "/lol_1m.csv", "a")
+path = f"/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_sim"
+file_object = open(path + "/forward.csv", "a")
 
 
 def clean_max_heights():

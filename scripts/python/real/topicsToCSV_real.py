@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -38,8 +38,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/user/taouil/workspace/aliengo_ws/src/footstep_planner/data/dataset5_aliengo_real"
-file_object = open(path + "/forward.csv", "a")
+path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real"
+file_object = open(path + "/counter.csv", "a")
 
 
 def clean_max_heights():
@@ -148,7 +148,7 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
-def live_extraction(cmd, state):
+def live_extraction(cmd, odom, state):
     # Globals
     global file_object
 
@@ -214,19 +214,19 @@ def live_extraction(cmd, state):
                       str(odom.twist.twist.angular.y) + "," +  # 46
                       str(odom.twist.twist.angular.z) + "," +  # 47
 
-                      str(state.imu.quaternion[0]) + "," +
-                      str(state.imu.quaternion[1]) + "," +
-                      str(state.imu.quaternion[2]) + "," +
-                      str(state.imu.quaternion[3]) + "," +
+                      str(state.imu.quaternion[0]) + "," + # 48
+                      str(state.imu.quaternion[1]) + "," + # 49
+                      str(state.imu.quaternion[2]) + "," + # 50
+                      str(state.imu.quaternion[3]) + "," + # 51
 
-                      str(state.imu.rpy[0]) + "," +
-                      str(state.imu.rpy[1]) + "," +
-                      str(state.imu.rpy[2]) + "," +
+                      str(state.imu.rpy[0]) + "," + # 52
+                      str(state.imu.rpy[1]) + "," + # 53
+                      str(state.imu.rpy[2]) + "," + # 54
 
-                      str(fl_moving) + "," +  # 48
-                      str(fr_moving) + "," +  # 49
-                      str(rl_moving) + "," +  # 50
-                      str(rr_moving) + "\n")  # 51
+                      str(fl_moving) + "," +  # 55
+                      str(fr_moving) + "," +  # 56
+                      str(rl_moving) + "," +  # 57
+                      str(rr_moving) + "\n")  # 58
 
 
 def main():
@@ -239,18 +239,19 @@ def main():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
-    # Set initial velocity
-    rospy.set_param("/height_threshold", 0.01)
+    # Set height treshold
+    rospy.set_param("/height_threshold", 0.02)
 
     rospy.set_param("/feet_in_contact", False)
 
-    publisher = rospy.Publisher('footstep', Bool, queue_size=1)
+    publisher = rospy.Publisher('footstep', Bool, queue_size=10)
 
-    odom_sub = message_filters.Subscriber("/t265/odom/sample", Odometry)
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/high_cmd", HighCmdStamped)
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped)
+    odom_sub = message_filters.Subscriber("/t265/odom/sample2", Odometry)
+    cmd_sub = message_filters.Subscriber("/aliengo_bridge/high_cmd2", HighCmdStamped)
+    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state2", HighStateStamped)
 
     ts = message_filters.TimeSynchronizer([cmd_sub,
+                                           odom_sub,
                                            state_sub], 10)
 
     ts.registerCallback(live_extraction)

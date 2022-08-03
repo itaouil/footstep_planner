@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -38,11 +38,11 @@ fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
 
-robot_name = "spot"
+robot_name = "aliengo"
 
 # Global variables
-path = f"/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/dataset4_wbc/live_extraction/{robot_name}/step_0.08"
-file_object = open(path + "/just_delete.csv", "a")
+path = f"/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_sim"
+file_object = open(path + "/forward_clockwise.csv", "a")
 
 
 def clean_max_heights():

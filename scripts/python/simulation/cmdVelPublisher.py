@@ -104,7 +104,7 @@ def cmdVelPublisher():
     rospy.sleep(1)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 0.8, 0.1):
+        for velocity in np.arange(0.1, 0.5, 0.1):
             # Forward walking
             cmd = Twist()
             cmd.linear.x = velocity
