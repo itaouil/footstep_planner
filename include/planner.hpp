@@ -68,34 +68,41 @@ public:
     /**
      * Plans path from start to goal.
      *
-     * @param p_goalPosition
+     * @param p_path
+     * @param p_swingingPair
      * @param p_initialAction
      * @param p_initialVelocity
-     * @param p_swingingPair
-     * @param p_path
+     * @param p_robotPose
+     * @param p_goalPosition
+     * @param p_latestCoMFeetPoses
      */
-    void plan(const geometry_msgs::PoseStamped &p_goalPosition,
+    void plan(std::vector<Node> &p_path,
+              const bool &p_swingingPair,
               const Action &p_initialAction,
               const double &p_initialVelocity,
-              const bool &p_swingingPair,
-              std::vector<Node> &p_path);
+              const nav_msgs::Odometry &p_robotPose,
+              const geometry_msgs::PoseStamped &p_goalPosition,
+              const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses);
 private:
     /**
-     * Compute feet placement (x,y)
-     * w.r.t to the CoM frame.
+     * Populate feet configuration struct
      *
-     * @param p_feetConfiguration
      * @param p_swingingFRRL
+     * @param p_robotPose
+     * @param p_feetConfiguration
+     * @param p_latestCoMFeetPoses
      */
-    void getFeetConfiguration(const nav_msgs::Odometry &p_robotPose,
+    void getFeetConfiguration(const bool &p_swingingFRRL,
+                              const nav_msgs::Odometry &p_robotPose,
                               FeetConfiguration &p_feetConfiguration,
-                              const bool &p_swingingFRRL);
+                              const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses);
+
+    /**
+     * ROS variables
+     */
 
     //! ROS node handle
     ros::NodeHandle m_nh;
-
-    //! A* search
-    AStar::Search m_search;
 
     //! TF2 buffer
     tf2_ros::Buffer m_buffer;
@@ -103,14 +110,17 @@ private:
     //! TF2 listener
     tf2_ros::TransformListener m_listener;
 
+    /**
+     * A* variables
+     */
+
+    //! A* search
+    AStar::Search m_search;
+
     //! Planner runtimes
     std::vector<unsigned int> m_runtimes;
 
     //! Robot pose cache
     message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
-
-    //! High state cache
-    message_filters::Cache<unitree_legged_msgs::HighStateStamped> m_highStateCache;
-    message_filters::Subscriber<unitree_legged_msgs::HighStateStamped> m_highStateSubscriber;
 };

@@ -13,20 +13,20 @@
 #include <iostream>
 
 // Published topics
+const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
-const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/cmd");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
-const std::string ROBOT_POSE_TOPIC("/t265/odom/sample");
-const std::string HIGH_STATE_TOPIC("/aliengo_bridge/high_state");
+const std::string ROBOT_POSE_TOPIC("/aliengo/ground_truth");
+const std::string FEET_FORCES_TOPIC("/aliengo/contacts_state");
 const std::string HEIGHT_MAP_TOPIC("/elevation_mapping/elevation_map_raw");
 
 // TF reference frames
 const std::string ROBOT_REFERENCE_FRAME("base");
-const std::string HEIGHT_MAP_REFERENCE_FRAME("t265_odom_frame");
+const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map
 const bool PUBLISH(true);
@@ -53,7 +53,7 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(2);
+const unsigned int FOOTSTEP_HORIZON(20);
 
 // Minimum distance for cell to be considered traversable
 const double MIN_STAIR_DISTANCE(0.01);

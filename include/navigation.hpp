@@ -28,10 +28,12 @@
 // ROS messages
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
+#include <gazebo_msgs/ContactsState.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <unitree_legged_msgs/HighCmd.h>
 #include <unitree_legged_msgs/Cartesian.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <unitree_legged_msgs/HighStateStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
@@ -141,17 +143,15 @@ private:
      */
     void publishOnlinePredictedFootsteps(std::vector<Node> &p_path);
 
+    /**
+     * ROS variables
+     */
+
     //! ROS rate
     ros::Rate m_rate;
 
-    //! Planner object
-    Planner m_planner;
-
     //! ROS node handle
     ros::NodeHandle m_nh;
-
-    //! Path planned
-    std::vector<Node> m_path;
 
     //! TF variables
     tf2_ros::TransformListener &m_tf2;
@@ -168,64 +168,70 @@ private:
     ros::Publisher m_realFeetConfigurationPublisher;
     ros::Publisher m_targetFeetConfigurationPublisher;
 
-    //! Feet transformed
-    std::vector<visualization_msgs::MarkerArray> m_targetFootsteps;
+    /**
+     * Planner variables
+     */
+
+    //! Planner object
+    Planner m_planner;
+    
+    //! Planner variables
+    bool m_swingingFRRL;
+    Action m_previousAction;
+    double m_previousVelocity;
+    
+    //! Path planned
+    std::vector<Node> m_path;
+
+    //! Commanded velocities
+    std::vector<float> m_velocities;
+    
+    //! Latest CoM pose
+    nav_msgs::Odometry m_latestCoMPose;
+
+    //! Goal message
+    geometry_msgs::PoseStamped m_goalMsg;
+
+    //! Latest feet forces
+    std::vector<float> m_latestFeetForces;
+
+    //! Latest feet poses w.r.t to the CoM
+    std::vector<unitree_legged_msgs::Cartesian> m_feetConfigurationCoM;
 
     //! Odometry cache
     message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
-    //! High state cache
-    message_filters::Cache<unitree_legged_msgs::HighStateStamped> m_highStateCache;
-    message_filters::Subscriber<unitree_legged_msgs::HighStateStamped> m_highStateSubscriber;
+    //! Feet forces cache
+    message_filters::Cache<gazebo_msgs::ContactsState> m_feetForcesCache;
+    message_filters::Subscriber<gazebo_msgs::ContactsState> m_feetForcesSubscriber;
 
-    //! Commanded velocities
-    std::vector<float> m_velocities;
+    /**
+     * Velocity commands variables
+     */
 
-    //! Goal message
-    geometry_msgs::PoseStamped m_goalMsg;
+    //! Thread object for joy publishing
+    std::thread m_thread;
+    
+    //! Cmd publisher thread variable
+    bool m_startedCmdPublisher;
 
-    //! Predicted CoM and feet poses
+    /**
+     * Planner data for post analysis
+     */
+
+    //! File streaming object
+    std::ofstream m_fileStream;
+
+    //! Predicted and real CoM poses
     std::vector<World3D> m_predictedCoMPoses;
-    std::vector<FeetConfiguration> m_predictedFootsteps;
-
-    //! Real CoM and feet poses
     std::vector<nav_msgs::Odometry> m_realCoMPoses;
+
+    //! Predicted and real feet poses
+    std::vector<FeetConfiguration> m_predictedFootsteps;
     std::vector<std::vector<unitree_legged_msgs::Cartesian>> m_realFeetPoses;
 
     //! CoM and feet prediction input
     std::vector<nav_msgs::Odometry> m_predictionInputCoM;
     std::vector<std::vector<unitree_legged_msgs::Cartesian>> m_predictionInputFeet;
-
-    //! Planner variables
-    bool m_swingingFRRL;
-    Action m_previousAction;
-    double m_previousVelocity;
-
-    //! Latest CoM pose
-    nav_msgs::Odometry m_latestCoMPose;
-
-    //! Latest high state message
-    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> m_latestHighState;
-    
-    //! Latest contact forces message
-    std::vector<int16_t> m_latestContactForces;
-
-    //! Latest relative feet poses
-    unitree_legged_msgs::Cartesian m_latestFLFootPose;
-    unitree_legged_msgs::Cartesian m_latestFRFootPose;
-    unitree_legged_msgs::Cartesian m_latestRLFootPose;
-    unitree_legged_msgs::Cartesian m_latestRRFootPose;
-
-    //! High level command
-    unitree_legged_msgs::HighCmd m_cmd;
-
-    //! Cmd publisher thread variable
-    bool m_startedCmdPublisher;
-
-    //! Thread object for joy publishing
-    std::thread m_thread;
-
-    //! File streaming object
-    std::ofstream m_fileStream;
 };

@@ -31,14 +31,12 @@ publisher = None
 robot_name = "aliengo"
 
 # Params for feet extraction
-lf_moving = True
-rf_moving = True
-lh_moving = True
-rh_moving = True
+lf_rh_moving = True
+rf_lh_moving = True
 
 # Global variables
 path = f"/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_sim"
-file_object = open(path + "/forward_clockwise.csv", "a")
+file_object = open(path + "/mpc_forward.csv", "a")
 
 
 def live_extraction(cmd_msg,
@@ -48,46 +46,47 @@ def live_extraction(cmd_msg,
                     lh_foot_msg,
                     rh_foot_msg):
     global file_object
-    global lf_moving
-    global rf_moving
-    global lh_moving
-    global rh_moving
-
-    print("Here")
+    global lf_rh_moving
+    global rf_lh_moving
 
     # Contact check
-    if lf_foot.states and rf_foot.states and lh_foot.states and rh_foot.states:
-        if lf_moving and rf_moving and lh_moving and rh_moving:
-            return
-    else:
-        lf_moving = True if lf_foot.states else False
-        rf_moving = True if rf_foot.states else False
-        lh_moving = True if lh_foot.states else False
-        rh_moving = True if rh_foot.states else False
+    if not (lf_foot_msg.states and rf_foot_msg.states and lh_foot_msg.states and rh_foot_msg.states):
+        lf_rh_moving = False if (lf_foot_msg.states and rh_foot_msg.states) else True
+        rf_lh_moving = False if (rf_foot_msg.states and lh_foot_msg.states) else True
+        publisher.publish(False)
         return
+    
+    # Make sure only one 
+    # diagonal is moving
+    if lf_rh_moving and rf_lh_moving:
+        print("Two diagonals moving")
+        publisher.publish(False)
+        return
+    
+    publisher.publish(True)
 
     linear_x = cmd_msg.twist.linear.x
     linear_y = cmd_msg.twist.linear.y
     angular_yaw = cmd_msg.twist.angular.z
-
+Contact check
     file_object.write(str(time.time()) + "," + # 0
 
                       str(linear_x) + "," + # 1
                       str(linear_y) + "," + # 2
                       str(angular_yaw) + "," + # 3
 
-                      str(lf_foot_msg.states[0].contact_positions[0]) + "," +  # 4
-                      str(lf_foot_msg.states[0].contact_positions[1]) + "," +  # 5
-                      str(lf_foot_msg.states[0].contact_positions[2]) + "," +  # 6
-                      str(rf_foot_msg.states[0].contact_positions[0]) + "," +  # 7
-                      str(rf_foot_msg.states[0].contact_positions[1]) + "," +  # 8
-                      str(rf_foot_msg.states[0].contact_positions[2]) + "," +  # 9
-                      str(lh_foot_msg.states[0].contact_positions[0]) + "," +  # 10
-                      str(lh_foot_msg.states[0].contact_positions[1]) + "," +  # 11
-                      str(lh_foot_msg.states[0].contact_positions[2]) + "," +  # 12
-                      str(rh_foot_msg.states[0].contact_positions[0]) + "," +  # 13
-                      str(rh_foot_msg.states[0].contact_positions[1]) + "," +  # 14
-                      str(rh_foot_msg.states[0].contact_positions[2]) + "," +  # 15
+                      str(lf_foot_msg.states[0].contact_positions[0].x) + "," +  # 4
+                      str(lf_foot_msg.states[0].contact_positions[0].y) + "," +  # 5
+                      str(lf_foot_msg.states[0].contact_positions[0].z) + "," +  # 6
+                      str(rf_foot_msg.states[0].contact_positions[0].x) + "," +  # 7
+                      str(rf_foot_msg.states[0].contact_positions[0].y) + "," +  # 8
+                      str(rf_foot_msg.states[0].contact_positions[0].z) + "," +  # 9
+                      str(lh_foot_msg.states[0].contact_positions[0].x) + "," +  # 10
+                      str(lh_foot_msg.states[0].contact_positions[0].y) + "," +  # 11
+                      str(lh_foot_msg.states[0].contact_positions[0].z) + "," +  # 12
+                      str(rh_foot_msg.states[0].contact_positions[0].x) + "," +  # 13
+                      str(rh_foot_msg.states[0].contact_positions[0].y) + "," +  # 14
+                      str(rh_foot_msg.states[0].contact_positions[0].z) + "," +  # 15
 
                       str(odom_msg.pose.pose.position.x) + "," +  # 16
                       str(odom_msg.pose.pose.position.y) + "," +  # 17
@@ -103,10 +102,8 @@ def live_extraction(cmd_msg,
                       str(odom_msg.twist.twist.angular.y) + "," + # 27
                       str(odom_msg.twist.twist.angular.z) + "," +  # 28
 
-                      str(lf_moving) + "," +  # 29
-                      str(rf_moving) + "," +  # 30
-                      str(lh_moving) + "," +  # 31
-                      str(rh_moving) + "\n")
+                      str(lf_rh_moving) + "," +  # 29
+                      str(rf_lh_moving) + "\n") # 30
 
 
 def main():
@@ -122,17 +119,17 @@ def main():
 
     cmd_msg = message_filters.Subscriber(f"/cmd_vel", TwistStamped)
     odom_msg = message_filters.Subscriber(f"/{robot_name}/ground_truth", Odometry)
-    lf_foot_msg = message_filters.Subscriber(f"/lf_foot_bumper", ContactsState)
-    rf_foot_msg = message_filters.Subscriber(f"/rf_foot_bumper", ContactsState)
-    lh_foot_msg = message_filters.Subscriber(f"/lh_foot_bumper", ContactsState)
-    rh_foot_msg = message_filters.Subscriber(f"/rh_foot_bumper", ContactsState)
+    lf_foot_msg = message_filters.Subscriber(f"/{robot_name}/lf_foot_bumper2", ContactsState)
+    rf_foot_msg = message_filters.Subscriber(f"/{robot_name}/rf_foot_bumper2", ContactsState)
+    lh_foot_msg = message_filters.Subscriber(f"/{robot_name}/lh_foot_bumper2", ContactsState)
+    rh_foot_msg = message_filters.Subscriber(f"/{robot_name}/rh_foot_bumper2", ContactsState)
 
-    ts = message_filters.TimeSynchronizer([cmd_msg,
-                                           odom_msg,
-                                           lf_foot_msg,
-                                           rf_foot_msg,
-                                           lh_foot_msg,
-                                           rh_foot_msg], 10)
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_msg,
+                                                      odom_msg,
+                                                      lf_foot_msg,
+                                                      rf_foot_msg,
+                                                      lh_foot_msg,
+                                                      rh_foot_msg], 10, 0.3)
 
     ts.registerCallback(live_extraction)
 

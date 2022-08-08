@@ -39,7 +39,7 @@ def getTwistMessage(velocities):
 
 def stop(velocity_publisher):
     twist = getTwistMessage([0, 0, 0, 0, 0, 0])
-    velocity_publisher.publish(joy)
+    velocity_publisher.publish(twist)
 
 
 def stomping(velocity_publisher):
@@ -51,7 +51,7 @@ def stomping(velocity_publisher):
     rate = rospy.Rate(1000)
     while rospy.Time.now() < end_time:
         twist.header.stamp = rospy.Time.now()
-        velocity_publisher.publish(joy)
+        velocity_publisher.publish(twist)
         rate.sleep()
 
 
@@ -133,7 +133,7 @@ def joy_publisher():
     velocity_publisher = rospy.Publisher('/cmd_vel', TwistStamped, queue_size=1)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 0.7, 0.1):
+        for velocity in np.arange(0.1, 0.8, 0.1):
             print(velocity)
 
             # Forward walking

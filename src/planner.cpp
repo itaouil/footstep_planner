@@ -16,69 +16,41 @@
 Planner::Planner(ros::NodeHandle &p_nh) :
         m_nh(p_nh),
         m_search(p_nh),
-        m_listener(m_buffer) {
-    // Robot pose subscriber and cache setup
-    m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
-    m_robotPoseCache.connectInput(m_robotPoseSubscriber);
-    m_robotPoseCache.setCacheSize(CACHE_SIZE);
-
-    // High state subscriber and cache setup
-    m_highStateSubscriber.subscribe(m_nh, HIGH_STATE_TOPIC, 1);
-    m_highStateCache.connectInput(m_highStateSubscriber);
-    m_highStateCache.setCacheSize(CACHE_SIZE);
-}
+        m_listener(m_buffer) {}
 
 Planner::~Planner() = default;
 
 /**
- * Compute the feet placement (x,y)
- * w.r.t to the CoM frame.
+ * Populate feet configuration struct
  *
- * @param p_sourceFrame
+ * @param p_swingingFRRL
+ * @param p_robotPose
  * @param p_feetConfiguration
+ * @param p_latestCoMFeetPoses
  */
-void Planner::getFeetConfiguration(const nav_msgs::Odometry &p_robotPose,
+void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
+                                   const nav_msgs::Odometry &p_robotPose,
                                    FeetConfiguration &p_feetConfiguration,
-                                   const bool &p_swingingFRRL) {
-    // Get the latest high state from the cache
-    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_highState =
-            m_highStateCache.getElemBeforeTime(ros::Time::now());
+                                   const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses) {
+    // Feet poses w.r.t map
+    p_feetConfiguration.flMap.x = p_robotPose.pose.pose.position.x + p_latestCoMFeetPoses[0].x;
+    p_feetConfiguration.flMap.y = p_robotPose.pose.pose.position.y + p_latestCoMFeetPoses[0].y;
+    p_feetConfiguration.frMap.x = p_robotPose.pose.pose.position.x + p_latestCoMFeetPoses[1].x;
+    p_feetConfiguration.frMap.y = p_robotPose.pose.pose.position.y + p_latestCoMFeetPoses[1].y;
+    p_feetConfiguration.rlMap.x = p_robotPose.pose.pose.position.x + p_latestCoMFeetPoses[2].x;
+    p_feetConfiguration.rlMap.y = p_robotPose.pose.pose.position.y + p_latestCoMFeetPoses[2].y;
+    p_feetConfiguration.rrMap.x = p_robotPose.pose.pose.position.x + p_latestCoMFeetPoses[3].x;
+    p_feetConfiguration.rrMap.y = p_robotPose.pose.pose.position.y + p_latestCoMFeetPoses[3].y;
 
-    // Transform feet poses from CoM frame to map frame
-    geometry_msgs::TransformStamped l_flMap;
-    geometry_msgs::TransformStamped l_frMap;
-    geometry_msgs::TransformStamped l_rlMap;
-    geometry_msgs::TransformStamped l_rrMap;
-    try{
-        l_flMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FL_foot", ros::Time(0));
-        l_frMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "FR_foot", ros::Time(0));
-        l_rlMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RL_foot", ros::Time(0));
-        l_rrMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME, "RR_foot", ros::Time(0));
-    }
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("Planner: Could not transform feet poses from CoM frame to map frame.");
-        return;
-    }
-
-    // Populate map feet poses entry
-    p_feetConfiguration.flMap.x = l_flMap.transform.translation.x;
-    p_feetConfiguration.flMap.y = l_flMap.transform.translation.y;
-    p_feetConfiguration.frMap.x = l_frMap.transform.translation.x;
-    p_feetConfiguration.frMap.y = l_frMap.transform.translation.y;
-    p_feetConfiguration.rlMap.x = l_rlMap.transform.translation.x;
-    p_feetConfiguration.rlMap.y = l_rlMap.transform.translation.y;
-    p_feetConfiguration.rrMap.x = l_rrMap.transform.translation.x;
-    p_feetConfiguration.rrMap.y = l_rrMap.transform.translation.y;
-
-    // Populate CoM feet poses entry
-    p_feetConfiguration.flCoM.x = l_highState->footPosition2Body[1].x;
-    p_feetConfiguration.flCoM.y = l_highState->footPosition2Body[1].y;
-    p_feetConfiguration.frCoM.x = l_highState->footPosition2Body[0].x;
-    p_feetConfiguration.frCoM.y = l_highState->footPosition2Body[0].y;
-    p_feetConfiguration.rlCoM.x = l_highState->footPosition2Body[3].x;
-    p_feetConfiguration.rlCoM.y = l_highState->footPosition2Body[3].y;
-    p_feetConfiguration.rrCoM.x = l_highState->footPosition2Body[2].x;
-    p_feetConfiguration.rrCoM.y = l_highState->footPosition2Body[2].y;
+    // Feet poses w.r.t CoM
+    p_feetConfiguration.flCoM.x = p_latestCoMFeetPoses[0].x;
+    p_feetConfiguration.flCoM.y = p_latestCoMFeetPoses[0].y;
+    p_feetConfiguration.frCoM.x = p_latestCoMFeetPoses[1].x;
+    p_feetConfiguration.frCoM.y = p_latestCoMFeetPoses[1].y;
+    p_feetConfiguration.rlCoM.x = p_latestCoMFeetPoses[2].x;
+    p_feetConfiguration.rlCoM.y = p_latestCoMFeetPoses[2].y;
+    p_feetConfiguration.rrCoM.x = p_latestCoMFeetPoses[3].x;
+    p_feetConfiguration.rrCoM.y = p_latestCoMFeetPoses[3].y;
 
 //    ROS_INFO_STREAM("Planner: CoM (MAP) " << p_robotPose->pose.pose.position.x << ", " << p_robotPose->pose.pose.position.y);
 //
@@ -102,33 +74,29 @@ void Planner::getFeetConfiguration(const nav_msgs::Odometry &p_robotPose,
 /**
  * Plans path from start to goal.
  *
- * @param p_goalPosition
+ * @param p_path
+ * @param p_swingingPair
  * @param p_initialAction
  * @param p_initialVelocity
- * @param p_swingingPair
- * @param p_path
+ * @param p_robotPose
+ * @param p_goalPosition
+ * @param p_latestCoMFeetPoses
  */
-void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
+void Planner::plan(std::vector<Node> &p_path,
+                   const bool &p_swingingPair,
                    const Action &p_initialAction,
                    const double &p_initialVelocity,
-                   const bool &p_swingingFRRL,
-                   std::vector<Node> &p_path) {
+                   const nav_msgs::Odometry &p_robotPose,
+                   const geometry_msgs::PoseStamped &p_goalPosition,
+                   const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses) {
     auto start = high_resolution_clock::now();
-
-    // Latest odometry pose of t265
-    boost::shared_ptr<nav_msgs::Odometry const> l_t265Pose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
-    
-    // Offset t265 pose to obtain CoM pose
-    nav_msgs::Odometry l_robotPose = *l_t265Pose;
-    l_robotPose.pose.pose.position.x -= 0.33118;
-    l_robotPose.pose.pose.position.z += 0.0045;
 
     // Create World3D start object
     tf2::Quaternion l_startPositionQuaternion;
-    tf2::convert(l_robotPose.pose.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{l_robotPose.pose.pose.position.x,
-                                 l_robotPose.pose.pose.position.y,
-                                 l_robotPose.pose.pose.position.z,
+    tf2::convert(p_robotPose.pose.pose.orientation, l_startPositionQuaternion);
+    World3D l_worldStartPosition{p_robotPose.pose.pose.position.x,
+                                 p_robotPose.pose.pose.position.y,
+                                 p_robotPose.pose.pose.position.z,
                                  l_startPositionQuaternion};
 
     // Create World3D goal object
@@ -142,12 +110,12 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
     ROS_INFO_STREAM("Received goal pose: " << p_goalPosition.pose.position.x << ", "
                                            << p_goalPosition.pose.position.y << ", "
                                            << p_goalPosition.pose.position.z);
-    ROS_INFO_STREAM("Current robot pose: " << l_robotPose.pose.pose.position.x << ", "
-                                           << l_robotPose.pose.pose.position.y);
+    ROS_INFO_STREAM("Current robot pose: " << p_robotPose.pose.pose.position.x << ", "
+                                           << p_robotPose.pose.pose.position.y);
 
     // Create FeetConfiguration object
     FeetConfiguration l_feetConfiguration;
-    getFeetConfiguration(l_robotPose, l_feetConfiguration, p_swingingFRRL);
+    getFeetConfiguration(p_swingingPair, p_robotPose, l_feetConfiguration, p_latestCoMFeetPoses);
 
     // Clear reference path
     p_path.clear();
@@ -157,7 +125,7 @@ void Planner::plan(const geometry_msgs::PoseStamped &p_goalPosition,
                       p_initialVelocity,
                       l_worldStartPosition,
                       l_worldGoalPosition,
-                      l_robotPose.twist.twist,
+                      p_robotPose.twist.twist,
                       l_feetConfiguration,
                       p_path);
     auto stop = high_resolution_clock::now();
