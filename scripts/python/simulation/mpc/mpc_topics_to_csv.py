@@ -16,19 +16,33 @@
 """
 
 # General imports
+import tf
 import time
 import rospy
 import message_filters
 
 # ROS msgs imports
-from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Bool, Float32
 from gazebo_msgs.msg import ContactsState
 from geometry_msgs.msg import TwistStamped
 
 # Global parameters (footstep extraction)
-publisher = None
+listener = None
+max_height = -0.30
+fl_max_height = -100
+fr_max_height = -100
+rl_max_height = -100
+rr_max_height = -100
 robot_name = "aliengo"
+first_footstep = True
+footstep_publisher = None
+prev_footstep_time = None
+lf_height_publisher = None
+rf_height_publisher = None
+lh_height_publisher = None
+rh_height_publisher = None
+prev_footstep_flag = False
 
 # Params for feet extraction
 lf_rh_moving = True
@@ -36,57 +50,190 @@ rf_lh_moving = True
 
 # Global variables
 path = f"/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_sim"
-file_object = open(path + "/mpc_forward.csv", "a")
+file_object = open(path + "/mpc_motions_accelerations.csv", "a")
+
+
+def clean_max_heights():
+    global fl_max_height
+    global fr_max_height
+    global rl_max_height
+    global rr_max_height
+
+    fl_max_height = -100
+    fr_max_height = -100
+    rl_max_height = -100
+    rr_max_height = -100
+
+
+def valid_footstep(cmd_msg, heights):
+    global footstep_publisher
+    global fl_max_height
+    global fr_max_height
+    global rl_max_height
+    global rr_max_height
+    global first_footstep
+    global prev_footstep_time
+    global prev_footstep_flag
+    global lf_height_publisher
+    global rf_height_publisher
+    global lh_height_publisher
+    global rh_height_publisher
+
+    # Footstep boolean message
+    footstep = Bool()
+    footstep.data = False
+
+    if True:
+        print("Valid cmd velocity")
+
+        # Get force threshold and height threshold
+        height_threshold = rospy.get_param("/height_threshold")
+
+        # Acquire heights
+        fl_height = heights[0]
+        fr_height = heights[1]
+        rl_height = heights[2]
+        rr_height = heights[3]
+
+        # Update recorded max heights for each foot
+        fl_max_height = max(fl_max_height, fl_height)
+        fr_max_height = max(fr_max_height, fr_height)
+        rl_max_height = max(rl_max_height, rl_height)
+        rr_max_height = max(rr_max_height, rr_height)
+
+        print("Logged velocities: ", fl_max_height, fr_max_height, rl_max_height, rr_max_height)
+
+        # Compute feet height difference booleans
+        back_height_difference_in_range = abs(rl_height - rr_height) < height_threshold
+        front_height_difference_in_range = abs(fl_height - fr_height) < height_threshold
+
+        print("Height differences range: ", front_height_difference_in_range, back_height_difference_in_range)
+
+        # Check if footstep detected or not
+        if front_height_difference_in_range and back_height_difference_in_range:
+            if first_footstep:
+                footstep.data = True
+                first_footstep = False
+                prev_footstep_flag = True
+                prev_footstep_time = time.time()
+            else:
+                if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.3:
+                    # print("Time: ", time.time() - prev_footstep_time)
+                    footstep.data = True
+                    prev_footstep_flag = True
+                    prev_footstep_time = time.time()
+        else:
+            prev_footstep_flag = False
+    else:
+        prev_footstep_flag = False
+
+    # Check that the feet motion that
+    # brought the footstep is regular
+    # (i.e. two feet on the ground and
+    # and two in the air)
+    fl_moving, fr_moving, rl_moving, rr_moving = None, None, None, None
+    if footstep.data:
+        # Compute booleans indicating which feet
+        # are swinging based on height comparison
+        # (swinging feet need to be diagonally
+        # opposite)
+        fl_moving = fl_max_height > max_height
+        fr_moving = fr_max_height > max_height
+        rl_moving = rl_max_height > max_height
+        rr_moving = rr_max_height > max_height
+
+        # Get max heights reached in the motion
+        max_heights_sorted = sorted([fl_max_height, fr_max_height, rl_max_height, rr_max_height], reverse=True)
+        swing1_max_height = max_heights_sorted[0]
+        swing2_max_height = max_heights_sorted[1]
+
+        # Compute booleans for swinging and max height conditions
+        swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
+        max_heights_condition = swing1_max_height > max_height and swing2_max_height > max_height
+
+        if not swinging_condition or not max_heights_condition:
+            footstep.data = False
+            if not max_heights_condition:
+                print("Invalid max height condition")
+                print(swing1_max_height, swing2_max_height)
+            if not swinging_condition:
+                print("Invalid swinging condition")
+                clean_max_heights()
+                print(fl_moving, fr_moving, rl_moving, rr_moving, fl_max_height, fr_max_height, rl_max_height, rr_max_height)
+
+            if not max_heights_condition or not swinging_condition:
+                print("Invalid detected footsteps")
+
+        # Clean max height variable if footstep detected
+        clean_max_heights()
+
+    # Publish footstep detection boolean
+    footstep_publisher.publish(footstep)
+
+    rospy.set_param("/feet_in_contact", footstep.data)
+
+    return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
 def live_extraction(cmd_msg,
-                    odom_msg,
-                    lf_foot_msg,
-                    rf_foot_msg,
-                    lh_foot_msg,
-                    rh_foot_msg):
+                    odom_msg):
+    global listener
     global file_object
-    global lf_rh_moving
-    global rf_lh_moving
-
-    # Contact check
-    if not (lf_foot_msg.states and rf_foot_msg.states and lh_foot_msg.states and rh_foot_msg.states):
-        lf_rh_moving = False if (lf_foot_msg.states and rh_foot_msg.states) else True
-        rf_lh_moving = False if (rf_foot_msg.states and lh_foot_msg.states) else True
-        publisher.publish(False)
+    
+    # Get translation of each foot w.r.t to CoM
+    trans_lf, trans_rf, trans_lh, trans_rh = None, None, None, None
+    try:
+        (trans_lf, _) = listener.lookupTransform('/base_link', '/lf_foot', rospy.Time(0))
+        (trans_rf, _) = listener.lookupTransform('/base_link', '/rf_foot', rospy.Time(0))
+        (trans_lh, _) = listener.lookupTransform('/base_link', '/lh_foot', rospy.Time(0))
+        (trans_rh, _) = listener.lookupTransform('/base_link', '/rh_foot', rospy.Time(0))
+    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        print("Could not get transforms")
         return
     
-    # Make sure only one 
-    # diagonal is moving
-    if lf_rh_moving and rf_lh_moving:
-        print("Two diagonals moving")
-        publisher.publish(False)
-        return
-    
-    publisher.publish(True)
+    lf_height_publisher.publish(trans_lf[2])
+    rf_height_publisher.publish(trans_rf[2])
+    lh_height_publisher.publish(trans_lh[2])
+    rh_height_publisher.publish(trans_rh[2])
 
+    # Command velocity given
     linear_x = cmd_msg.twist.linear.x
     linear_y = cmd_msg.twist.linear.y
     angular_yaw = cmd_msg.twist.angular.z
-Contact check
+    
+    # Check at this time a valid footstep is detected
+    is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep([linear_x, linear_y, angular_yaw], 
+                                                                                   [trans_lf[2], trans_rf[2], trans_lh[2], trans_rh[2]])
+
+    lf_rh_moving = fl_moving and rr_moving
+    rf_lh_moving = fr_moving and rl_moving
+
+    # If not a valid footstep, skip callback
+    if not is_valid_footstep or lf_rh_moving == rf_lh_moving:
+        return
+    
+    linear_x = cmd_msg.twist.linear.x
+    linear_y = cmd_msg.twist.linear.y
+    angular_yaw = cmd_msg.twist.angular.z
+
     file_object.write(str(time.time()) + "," + # 0
 
                       str(linear_x) + "," + # 1
                       str(linear_y) + "," + # 2
                       str(angular_yaw) + "," + # 3
 
-                      str(lf_foot_msg.states[0].contact_positions[0].x) + "," +  # 4
-                      str(lf_foot_msg.states[0].contact_positions[0].y) + "," +  # 5
-                      str(lf_foot_msg.states[0].contact_positions[0].z) + "," +  # 6
-                      str(rf_foot_msg.states[0].contact_positions[0].x) + "," +  # 7
-                      str(rf_foot_msg.states[0].contact_positions[0].y) + "," +  # 8
-                      str(rf_foot_msg.states[0].contact_positions[0].z) + "," +  # 9
-                      str(lh_foot_msg.states[0].contact_positions[0].x) + "," +  # 10
-                      str(lh_foot_msg.states[0].contact_positions[0].y) + "," +  # 11
-                      str(lh_foot_msg.states[0].contact_positions[0].z) + "," +  # 12
-                      str(rh_foot_msg.states[0].contact_positions[0].x) + "," +  # 13
-                      str(rh_foot_msg.states[0].contact_positions[0].y) + "," +  # 14
-                      str(rh_foot_msg.states[0].contact_positions[0].z) + "," +  # 15
+                      str(trans_lf[0]) + "," +  # 4
+                      str(trans_lf[1]) + "," +  # 5
+                      str(trans_lf[2]) + "," +  # 6
+                      str(trans_rf[0]) + "," +  # 7
+                      str(trans_rf[1]) + "," +  # 8
+                      str(trans_rf[2]) + "," +  # 9
+                      str(trans_lh[0]) + "," +  # 10
+                      str(trans_lh[1]) + "," +  # 11
+                      str(trans_lh[2]) + "," +  # 12
+                      str(trans_rh[0]) + "," +  # 13
+                      str(trans_rh[1]) + "," +  # 14
+                      str(trans_rh[2]) + "," +  # 15
 
                       str(odom_msg.pose.pose.position.x) + "," +  # 16
                       str(odom_msg.pose.pose.position.y) + "," +  # 17
@@ -109,28 +256,29 @@ Contact check
 def main():
     # Globals
     global client
-    global publisher
+    global listener
+    global footstep_publisher
+    global lf_height_publisher
+    global rf_height_publisher
+    global lh_height_publisher
+    global rh_height_publisher
 
-    # Init
     rospy.init_node('topics_sim_to_csv')
-    rospy.set_param("/height_threshold", 0.003)
+    
+    listener = tf.TransformListener()
     rospy.set_param("/feet_in_contact", False)
-    publisher = rospy.Publisher('footstep', Bool, queue_size=1)
+    rospy.set_param("/height_threshold", 0.02)
+    footstep_publisher = rospy.Publisher('footstep', Bool, queue_size=1)
+    lf_height_publisher = rospy.Publisher('lf_height', Float32, queue_size=1)
+    rf_height_publisher = rospy.Publisher('rf_height', Float32, queue_size=1)
+    lh_height_publisher = rospy.Publisher('lh_height', Float32, queue_size=1)
+    rh_height_publisher = rospy.Publisher('rh_height', Float32, queue_size=1)
 
     cmd_msg = message_filters.Subscriber(f"/cmd_vel", TwistStamped)
     odom_msg = message_filters.Subscriber(f"/{robot_name}/ground_truth", Odometry)
-    lf_foot_msg = message_filters.Subscriber(f"/{robot_name}/lf_foot_bumper2", ContactsState)
-    rf_foot_msg = message_filters.Subscriber(f"/{robot_name}/rf_foot_bumper2", ContactsState)
-    lh_foot_msg = message_filters.Subscriber(f"/{robot_name}/lh_foot_bumper2", ContactsState)
-    rh_foot_msg = message_filters.Subscriber(f"/{robot_name}/rh_foot_bumper2", ContactsState)
 
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_msg,
-                                                      odom_msg,
-                                                      lf_foot_msg,
-                                                      rf_foot_msg,
-                                                      lh_foot_msg,
-                                                      rh_foot_msg], 10, 0.3)
-
+    ts = message_filters.TimeSynchronizer([cmd_msg,
+                                           odom_msg], 10)
     ts.registerCallback(live_extraction)
 
     rospy.spin()

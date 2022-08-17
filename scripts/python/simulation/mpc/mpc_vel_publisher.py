@@ -14,18 +14,19 @@
 """
 
 # General imports
-import random
-
+import time
 import rospy
+import random
 import numpy as np
 from geometry_msgs.msg import TwistStamped
 
 # Global variables
-MAX_NON_FWD_VELOCITY = 0.55
-ACCELERATION_ENABLED = False
+SECONDS_TO_WAIT = 30
+MAX_NON_FWD_VELOCITY = 1.05
+ACCELERATION_ENABLED = True
 
 
-def getTwistMessage(velocities):
+def get_twist_message(velocities):
     twist = TwistStamped()
     twist.header.stamp = rospy.Time.now()
     twist.twist.angular.x = velocities[0]
@@ -38,7 +39,7 @@ def getTwistMessage(velocities):
 
 
 def stop(velocity_publisher):
-    twist = getTwistMessage([0, 0, 0, 0, 0, 0])
+    twist = get_twist_message([0, 0, 0, 0, 0, 0])
     velocity_publisher.publish(twist)
 
 
@@ -46,7 +47,7 @@ def stomping(velocity_publisher):
     start_time = rospy.Time.now()
     seconds_to_wait = rospy.Duration(2)
     end_time = start_time + seconds_to_wait
-    twist = getTwistMessage([0, 0, 0, 0.001, 0, 0])
+    twist = get_twist_message([0, 0, 0, 0.001, 0, 0])
 
     rate = rospy.Rate(1000)
     while rospy.Time.now() < end_time:
@@ -55,10 +56,10 @@ def stomping(velocity_publisher):
         rate.sleep()
 
 
-def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
+def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
     global MAX_NON_FWD_VELOCITY
 
-    for next_velocity in np.arange(0.5, 1.0, 0.1):
+    for next_velocity in np.arange(0.1, 1.1, 0.1):
         # Limit clockwise, counterclockwise, left and right motions to 0.5
         if motion not in ["forward", "backward"] and (
                 curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
@@ -72,57 +73,49 @@ def publish_joy_accelerations(joy, velocity_publisher, curr_velocity, motion):
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
               -next_velocity if curr_velocity < 0 else next_velocity)
 
-        for _ in range(20):
+        for _ in range(10):
             # Reset velocity to initial one
             if motion in ["forward", "backward"]:
-                joy.axes[1] = curr_velocity
+                twist.twist.linear.x = curr_velocity
             elif motion in ["right", "left"]:
-                joy.axes[0] = curr_velocity
+                twist.twist.linear.y = curr_velocity
             else:
-                joy.axes[3] = curr_velocity
-
-            start_time = rospy.Time.now()
-            seconds_to_wait = rospy.Duration.from_sec(random.uniform(1.2, 1.5))
-            end_time = start_time + seconds_to_wait
+                twist.twist.angular.z = curr_velocity
 
             # Apply current velocity
             rate = rospy.Rate(1000)
-            while rospy.Time.now() < end_time or not rospy.get_param("/feet_in_contact"):
+            end_time = time.time() + random.uniform(0.8, 1.5)
+            while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 # Update joy timestamp
-                joy.header.stamp = rospy.Time.now()
+                twist.header.stamp = rospy.Time.now()
 
-                velocity_publisher.publish(joy)
+                velocity_publisher.publish(twist)
                 rate.sleep()
-
-            start_time = rospy.Time.now()
-            seconds_to_wait = rospy.Duration.from_sec(random.uniform(1.2, 1.5))
-            end_time = start_time + seconds_to_wait
 
             # Change velocity to next velocity
             if motion in ["forward", "backward"]:
-                joy.axes[1] = next_velocity if motion == "forward" else -next_velocity
+                twist.twist.linear.x = next_velocity if motion == "forward" else -next_velocity
             elif motion in ["right", "left"]:
-                joy.axes[0] = next_velocity if motion == "left" else -next_velocity
+                twist.twist.linear.y = next_velocity if motion == "left" else -next_velocity
             else:
-                joy.axes[3] = next_velocity if motion == "counter" else -next_velocity
+                twist.twist.angular.z = next_velocity if motion == "counter" else -next_velocity
 
-            # Apply next velocity
+            # Apply current velocity
             rate = rospy.Rate(1000)
-            while rospy.Time.now() < end_time or not rospy.get_param("/feet_in_contact"):
+            end_time = time.time() + random.uniform(0.8, 1.5)
+            while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 # Update joy timestamp
-                joy.header.stamp = rospy.Time.now()
+                twist.header.stamp = rospy.Time.now()
 
-                velocity_publisher.publish(joy)
+                velocity_publisher.publish(twist)
                 rate.sleep()
 
 
 def publish_joy_continuous(twist, velocity_publisher):
     rate = rospy.Rate(1000)
-    start_time = rospy.Time.now()
-    seconds_to_wait = rospy.Duration(30)
-    end_time = start_time + seconds_to_wait
-    
-    while rospy.Time.now() < end_time:
+    end_time = time.time() + SECONDS_TO_WAIT
+
+    while time.time() < end_time:
         twist.header.stamp = rospy.Time.now()
         velocity_publisher.publish(twist)
         rate.sleep()
@@ -133,47 +126,52 @@ def joy_publisher():
     velocity_publisher = rospy.Publisher('/cmd_vel', TwistStamped, queue_size=1)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.1, 0.8, 0.1):
+        for velocity in np.arange(0.0, 0.1, 0.1):
             print(velocity)
 
             # Forward walking
-            twist = getTwistMessage([0, 0, 0, velocity, 0, 0])
+            twist = get_twist_message([0, 0, 0, velocity, 0, 0])
             if ACCELERATION_ENABLED:
                 print("Publishing acceleration forward command")
                 publish_joy_accelerations(twist, velocity_publisher, velocity, "forward")
             else:
+                # No need for 0 continuous velocity
+                if velocity == 0.0:
+                    continue
+            
                 print("Publishing continuous forward command")
                 publish_joy_continuous(twist, velocity_publisher)
-
-            # Limit side and rotational velocities to 0.5
-            # if not ACCELERATION_ENABLED and velocity > MAX_NON_FWD_VELOCITY:
-            #     continue
+            
+            stomping(velocity_publisher)
 
             # # Clockwise rotation
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [0.0, 0.0, 1.0, -velocity, 0.0, 1.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            # twist = get_twist_message([0, 0, -velocity, 0, 0, 0])
             # if ACCELERATION_ENABLED:
             #     print("Publishing acceleration clockwise command")
-            #     publish_joy_accelerations(joy, velocity_publisher, -velocity, "clockwise")
+            #     publish_joy_accelerations(twist, velocity_publisher, -velocity, "clockwise")
             # else:
+            #     if velocity == 0.0:
+            #         continue
+            #
             #     print("Publishing continuous clockwise command")
-            #     publish_joy_continuous(joy, velocity_publisher)
-            
+            #     publish_joy_continuous(twist, velocity_publisher)
+            #
+            # stomping(velocity_publisher)
+            #
             # # Counterclockwise rotation
-            # joy = Joy()
-            # joy.header.stamp = rospy.Time.now()
-            # joy.header.frame_id = "/dev/input/js0"
-            # joy.axes = [0.0, 0.0, 1.0, velocity, 0.0, 1.0, 0.0, 0.0]
-            # joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+            # twist = get_twist_message([0, 0, velocity, 0, 0, 0])
             # if ACCELERATION_ENABLED:
             #     print("Publishing acceleration counterclockwise command")
-            #     publish_joy_accelerations(joy, velocity_publisher, velocity, "counter")
+            #     publish_joy_accelerations(twist, velocity_publisher, velocity, "counter")
             # else:
+            #     if velocity == 0.0:
+            #         print("Here: ", velocity)
+            #         continue
+            #
             #     print("Publishing continuous counterclockwise command")
-            #     publish_joy_continuous(joy, velocity_publisher)
+            #     publish_joy_continuous(twist, velocity_publisher)
+            #
+            # stomping(velocity_publisher)
             
             #
             # # Right stepping

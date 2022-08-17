@@ -52,14 +52,14 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     // Available actions
     m_actions = {
             {1, 0,  0}, // Forward
-            {0, -1, 0}, // Right
-            {0, 1,  0}, // Left
             {0, 0,  -1}, // Clockwise
-            {0, 0,  1} // Counterclockwise
+            {0, 0,  1}, // Counterclockwise
+            {0, -1, 0}, // Right
+            {0, 1,  0} // Left
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 }
 
 /**
@@ -231,8 +231,15 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // Convert source and target world coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
     Vec2D l_targetGridCoordinates{};
-    worldToGrid(p_sourceWorldCoordinates, l_sourceGridCoordinates);
-    worldToGrid(p_targetWorldCoordinates, l_targetGridCoordinates);
+    if (!worldToGrid(p_sourceWorldCoordinates, l_sourceGridCoordinates)) {
+        ROS_WARN("AStar: Could not convert source world coordinates to source grid coordinates.");
+    }
+
+    if (!worldToGrid(p_targetWorldCoordinates, l_targetGridCoordinates)) {
+        ROS_WARN("AStar: Could not convert target world coordinates to target grid coordinates");
+    }
+
+    ROS_INFO("Convert from world to Grid");
 
     // Create open and closed sets for the search process
     std::vector<Node *> l_openSet, l_closedSet;
@@ -295,9 +302,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
-                ROS_DEBUG_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
-                ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
+                ROS_INFO_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
+                ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
+                ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
@@ -381,6 +388,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rlGridPose.x,
                                                                    l_rlGridPose.y,
                                                                    l_hindFootDistance)) {
+                            ROS_INFO("Invalid Footstep");
                             continue;
                         }
                     } else {
@@ -394,6 +402,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rrGridPose.x,
                                                                    l_rrGridPose.y,
                                                                    l_hindFootDistance)) {
+                            ROS_INFO("Invalid Footstep");
                             continue;
                         }
                     }

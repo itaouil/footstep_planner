@@ -20,12 +20,12 @@ const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuratio
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
+const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
 const std::string ROBOT_POSE_TOPIC("/aliengo/ground_truth");
 const std::string FEET_FORCES_TOPIC("/aliengo/contacts_state");
-const std::string HEIGHT_MAP_TOPIC("/elevation_mapping/elevation_map_raw");
 
 // TF reference frames
-const std::string ROBOT_REFERENCE_FRAME("base");
+const std::string ROBOT_REFERENCE_FRAME("base_link");
 const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map
@@ -53,10 +53,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(20);
+const unsigned int FOOTSTEP_HORIZON(10);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.01);
+const double MIN_STAIR_DISTANCE(0.015);
 
 // Angle tolerance between target and robot rotation
 const double ANGLE_DIFFERENCE_TOLERANCE(2);

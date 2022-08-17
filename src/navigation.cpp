@@ -30,15 +30,15 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
 
     // Publishers
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_CoM_PATH_TOPIC, 1);
+    m_velocityPublisher = m_nh.advertise<geometry_msgs::TwistStamped>(VELOCITY_CMD_TOPIC, 1);
     m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(PREDICTED_CoM_PATH_TOPIC, 1);
-    m_velocityPublisher = m_nh.advertise<unitree_legged_msgs::HighCmd>(VELOCITY_CMD_TOPIC, 1);
     m_realFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(
         REAL_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
     m_targetFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(
             PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
 
     // Subscribers
-    m_goalSubscriber = m_nh.subscribe("goal", 10, &Navigation::goalCallback, this);
+    m_goalSubscriber = m_nh.subscribe("/move_base_simple/goal", 10, &Navigation::goalCallback, this);
 
     // Odometry cache
     m_robotPoseSubscriber.subscribe(m_nh, ROBOT_POSE_TOPIC, 1);
@@ -75,7 +75,7 @@ Navigation::~Navigation() {
 void Navigation::cmdPublisher() {
     while (ros::ok()) {
         if (m_startedCmdPublisher) {
-            m_velocityPublisher.publish(m_cmd);
+            m_velocityPublisher.publish(m_velCmd);
 
             // Sleep
             m_rate.sleep();
@@ -92,16 +92,13 @@ void Navigation::cmdPublisher() {
  * configuration.
  */
 void Navigation::startCmdPublisher() {
-    m_cmd.mode = 2;
-    m_cmd.gaitType = 0;
-    m_cmd.speedLevel = 2;
-    m_cmd.dFootRaiseHeight = 0.0f;
-    m_cmd.dBodyHeight = 0.0f;
-    m_cmd.position[0] = 0.0f;
-    m_cmd.position[1] = 0.0f;
-    m_cmd.rpy[0] = 0.0f;
-    m_cmd.rpy[1] = 0.0f;
-    m_cmd.rpy[2] = 0.0f;
+    m_velCmd.header.stamp = ros::Time::now();
+    m_velCmd.twist.linear.x = 0;
+    m_velCmd.twist.linear.y = 0;
+    m_velCmd.twist.linear.z = 0;
+    m_velCmd.twist.angular.x = 0;
+    m_velCmd.twist.angular.y = 0;
+    m_velCmd.twist.angular.z = 0;
 
     m_startedCmdPublisher = true;
     ROS_INFO("Navigation: Cmd publisher started.");
@@ -136,26 +133,19 @@ void Navigation::buildInitialHeightMap() {
     double l_currentAngle = 0;
     double l_t0 = ros::Time::now().toSec();
 
-    // Angular motion high level command
-    unitree_legged_msgs::HighCmd l_cmd;
-    l_cmd.mode = 2;
-    l_cmd.gaitType = 0;
-    l_cmd.speedLevel = 2;
-    l_cmd.dFootRaiseHeight = 0.0f;
-    l_cmd.dBodyHeight = 0.0f;
-    l_cmd.position[0] = 0.0f;
-    l_cmd.position[1] = 0.0f;
-    l_cmd.rpy[0] = 0.0f;
-    l_cmd.rpy[1] = 0.0f;
-    l_cmd.rpy[2] = 0.0f;
-    l_cmd.velocity[0] = 0.0f;
-    l_cmd.velocity[1] = 0.0f;
-    l_cmd.yawSpeed = l_angularSpeed;
+    // Angular velocity command
+    m_velCmd.header.stamp = ros::Time::now();
+    m_velCmd.twist.linear.x = 0;
+    m_velCmd.twist.linear.y = 0;
+    m_velCmd.twist.linear.z = 0;
+    m_velCmd.twist.angular.x = 0;
+    m_velCmd.twist.angular.y = 0;
+    m_velCmd.twist.angular.z = l_angularSpeed;
 
     // Send velocity command
     while (l_currentAngle < l_relativeAngle) {
         // Publish message
-        m_velocityPublisher.publish(l_cmd);
+        m_velocityPublisher.publish(m_velCmd);
 
         // Compute current robot direction
         double l_t1 = ros::Time::now().toSec();
@@ -179,38 +169,25 @@ void Navigation::setCmd(const Action &p_action, const double &p_velocity) {
     // Velocity to be sent
     const auto l_velocityCommand = static_cast<float>(p_velocity);
 
-    m_cmd.mode = 2;
-    m_cmd.gaitType = 0;
-    m_cmd.speedLevel = 2;
-    m_cmd.dFootRaiseHeight = 0.0f;
-    m_cmd.dBodyHeight = 0.0f;
-    m_cmd.position[0] = 0.0f;
-    m_cmd.position[1] = 0.0f;
-    m_cmd.rpy[0] = 0.0f;
-    m_cmd.rpy[1] = 0.0f;
-    m_cmd.rpy[2] = 0.0f;
+    m_velCmd.header.stamp = ros::Time::now();
+    m_velCmd.twist.linear.x = 0;
+    m_velCmd.twist.linear.y = 0;
+    m_velCmd.twist.linear.z = 0;
+    m_velCmd.twist.angular.x = 0;
+    m_velCmd.twist.angular.y = 0;
+    m_velCmd.twist.angular.z = 0;
 
     // Set axes and buttons based on action
     if (p_action == Action{1, 0, 0}) {
-        m_cmd.velocity[0] = p_velocity;
-        m_cmd.velocity[1] = 0.0f;
-        m_cmd.yawSpeed = 0.0f;
+        m_velCmd.twist.linear.x = p_velocity;
     } else if (p_action == Action{0, -1, 0}) {
-        m_cmd.velocity[0] = 0.0f;
-        m_cmd.velocity[1] = -p_velocity;
-        m_cmd.yawSpeed = 0.0f;
+        m_velCmd.twist.linear.y = -p_velocity;
     } else if (p_action == Action{0, 1, 0}) {
-        m_cmd.velocity[0] = 0.0f;
-        m_cmd.velocity[1] = p_velocity;
-        m_cmd.yawSpeed = 0.0f;
+        m_velCmd.twist.linear.y = p_velocity;
     } else if (p_action == Action{0, 0, -1}) {
-        m_cmd.velocity[0] = 0.0f;
-        m_cmd.velocity[1] = 0.0f;
-        m_cmd.yawSpeed = -p_velocity;
+        m_velCmd.twist.angular.z = -p_velocity;
     } else if (p_action == Action{0, 0, 1}) {
-        m_cmd.velocity[0] = 0.0f;
-        m_cmd.velocity[1] = 0.0f;
-        m_cmd.yawSpeed = p_velocity;
+        m_velCmd.twist.angular.z = p_velocity;
     } else {
         ROS_WARN("Navigation: Action is not recognized (cmd message)!");
     }
@@ -363,9 +340,9 @@ void Navigation::executeHighLevelCommands() {
         }
 
         // Start cmd publisher if not running
-        if (!m_startedCmdPublisher) {
-            startCmdPublisher();
-        }
+        // if (!m_startedCmdPublisher) {
+        //     startCmdPublisher();
+        // }
 
         // Execute planned commands within horizon
         for (auto &l_node: m_path) {

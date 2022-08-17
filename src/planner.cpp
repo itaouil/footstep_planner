@@ -117,8 +117,12 @@ void Planner::plan(std::vector<Node> &p_path,
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(p_swingingPair, p_robotPose, l_feetConfiguration, p_latestCoMFeetPoses);
 
+    ROS_INFO("Create feet configuration");
+
     // Clear reference path
     p_path.clear();
+
+    ROS_INFO("Cleared");
 
     // Call the A* search algorithm
     m_search.findPath(p_initialAction,

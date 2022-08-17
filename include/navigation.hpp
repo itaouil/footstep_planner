@@ -29,9 +29,9 @@
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ContactsState.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
-#include <unitree_legged_msgs/HighCmd.h>
 #include <unitree_legged_msgs/Cartesian.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <unitree_legged_msgs/HighStateStamped.h>
@@ -153,9 +153,12 @@ private:
     //! ROS node handle
     ros::NodeHandle m_nh;
 
+    //! Velocity command
+    geometry_msgs::TwistStamped m_velCmd;
+
     //! TF variables
-    tf2_ros::TransformListener &m_tf2;
     tf2_ros::Buffer &m_buffer;
+    tf2_ros::TransformListener &m_tf2;
 
     //! ROS subscribers
     ros::Subscriber m_goalSubscriber;
