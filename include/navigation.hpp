@@ -136,12 +136,10 @@ private:
     void goalCallback(const geometry_msgs::PoseStamped &p_goalMsg);
 
     /**
-     * Publish online the
-     * predicted footsteps.
-     *
-     * @param p_path
+     * Publish the latest
+     * predicted footsteps
      */
-    void publishOnlinePredictedFootsteps(std::vector<Node> &p_path);
+    void publishOnlinePredictedFootsteps();
 
     /**
      * ROS variables
@@ -213,15 +211,12 @@ private:
      * Velocity commands variables
      */
 
-    //! Thread object for joy publishing
-    std::thread m_thread;
+    //! Threads
+    std::thread m_cmdPubThread;
+    std::thread m_predFeetThread;
     
     //! Cmd publisher thread variable
     bool m_startedCmdPublisher;
-
-    /**
-     * Planner data for post analysis
-     */
 
     //! File streaming object
     std::ofstream m_fileStream;

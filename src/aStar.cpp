@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
 }
 
 /**
@@ -302,9 +302,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
-                ROS_INFO_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
-                ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
+                ROS_DEBUG_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
+                ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
+                ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
@@ -388,7 +388,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rlGridPose.x,
                                                                    l_rlGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_INFO("Invalid Footstep");
+                            ROS_DEBUG_STREAM("Invalid Footstep");
                             continue;
                         }
                     } else {
@@ -402,7 +402,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rrGridPose.x,
                                                                    l_rrGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_INFO("Invalid Footstep");
+                            ROS_DEBUG_STREAM("Invalid Footstep");
                             continue;
                         }
                     }
@@ -478,7 +478,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         if (l_validFootstepFound) {
             m_validFootstepsFound += 1;
         } else {
-            ROS_INFO("Search: No valid footstep found...");
+            ROS_DEBUG_STREAM("Search: No valid footstep found...");
         }
 
         ros::spinOnce();

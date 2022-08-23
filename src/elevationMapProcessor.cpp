@@ -112,10 +112,10 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         // Convert elevation map to OpenCV
         cv::Mat l_elevationMapImage;
         if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
-                                                             "min_filter",
+                                                             "elevation",
                                                              CV_32F,
-                                                             l_elevationMap["min_filter"].minCoeffOfFinites(),
-                                                             l_elevationMap["min_filter"].maxCoeffOfFinites(),
+                                                             l_elevationMap["elevation"].minCoeffOfFinites(),
+                                                             l_elevationMap["elevation"].maxCoeffOfFinites(),
                                                              l_elevationMapImage)) {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
@@ -162,8 +162,8 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",
                                                                   l_elevationMap,
-                                                                  l_elevationMap["min_filter"].minCoeffOfFinites(),
-                                                                  l_elevationMap["min_filter"].maxCoeffOfFinites());
+                                                                  l_elevationMap["elevation"].minCoeffOfFinites(),
+                                                                  l_elevationMap["elevation"].maxCoeffOfFinites());
 
         // Update distance transform layer
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
@@ -272,10 +272,9 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
                                           const int &p_nextRow,
                                           const int &p_nextCol,
                                           float &p_footDistance) {
-    // Closest obstacle distance to new footstep location, and the
-    // height of the footstep locations for the previous and new
-    // predicted location.
-    float l_newFootDistance, l_newFootstepHeight, l_prevFootstepHeight;
+    float l_newFootDistance;
+    float l_newFootstepHeight;
+    float l_prevFootstepHeight;
 
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
@@ -286,12 +285,12 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
         l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
         l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
 
-        ROS_INFO_STREAM("Valid foot location: " << p_nextRow << ", " << p_nextCol << ", " << l_newFootDistance);
+        ROS_DEBUG_STREAM("Valid foot location: " << p_nextRow << ", " << p_nextCol << ", " << l_newFootDistance);
     }
 
-    ROS_INFO_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
+    ROS_DEBUG_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
 
-    return (l_newFootDistance > MIN_STAIR_DISTANCE);
+    return (l_newFootDistance > MIN_STAIR_DISTANCE) && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
 }
 
 /**
