@@ -272,25 +272,24 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
                                           const int &p_nextRow,
                                           const int &p_nextCol,
                                           float &p_footDistance) {
-    float l_newFootDistance;
+    bool l_validFootstep;
     float l_newFootstepHeight;
     float l_prevFootstepHeight;
 
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        p_footDistance = l_newFootDistance = std::min({m_gridMap["distance"].coeff(p_nextRow + 1, p_nextCol),
-                                                         m_gridMap["distance"].coeff(p_nextRow - 1, p_nextCol)}) *
-                                                         m_elevationMapGridResolution;
-
+        l_validFootstep = m_gridMap["costmap"].coeff(p_nextRow, p_nextCol);
         l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
         l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
-
-        ROS_DEBUG_STREAM("Valid foot location: " << p_nextRow << ", " << p_nextCol << ", " << l_newFootDistance);
+        p_footDistance = std::min({m_gridMap["distance"].coeff(p_nextRow, p_nextCol),
+                                      m_gridMap["distance"].coeff(p_nextRow, p_nextCol)}) *
+                                      m_elevationMapGridResolution;
     }
 
-    ROS_DEBUG_STREAM("FOOTSTEP HEIGHT DIFFERENCE: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
+    ROS_INFO_STREAM("Valid footstep: " << l_validFootstep);
+    ROS_INFO_STREAM("Footstep height difference: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
 
-    return (l_newFootDistance > MIN_STAIR_DISTANCE) && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
+    return l_validFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
 }
 
 /**
