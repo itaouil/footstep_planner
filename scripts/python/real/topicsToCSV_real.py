@@ -39,7 +39,7 @@ rr_max_height = 0
 
 # Global variables
 path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real"
-file_object = open(path + "/counter.csv", "a")
+file_object = open(path + "/forward.csv", "a")
 
 
 def clean_max_heights():
@@ -96,7 +96,7 @@ def valid_footstep(footholds_msg):
             prev_footstep_time = time.time()
         else:
             if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
-                # print("Time: ", time.time() - prev_footstep_time)
+                print("Time: ", time.time() - prev_footstep_time)
                 footstep.data = True
                 prev_footstep_flag = True
                 prev_footstep_time = time.time()

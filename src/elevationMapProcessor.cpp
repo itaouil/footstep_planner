@@ -88,28 +88,17 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             continue;
         }
 
-        // Acquire latest elevation grid map
         grid_map_msgs::GridMap l_elevationGridMapMsg;
         {
             std::lock_guard<std::mutex> l_lockGuard(m_mutex);
             l_elevationGridMapMsg = m_gridMapMsgs.back();
         }
 
-        // Convert grid_map_msgs to grid_map
         grid_map::GridMap l_elevationMap;
         if (!grid_map::GridMapRosConverter::fromMessage(l_elevationGridMapMsg, l_elevationMap)) {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map_msgs to grid_map.");
         }
 
-        // for (unsigned int i = 0; i < l_elevationMap["elevation"].rows(); i++) {
-        //     for (unsigned int j = 0; j < l_elevationMap["elevation"].cols(); j++) {
-        //         if (l_elevationMap["elevation"].coeff(i, j) < 0) {
-        //             l_elevationMap["elevation"](i, j) = 0.0;
-        //         }
-        //     }
-        // }
-
-        // Convert elevation map to OpenCV
         cv::Mat l_elevationMapImage;
         if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
                                                              "elevation",
@@ -120,24 +109,19 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
 
-        // Dilate elevation map image to fill sparse regions
         cv::Mat l_elevationMapImageDilated;
         cv::dilate(l_elevationMapImage, l_elevationMapImageDilated, cv::Mat());
 
-        // Erode elevation map to eliminate extraneous sensor returns
         cv::Mat l_elevationMapImageEroded;
         cv::erode(l_elevationMapImageDilated, l_elevationMapImageEroded, cv::Mat());
 
-        // Apply median filter to smooth while preserving borders
         cv::Mat l_elevationMapImageFiltered;
         cv::medianBlur(l_elevationMapImageEroded, l_elevationMapImageFiltered, 3);
 
-        // Apply sobel filter to elevation map image
         cv::Mat l_sobelX, l_sobelY;
         cv::Sobel(l_elevationMapImageFiltered, l_sobelX, CV_32F, 1, 0, 3);
         cv::Sobel(l_elevationMapImageFiltered, l_sobelY, CV_32F, 0, 1, 3);
 
-        // Build overall filter result by combining the previous results
         cv::Mat l_sobelMagnitude;
         cv::magnitude(l_sobelX, l_sobelY, l_sobelMagnitude);
 
@@ -146,31 +130,26 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         cv::threshold(l_sobelMagnitude, l_costmap, GRADIENT_THRESHOLD, 1, cv::THRESH_BINARY_INV);
         l_costmap.convertTo(l_costmap, CV_8UC1);
 
-        // Compute distance transform
         cv::Mat l_costmapCV8UC1;
         cv::Mat l_distanceTransform;
         cv::distanceTransform(l_costmap, l_distanceTransform, cv::DIST_L2, 3);
 
-        // Update costmap layer
         grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(l_costmap,
                                                                           "costmap",
                                                                           l_elevationMap,
                                                                           0,
                                                                           1);
 
-        // Update elevation layer
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",
                                                                   l_elevationMap,
                                                                   l_elevationMap["elevation"].minCoeffOfFinites(),
                                                                   l_elevationMap["elevation"].maxCoeffOfFinites());
 
-        // Update distance transform layer
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
                                                                   "distance",
                                                                   l_elevationMap);
 
-        // Store latest elevation map
         {
             std::lock_guard<std::mutex> l_lockGuard(m_mutex);
             m_gridMap = l_elevationMap;
@@ -272,24 +251,29 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
                                           const int &p_nextRow,
                                           const int &p_nextCol,
                                           float &p_footDistance) {
-    bool l_validFootstep;
+    bool l_safeFootstep;
+    bool l_invalidFootstep;
     float l_newFootstepHeight;
     float l_prevFootstepHeight;
 
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        l_validFootstep = m_gridMap["costmap"].coeff(p_nextRow, p_nextCol);
+        l_safeFootstep = m_gridMap["costmap"].coeff(p_nextRow, p_nextCol);
+        l_invalidFootstep = std::isnan(m_gridMap["elevation"].coeff(p_nextRow, p_nextCol));
         l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
         l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
         p_footDistance = std::min({m_gridMap["distance"].coeff(p_nextRow, p_nextCol),
                                       m_gridMap["distance"].coeff(p_nextRow, p_nextCol)}) *
                                       m_elevationMapGridResolution;
+
+        ROS_INFO_STREAM(m_gridMap["elevation"].coeff(p_nextRow, p_nextCol) << ", " << m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol));
     }
 
-    ROS_INFO_STREAM("Valid footstep: " << l_validFootstep);
+    ROS_INFO_STREAM("Safe footstep: " << l_safeFootstep);
+    ROS_INFO_STREAM("Invalid footstep: " << l_invalidFootstep);
     ROS_INFO_STREAM("Footstep height difference: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
 
-    return l_validFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
+    return l_safeFootstep && !l_invalidFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
 }
 
 /**

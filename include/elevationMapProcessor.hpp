@@ -11,7 +11,10 @@
 // C++ general
 #include <queue>
 #include <mutex>
+#include <cfloat>
+#include <cmath>
 #include <thread>
+#include <unordered_set>
 
 // OpenCV
 #include "opencv2/opencv.hpp"

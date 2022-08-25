@@ -388,7 +388,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rlGridPose.x,
                                                                    l_rlGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_WARN("Invalid Footstep");
+                            ROS_WARN("Invalid FR/RL Footstep");
                             continue;
                         }
                     } else {
@@ -402,7 +402,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rrGridPose.x,
                                                                    l_rrGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_WARN("Invalid Footstep");
+                            ROS_WARN("Invalid FL/RR Footstep");
                             continue;
                         }
                     }
