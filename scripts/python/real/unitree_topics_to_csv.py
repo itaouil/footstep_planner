@@ -22,7 +22,7 @@ import message_filters
 
 # ROS msgs imports
 from std_msgs.msg import Bool
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import TwistStamped
 from unitree_legged_msgs.msg import HighStateStamped, HighCmdStamped
 
 # Global flags (footstep extraction)
@@ -39,7 +39,7 @@ rr_max_height = 0
 
 # Global variables
 path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real"
-file_object = open(path + "/forward.csv", "a")
+file_object = open(path + "/forward_continuous.csv", "a")
 
 
 def clean_max_heights():
@@ -86,6 +86,8 @@ def valid_footstep(footholds_msg):
     # Compute feet height difference booleans
     left_height_difference_in_range = abs(fl_height - rl_height) < height_threshold
     right_height_difference_in_range = abs(fr_height - rr_height) < height_threshold
+    
+    print(left_height_difference_in_range, right_height_difference_in_range)
 
     # Check if footstep detected or not
     if right_height_difference_in_range and left_height_difference_in_range:
@@ -148,7 +150,7 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
-def live_extraction(cmd, odom, state):
+def live_extraction(cmd, state):
     # Globals
     global file_object
 
@@ -158,12 +160,11 @@ def live_extraction(cmd, odom, state):
     # If not a valid footstep, skip callback
     if not is_valid_footstep:
         return
-
     file_object.write(str(time.time()) + "," +  # 0
 
-                      str(cmd.velocity[0]) + "," +  # 1
-                      str(cmd.velocity[1]) + "," +  # 2
-                      str(cmd.yawSpeed) + "," +     # 3
+                      str(cmd.twist.linear.x) + "," +  # 1
+                      str(cmd.twist.linear.y) + "," +  # 2
+                      str(cmd.twist.angular.z) + "," +     # 3
 
                       str(state.footPosition2Body[1].x) + "," +  # 4
                       str(state.footPosition2Body[1].y) + "," +  # 5
@@ -200,19 +201,19 @@ def live_extraction(cmd, odom, state):
                       str(state.footSpeed2Body[2].y) + "," +  # 33
                       str(state.footSpeed2Body[2].z) + "," +  # 34
 
-                      str(odom.pose.pose.position.x) + "," +  # 35
-                      str(odom.pose.pose.position.y) + "," +  # 36
-                      str(odom.pose.pose.position.z) + "," +  # 37
-                      str(odom.pose.pose.orientation.x) + "," +  # 38
-                      str(odom.pose.pose.orientation.y) + "," +  # 39
-                      str(odom.pose.pose.orientation.z) + "," +  # 40
-                      str(odom.pose.pose.orientation.w) + "," +  # 41
-                      str(odom.twist.twist.linear.x) + "," +  # 42
-                      str(odom.twist.twist.linear.y) + "," +  # 43
-                      str(odom.twist.twist.linear.z) + "," +  # 44
-                      str(odom.twist.twist.angular.x) + "," +  # 45
-                      str(odom.twist.twist.angular.y) + "," +  # 46
-                      str(odom.twist.twist.angular.z) + "," +  # 47
+                      str(0) + "," +  # 35
+                      str(0) + "," +  # 36
+                      str(0) + "," +  # 37
+                      str(0) + "," +  # 38
+                      str(0) + "," +  # 39
+                      str(0) + "," +  # 40
+                      str(0) + "," +  # 41
+                      str(0) + "," +  # 42
+                      str(0) + "," +  # 43
+                      str(0) + "," +  # 44
+                      str(0) + "," +  # 45
+                      str(0) + "," +  # 46
+                      str(0) + "," +  # 47
 
                       str(state.imu.quaternion[0]) + "," + # 48
                       str(state.imu.quaternion[1]) + "," + # 49
@@ -239,21 +240,15 @@ def main():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
-    # Set height treshold
     rospy.set_param("/height_threshold", 0.02)
-
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=10)
 
-    odom_sub = message_filters.Subscriber("/t265/odom/sample2", Odometry)
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/high_cmd2", HighCmdStamped)
+    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd2", TwistStamped)
     state_sub = message_filters.Subscriber("/aliengo_bridge/high_state2", HighStateStamped)
-
-    ts = message_filters.TimeSynchronizer([cmd_sub,
-                                           odom_sub,
-                                           state_sub], 10)
-
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub,
+                                                      state_sub], 100, 0.2)
     ts.registerCallback(live_extraction)
 
     rospy.spin()

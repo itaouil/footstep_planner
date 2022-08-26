@@ -127,6 +127,7 @@ def joy_publisher():
 
     while not rospy.is_shutdown():
         for velocity in np.arange(0.0, 0.1, 0.1):
+
             print(velocity)
 
             # Forward walking
