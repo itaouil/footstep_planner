@@ -53,7 +53,7 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(20);
 
 // Minimum distance for cell to be considered traversable
 const double MIN_STAIR_DISTANCE(0.025);

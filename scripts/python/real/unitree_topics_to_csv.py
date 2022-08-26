@@ -39,7 +39,7 @@ rr_max_height = 0
 
 # Global variables
 path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real"
-file_object = open(path + "/forward_continuous.csv", "a")
+file_object = open(path + "/forward_accelerations.csv", "a")
 
 
 def clean_max_heights():
@@ -86,8 +86,6 @@ def valid_footstep(footholds_msg):
     # Compute feet height difference booleans
     left_height_difference_in_range = abs(fl_height - rl_height) < height_threshold
     right_height_difference_in_range = abs(fr_height - rr_height) < height_threshold
-    
-    print(left_height_difference_in_range, right_height_difference_in_range)
 
     # Check if footstep detected or not
     if right_height_difference_in_range and left_height_difference_in_range:
@@ -245,10 +243,9 @@ def main():
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=10)
 
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd2", TwistStamped)
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state2", HighStateStamped)
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub,
-                                                      state_sub], 100, 0.2)
+    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd_resampled", TwistStamped)
+    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state_resampled", HighStateStamped)
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10, 0.1)
     ts.registerCallback(live_extraction)
 
     rospy.spin()
