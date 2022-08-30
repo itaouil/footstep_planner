@@ -39,9 +39,9 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
-    m_feetForcesSubscriber.subscribe(m_nh, FEET_FORCES_TOPIC, 1);
-    m_feetForcesCache.connectInput(m_feetForcesSubscriber);
-    m_feetForcesCache.setCacheSize(CACHE_SIZE);
+    m_highStateSubscriber.subscribe(m_nh, HIGH_STATE_SUBSCRIBER, 1);
+    m_highStateCache.connectInput(m_highStateSubscriber);
+    m_highStateCache.setCacheSize(CACHE_SIZE);
 
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
@@ -239,13 +239,14 @@ void Navigation::updateVariablesFromCache() {
     // Store latest robot pose
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
     m_latestCoMPose = *l_latestCoMPose;
+    m_latestCoMPose.pose.pose.position.x -= 0.32025391296;
 
     // Store latest feet poses w.r.t CoM
     try{
-        auto l_latesLFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, "lf_foot", ros::Time(0));
-        auto l_latestRFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, "rf_foot", ros::Time(0));
-        auto l_latestLHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, "lh_foot", ros::Time(0));
-        auto l_latestRHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, "rh_foot", ros::Time(0));
+        auto l_latesLFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, LF_FOOT_REFERENCE_FRAME, ros::Time(0));
+        auto l_latestRFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, RF_FOOT_REFERENCE_FRAME, ros::Time(0));
+        auto l_latestLHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, LH_FOOT_REFERENCE_FRAME, ros::Time(0));
+        auto l_latestRHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, RH_FOOT_REFERENCE_FRAME, ros::Time(0));
 
         // Clear latest feet poses w.r.t CoM
         m_feetConfigurationCoM.clear();
@@ -279,12 +280,12 @@ void Navigation::updateVariablesFromCache() {
     }
 
     // Store latest feet forces
-    boost::shared_ptr<gazebo_msgs::ContactsState const> l_latestFeetForces = 
-        m_feetForcesCache.getElemBeforeTime(ros::Time::now());
-    m_latestFeetForces = {static_cast<float>(l_latestFeetForces->states[0].wrenches[0].force.z),
-                          static_cast<float>(l_latestFeetForces->states[1].wrenches[0].force.z),
-                          static_cast<float>(l_latestFeetForces->states[2].wrenches[0].force.z),
-                          static_cast<float>(l_latestFeetForces->states[3].wrenches[0].force.z)};
+    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_latestHighState = 
+        m_highStateCache.getElemBeforeTime(ros::Time::now());
+    m_latestFeetForces = {static_cast<float>(l_latestHighState->footForce[1]),
+                          static_cast<float>(l_latestHighState->footForce[0]),
+                          static_cast<float>(l_latestHighState->footForce[3]),
+                          static_cast<float>(l_latestHighState->footForce[2])};
 }
 
 /**

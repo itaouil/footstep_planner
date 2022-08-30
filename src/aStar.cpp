@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4};
 }
 
 /**
@@ -520,8 +520,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
  */
 World3D AStar::Heuristic::getDistanceDelta(const World3D &p_sourceWorldCoordinates,
                                            const World3D &p_targetWorldCoordinates) {
-    return World3D{abs(p_sourceWorldCoordinates.x - p_targetWorldCoordinates.x),
-                   abs(p_sourceWorldCoordinates.y - p_targetWorldCoordinates.y)};
+    return World3D{std::abs(p_sourceWorldCoordinates.x - p_targetWorldCoordinates.x),
+                   std::abs(p_sourceWorldCoordinates.y - p_targetWorldCoordinates.y)};
 }
 
 /**

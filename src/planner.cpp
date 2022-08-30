@@ -38,16 +38,16 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
     geometry_msgs::TransformStamped rhFootPoseMap;
     try{
         lfFootPoseMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME,
-                                                 "lf_foot",
+                                                 LF_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         rfFootPoseMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME,
-                                                 "rf_foot",
+                                                 RF_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         lhFootPoseMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME,
-                                                 "lh_foot",
+                                                 LH_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         rhFootPoseMap = m_buffer.lookupTransform(HEIGHT_MAP_REFERENCE_FRAME,
-                                                 "rh_foot",
+                                                 RH_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
@@ -70,16 +70,16 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
     geometry_msgs::TransformStamped rhFootPoseCoM;
     try{
         lfFootPoseCoM = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME,
-                                                 "lf_foot",
+                                                 LF_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         rfFootPoseCoM = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME,
-                                                 "rf_foot",
+                                                 RF_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         lhFootPoseCoM = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME,
-                                                 "lh_foot",
+                                                 LH_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
         rhFootPoseCoM = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME,
-                                                 "rh_foot",
+                                                 RH_FOOT_REFERENCE_FRAME,
                                                  ros::Time(0));
     }
     catch (tf2::TransformException &ex) {

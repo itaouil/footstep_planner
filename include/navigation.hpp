@@ -28,7 +28,6 @@
 // ROS messages
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
-#include <gazebo_msgs/ContactsState.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
@@ -204,8 +203,8 @@ private:
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
 
     //! Feet forces cache
-    message_filters::Cache<gazebo_msgs::ContactsState> m_feetForcesCache;
-    message_filters::Subscriber<gazebo_msgs::ContactsState> m_feetForcesSubscriber;
+    message_filters::Cache<unitree_legged_msgs::HighStateStamped> m_highStateCache;
+    message_filters::Subscriber<unitree_legged_msgs::HighStateStamped> m_highStateSubscriber;
 
     /**
      * Velocity commands variables
