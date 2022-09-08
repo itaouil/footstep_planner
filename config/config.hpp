@@ -39,13 +39,13 @@ const bool PUBLISH(true);
 const bool VISUALIZE(false);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(0.1);
+const double GRADIENT_THRESHOLD(0.2);
 
 // Max footstep height
 const float MIN_FOOT_DISTANCE(0.04);
 
 // Max Footstep Height
-const float MAX_FOOTSTEP_HEIGHT(0.02);
+const float MAX_FOOTSTEP_HEIGHT(0.14);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -57,10 +57,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(10);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.025);
+const double MIN_STAIR_DISTANCE(0.06);
 
 // Angle tolerance between target and robot rotation
 const double ANGLE_DIFFERENCE_TOLERANCE(2);

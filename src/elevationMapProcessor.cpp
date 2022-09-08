@@ -260,20 +260,21 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         l_safeFootstep = m_gridMap["costmap"].coeff(p_nextRow, p_nextCol);
         l_invalidFootstep = std::isnan(m_gridMap["elevation"].coeff(p_nextRow, p_nextCol));
-        l_prevFootstepHeight = m_gridMap["processed_elevation"].coeff(p_prevRow, p_prevCol);
-        l_newFootstepHeight = m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol);
+        l_prevFootstepHeight = m_gridMap["elevation"].coeff(p_prevRow, p_prevCol);
+        l_newFootstepHeight = m_gridMap["elevation"].coeff(p_nextRow, p_nextCol);
         p_footDistance = std::min({m_gridMap["distance"].coeff(p_nextRow, p_nextCol),
                                       m_gridMap["distance"].coeff(p_nextRow, p_nextCol)}) *
                                       m_elevationMapGridResolution;
 
-        ROS_INFO_STREAM(m_gridMap["elevation"].coeff(p_nextRow, p_nextCol) << ", " << m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol));
+        ROS_INFO_STREAM(m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol) << ", " << m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol));
     }
 
-    ROS_INFO_STREAM("Safe footstep: " << l_safeFootstep);
-    ROS_INFO_STREAM("Invalid footstep: " << l_invalidFootstep);
-    ROS_INFO_STREAM("Footstep height difference: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
+    ROS_INFO_STREAM("Costmap: " << l_safeFootstep);
+    ROS_INFO_STREAM("NaN: " << l_invalidFootstep);
+    ROS_INFO_STREAM("Height: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
 
-    return l_safeFootstep && !l_invalidFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
+    // return l_safeFootstep && !l_invalidFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
+    return l_safeFootstep;
 }
 
 /**

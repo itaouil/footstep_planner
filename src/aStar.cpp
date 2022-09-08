@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5};
 }
 
 /**
@@ -302,7 +302,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
-                ROS_INFO_STREAM("Action " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
+                ROS_INFO_STREAM("\nAction " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
                 ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
                 ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);

@@ -199,25 +199,25 @@ void Navigation::storeMapCoordinates(const bool real) {
 
     std::vector<unitree_legged_msgs::Cartesian> l_feetConfigurationMap;
     unitree_legged_msgs::Cartesian l_lf;
-    l_lf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x;
-    l_lf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y;
-    l_lf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[0].z;
-    unitree_legged_msgs::Cartesian l_fr;
-    l_fr.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[1].x;
-    l_fr.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[1].y;
-    l_fr.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[1].z;
-    unitree_legged_msgs::Cartesian l_rl;
-    l_rl.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[2].x;
-    l_rl.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[2].y;
-    l_rl.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[2].z;
-    unitree_legged_msgs::Cartesian l_rr;
-    l_rr.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x;
-    l_rr.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y;
-    l_rr.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[3].z;
+    l_lf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[1].x;
+    l_lf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[1].y;
+    l_lf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[1].z;
+    unitree_legged_msgs::Cartesian l_rf;
+    l_rf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x;
+    l_rf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y;
+    l_rf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[0].z;
+    unitree_legged_msgs::Cartesian l_lh;
+    l_lh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x;
+    l_lh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y;
+    l_lh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[3].z;
+    unitree_legged_msgs::Cartesian l_rh;
+    l_rh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[2].x;
+    l_rh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[2].y;
+    l_rh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[2].z;
     l_feetConfigurationMap.push_back(l_lf);
-    l_feetConfigurationMap.push_back(l_fr);
-    l_feetConfigurationMap.push_back(l_rl);
-    l_feetConfigurationMap.push_back(l_rr);
+    l_feetConfigurationMap.push_back(l_rf);
+    l_feetConfigurationMap.push_back(l_lh);
+    l_feetConfigurationMap.push_back(l_rh);
 
     if (real) {
         m_realCoMPoses.push_back(m_latestCoMPose);
@@ -393,19 +393,19 @@ void Navigation::executeHighLevelCommands() {
                 // the ground check for when all feet
                 // are once again back in contact
                 if (l_swingingFeetOutOfContact) {
-                    if (!l_lfInContact && l_lfForceZ >= 30) {
+                    if (!l_lfInContact && l_lfForceZ >= 50) {
                         l_lfInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_lhInContact && l_lhForceZ >= 30) {
+                    if (!l_lhInContact && l_lhForceZ >= 50) {
                         l_lhInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rfInContact && l_rfForceZ >= 30) {
+                    if (!l_rfInContact && l_rfForceZ >= 50) {
                         l_rfInContact = true;
                         l_feetInContact += 1;
                     }
-                    if (!l_rhInContact && l_rhForceZ >= 30) {
+                    if (!l_rhInContact && l_rhForceZ >= 50) {
                         l_rhInContact = true;
                         l_feetInContact += 1;
                     }
