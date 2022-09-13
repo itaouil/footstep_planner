@@ -137,8 +137,8 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(l_costmap,
                                                                           "costmap",
                                                                           l_elevationMap,
-                                                                          0,
-                                                                          1);
+                                                                          0.0,
+                                                                          1.0);
 
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",

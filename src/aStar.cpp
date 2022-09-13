@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
 }
 
 /**
@@ -282,7 +282,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         if (m_validFootstepsFound == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                           l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            ROS_INFO_STREAM("Search: Planning completed. " << m_validFootstepsFound);
+            ROS_DEBUG_STREAM("Search: Planning completed. " << m_validFootstepsFound);
             break;
         }
 
@@ -302,9 +302,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
-                ROS_INFO_STREAM("\nAction " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
-                ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
+                ROS_DEBUG_STREAM("\nAction " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
+                ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
+                ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
@@ -388,7 +388,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rlGridPose.x,
                                                                    l_rlGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_WARN("Invalid FR/RL Footstep");
+                            ROS_DEBUG_STREAM("Invalid FR/RL Footstep");
                             continue;
                         }
                     } else {
@@ -402,7 +402,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                    l_rrGridPose.x,
                                                                    l_rrGridPose.y,
                                                                    l_hindFootDistance)) {
-                            ROS_WARN("Invalid FL/RR Footstep");
+                            ROS_DEBUG_STREAM("Invalid FL/RR Footstep");
                             continue;
                         }
                     }
@@ -461,7 +461,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                l_newFeetConfiguration});
                     successor->velocity = l_nextVelocity;
                     l_openSet.push_back(successor);
-                    ROS_INFO_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
+                    ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
                 } else if ((l_currentNode->G + 1) < successor->G) {
                     successor->G = l_currentNode->G + 1;
                     successor->H = AStar::Heuristic::euclidean(*successor,

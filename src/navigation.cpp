@@ -199,21 +199,21 @@ void Navigation::storeMapCoordinates(const bool real) {
 
     std::vector<unitree_legged_msgs::Cartesian> l_feetConfigurationMap;
     unitree_legged_msgs::Cartesian l_lf;
-    l_lf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[1].x;
-    l_lf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[1].y;
-    l_lf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[1].z;
+    l_lf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x;
+    l_lf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y;
+    l_lf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[0].z;
     unitree_legged_msgs::Cartesian l_rf;
-    l_rf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x;
-    l_rf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y;
-    l_rf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[0].z;
+    l_rf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[1].x;
+    l_rf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[1].y;
+    l_rf.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[1].z;
     unitree_legged_msgs::Cartesian l_lh;
-    l_lh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x;
-    l_lh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y;
-    l_lh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[3].z;
+    l_lh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[2].x;
+    l_lh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[2].y;
+    l_lh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[2].z;
     unitree_legged_msgs::Cartesian l_rh;
-    l_rh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[2].x;
-    l_rh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[2].y;
-    l_rh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[2].z;
+    l_rh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x;
+    l_rh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y;
+    l_rh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[3].z;
     l_feetConfigurationMap.push_back(l_lf);
     l_feetConfigurationMap.push_back(l_rf);
     l_feetConfigurationMap.push_back(l_lh);
@@ -233,55 +233,50 @@ void Navigation::storeMapCoordinates(const bool real) {
  * Update variables from caches.
  */
 void Navigation::updateVariablesFromCache() {
-    // Update data from callback
+    // Update callback
     ros::spinOnce();
 
-    // Store latest robot pose
-    boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(ros::Time::now());
+    // Latest ros time for cache extraction purposes
+    auto l_latestROSTime = ros::Time::now();
+
+    // Access last high state message
+    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_latestHighState =
+            m_highStateCache.getElemBeforeTime(l_latestROSTime);
+
+    // Access last odometry pose
+    boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
     m_latestCoMPose.pose.pose.position.x -= 0.32025391296;
 
-    // Store latest feet poses w.r.t CoM
-    try{
-        auto l_latesLFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, LF_FOOT_REFERENCE_FRAME, ros::Time(0));
-        auto l_latestRFFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, RF_FOOT_REFERENCE_FRAME, ros::Time(0));
-        auto l_latestLHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, LH_FOOT_REFERENCE_FRAME, ros::Time(0));
-        auto l_latestRHFootPose = m_buffer.lookupTransform(ROBOT_REFERENCE_FRAME, RH_FOOT_REFERENCE_FRAME, ros::Time(0));
+    // Clear vector before repopulating it
+    m_feetConfigurationCoM.clear();
 
-        // Clear latest feet poses w.r.t CoM
-        m_feetConfigurationCoM.clear();
+    // Feet poses w.r.t to CoM
+    unitree_legged_msgs::Cartesian l_latestLFCoMPose;
+    l_latestLFCoMPose.x = l_latestHighState->footPosition2Body[1].x;
+    l_latestLFCoMPose.y = l_latestHighState->footPosition2Body[1].y;
+    l_latestLFCoMPose.z = l_latestHighState->footPosition2Body[1].z;
+    m_feetConfigurationCoM.push_back(l_latestLFCoMPose);
 
-        unitree_legged_msgs::Cartesian l_latestLFFootCoMPose;
-        l_latestLFFootCoMPose.x = l_latesLFFootPose.transform.translation.x;
-        l_latestLFFootCoMPose.y = l_latesLFFootPose.transform.translation.y;
-        l_latestLFFootCoMPose.z = l_latesLFFootPose.transform.translation.z;
-        m_feetConfigurationCoM.push_back(l_latestLFFootCoMPose);
+    unitree_legged_msgs::Cartesian l_latestRFCoMPose;
+    l_latestRFCoMPose.x = l_latestHighState->footPosition2Body[0].x;
+    l_latestRFCoMPose.y = l_latestHighState->footPosition2Body[0].y;
+    l_latestRFCoMPose.z = l_latestHighState->footPosition2Body[0].z;
+    m_feetConfigurationCoM.push_back(l_latestRFCoMPose);
 
-        unitree_legged_msgs::Cartesian l_latestRFFootCoMPose;
-        l_latestRFFootCoMPose.x = l_latestRFFootPose.transform.translation.x;
-        l_latestRFFootCoMPose.y = l_latestRFFootPose.transform.translation.y;
-        l_latestRFFootCoMPose.z = l_latestRFFootPose.transform.translation.z;
-        m_feetConfigurationCoM.push_back(l_latestRFFootCoMPose);
+    unitree_legged_msgs::Cartesian l_latestLHCoMPose;
+    l_latestLHCoMPose.x = l_latestHighState->footPosition2Body[3].x;
+    l_latestLHCoMPose.y = l_latestHighState->footPosition2Body[3].y;
+    l_latestLHCoMPose.z = l_latestHighState->footPosition2Body[3].z;
+    m_feetConfigurationCoM.push_back(l_latestLHCoMPose);
 
-        unitree_legged_msgs::Cartesian l_latestLHFootCoMPose;
-        l_latestLHFootCoMPose.x = l_latestLHFootPose.transform.translation.x;
-        l_latestLHFootCoMPose.y = l_latestLHFootPose.transform.translation.y;
-        l_latestLHFootCoMPose.z = l_latestLHFootPose.transform.translation.z;
-        m_feetConfigurationCoM.push_back(l_latestLHFootCoMPose);
-
-        unitree_legged_msgs::Cartesian l_latestRHFootCoMPose;
-        l_latestRHFootCoMPose.x = l_latestRHFootPose.transform.translation.x;
-        l_latestRHFootCoMPose.y = l_latestRHFootPose.transform.translation.y;
-        l_latestRHFootCoMPose.z = l_latestRHFootPose.transform.translation.z;
-        m_feetConfigurationCoM.push_back(l_latestRHFootCoMPose);
-    }
-    catch (tf2::TransformException &ex) {
-      ROS_WARN("Could not retrieve feet poses in CoM frame: %s",ex.what());
-    }
+    unitree_legged_msgs::Cartesian l_latestRHCoMPose;
+    l_latestRHCoMPose.x = l_latestHighState->footPosition2Body[2].x;
+    l_latestRHCoMPose.y = l_latestHighState->footPosition2Body[2].y;
+    l_latestRHCoMPose.z = l_latestHighState->footPosition2Body[2].z;
+    m_feetConfigurationCoM.push_back(l_latestRHCoMPose);
 
     // Store latest feet forces
-    boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_latestHighState = 
-        m_highStateCache.getElemBeforeTime(ros::Time::now());
     m_latestFeetForces = {static_cast<float>(l_latestHighState->footForce[1]),
                           static_cast<float>(l_latestHighState->footForce[0]),
                           static_cast<float>(l_latestHighState->footForce[3]),
@@ -355,24 +350,17 @@ void Navigation::executeHighLevelCommands() {
             // Set cmd to be sent
             setCmd(l_node.action, l_node.velocity);
 
-            ROS_INFO_STREAM("Sending velocity: " << l_node.velocity);
-
             // Contact conditions
-            bool l_lfInContact = false;
-            bool l_lhInContact = false;
-            bool l_rfInContact = false;
-            bool l_rhInContact = false;
-            unsigned int l_feetInContact = 0;
+            bool l_feetInContact = false;
+            bool l_lfDiagonalSwinging = false;
+            bool l_rfDiagonalSwinging = false;
             bool l_swingingFeetOutOfContact = false;
 
             // Velocity command execution
-            const ros::Time l_startTime = ros::Time::now();
-            while (l_feetInContact < 3) {
+            const auto l_startTime = ros::Time::now();
+            while (!l_feetInContact) {
                 // Update global variables from cache
                 updateVariablesFromCache();
-
-                // Update callback data
-                ros::spinOnce();
 
                 // Get feet forces
                 auto l_lfForceZ = m_latestFeetForces[0];
@@ -380,43 +368,50 @@ void Navigation::executeHighLevelCommands() {
                 auto l_lhForceZ = m_latestFeetForces[2];
                 auto l_rhForceZ = m_latestFeetForces[3];
 
-                // Check for when swinging feet 
-                // are out of contact with the ground
-                if (!l_swingingFeetOutOfContact &&
-                    ((l_lfForceZ < 5 && l_rhForceZ < 5) || (l_rfForceZ < 5 && l_lhForceZ < 5))) {
-                    l_swingingFeetOutOfContact = true;
-                    ROS_INFO_STREAM("Navigation: Feet got out of contact: " << l_lfForceZ << ", " << l_rfForceZ << ", "
-                                                                            << l_lhForceZ << ", " << l_rhForceZ);
+                // Check when swinging feet get out of contact
+                if (!l_swingingFeetOutOfContact) {
+                    if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
+                        l_lfDiagonalSwinging = true;
+                        l_swingingFeetOutOfContact = true;
+                        ROS_DEBUG("LF and RH feet are swinging and are out of contact");
+                    }
+                    else if (l_rfForceZ < OUT_OF_CONTACT_FORCE && l_lhForceZ < OUT_OF_CONTACT_FORCE) {
+                        l_rfDiagonalSwinging = true;
+                        l_swingingFeetOutOfContact = true;
+                        ROS_DEBUG("RF and LH feet are swinging and are out of contact");
+                    }
+
+                    if (l_swingingFeetOutOfContact) {
+                        ROS_INFO_STREAM("O.O.C forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
+                    }
                 }
 
-                // Once feet are out of contact with
-                // the ground check for when all feet
-                // are once again back in contact
+                // Check when swinging feet get back in contact (to re-plan)
                 if (l_swingingFeetOutOfContact) {
-                    if (!l_lfInContact && l_lfForceZ >= 50) {
-                        l_lfInContact = true;
-                        l_feetInContact += 1;
+                    if (l_lfDiagonalSwinging) {
+                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE || l_rhForceZ > BACK_IN_CONTACT_FORCE) {
+                            l_feetInContact = true;
+                        }
                     }
-                    if (!l_lhInContact && l_lhForceZ >= 50) {
-                        l_lhInContact = true;
-                        l_feetInContact += 1;
-                    }
-                    if (!l_rfInContact && l_rfForceZ >= 50) {
-                        l_rfInContact = true;
-                        l_feetInContact += 1;
-                    }
-                    if (!l_rhInContact && l_rhForceZ >= 50) {
-                        l_rhInContact = true;
-                        l_feetInContact += 1;
+                    else if (l_rfDiagonalSwinging) {
+                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE || l_lhForceZ > BACK_IN_CONTACT_FORCE) {
+                            l_feetInContact = true;
+                        }
                     }
                 }
+
+                ros::spinOnce();
             }
 
-            ROS_INFO_STREAM("E.O.C: " << ros::Time::now().toSec() - l_startTime.toSec() << ", "
-                                      << m_feetConfigurationCoM[0].z << ", " 
-                                      << m_feetConfigurationCoM[1].z << ", "
-                                      << m_feetConfigurationCoM[2].z << ", "
-                                      << m_feetConfigurationCoM[3].z);
+            ROS_INFO_STREAM("E.O.C time: " << ros::Time::now().toSec() - l_startTime.toSec());
+            ROS_INFO_STREAM("E.O.C heights: " << m_feetConfigurationCoM[0].z << ", "
+                                              << m_feetConfigurationCoM[1].z << ", "
+                                              << m_feetConfigurationCoM[2].z << ", "
+                                              << m_feetConfigurationCoM[3].z);
+            ROS_INFO_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
+                                             << m_latestFeetForces[1] << ", "
+                                             << m_latestFeetForces[2] << ", "
+                                             << m_latestFeetForces[3]);
 
             // Add commanded velocity
             m_velocities.push_back(l_node.velocity);

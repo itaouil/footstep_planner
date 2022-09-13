@@ -57,10 +57,16 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(7);
 
 // Minimum distance for cell to be considered traversable
-const double MIN_STAIR_DISTANCE(0.06);
+const float MIN_STAIR_DISTANCE(0.08);
 
 // Angle tolerance between target and robot rotation
-const double ANGLE_DIFFERENCE_TOLERANCE(2);
+const float ANGLE_DIFFERENCE_TOLERANCE(2);
+
+// Out of contact force
+const float OUT_OF_CONTACT_FORCE(10.0);
+
+// Back in contact force
+const float BACK_IN_CONTACT_FORCE(30.0);
