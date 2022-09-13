@@ -101,10 +101,10 @@ void ElevationMapProcessor::gridMapPostProcessing() {
 
         cv::Mat l_elevationMapImage;
         if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
-                                                             "elevation",
+                                                             "median",
                                                              CV_32F,
-                                                             l_elevationMap["elevation"].minCoeffOfFinites(),
-                                                             l_elevationMap["elevation"].maxCoeffOfFinites(),
+                                                             l_elevationMap["median"].minCoeffOfFinites(),
+                                                             l_elevationMap["median"].maxCoeffOfFinites(),
                                                              l_elevationMapImage)) {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
@@ -143,8 +143,8 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
                                                                   "processed_elevation",
                                                                   l_elevationMap,
-                                                                  l_elevationMap["elevation"].minCoeffOfFinites(),
-                                                                  l_elevationMap["elevation"].maxCoeffOfFinites());
+                                                                  l_elevationMap["median"].minCoeffOfFinites(),
+                                                                  l_elevationMap["median"].maxCoeffOfFinites());
 
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
                                                                   "distance",
@@ -155,7 +155,8 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             m_gridMap = l_elevationMap;
         }
 
-        // Create color layer to visualize costmap on the elevation layer
+        // Update color layer (for visualization purposes) and costmap
+        // based on the minimum stair distance set that has to be respected
         cv::Mat3b l_colorLayerBGR(l_costmap.rows, l_costmap.cols, CV_8UC3);
         for (int i = 0; i < l_costmap.rows; i++) {
             for (int j = 0; j < l_costmap.cols; j++) {
@@ -259,22 +260,16 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         l_safeFootstep = m_gridMap["costmap"].coeff(p_nextRow, p_nextCol);
-        l_invalidFootstep = std::isnan(m_gridMap["elevation"].coeff(p_nextRow, p_nextCol));
-        l_prevFootstepHeight = m_gridMap["elevation"].coeff(p_prevRow, p_prevCol);
-        l_newFootstepHeight = m_gridMap["elevation"].coeff(p_nextRow, p_nextCol);
-        p_footDistance = std::min({m_gridMap["distance"].coeff(p_nextRow, p_nextCol),
-                                      m_gridMap["distance"].coeff(p_nextRow, p_nextCol)}) *
-                                      m_elevationMapGridResolution;
-
-        ROS_INFO_STREAM(m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol) << ", " << m_gridMap["processed_elevation"].coeff(p_nextRow, p_nextCol));
+        l_newFootstepHeight = m_gridMap["median"].coeff(p_nextRow, p_nextCol);
+        l_prevFootstepHeight = m_gridMap["median"].coeff(p_prevRow, p_prevCol);
+        l_invalidFootstep = std::isnan(m_gridMap["median"].coeff(p_nextRow, p_nextCol));
+        p_footDistance = m_gridMap["distance"].coeff(p_nextRow, p_nextCol) * m_elevationMapGridResolution;
     }
 
-    ROS_INFO_STREAM("Costmap: " << l_safeFootstep);
-    ROS_INFO_STREAM("NaN: " << l_invalidFootstep);
-    ROS_INFO_STREAM("Height: " << abs(l_newFootstepHeight - l_prevFootstepHeight));
-
-    // return l_safeFootstep && !l_invalidFootstep && abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
-    return l_safeFootstep;
+    return l_safeFootstep && 
+           !l_invalidFootstep &&
+           p_footDistance >= MIN_STAIR_DISTANCE && 
+           abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
 }
 
 /**

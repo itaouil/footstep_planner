@@ -39,7 +39,7 @@ const bool PUBLISH(true);
 const bool VISUALIZE(false);
 
 // Gradient threshold
-const double GRADIENT_THRESHOLD(0.2);
+const double GRADIENT_THRESHOLD(5.0);
 
 // Max footstep height
 const float MIN_FOOT_DISTANCE(0.04);
@@ -57,7 +57,7 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep horizon
-const unsigned int FOOTSTEP_HORIZON(10);
+const unsigned int FOOTSTEP_HORIZON(5);
 
 // Minimum distance for cell to be considered traversable
 const double MIN_STAIR_DISTANCE(0.06);
