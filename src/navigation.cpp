@@ -373,12 +373,12 @@ void Navigation::executeHighLevelCommands() {
                     if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
                         l_lfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
-                        ROS_INFO("LF and RH feet are swinging and are out of contact");
+                        ROS_DEBUG("LF and RH feet are swinging and are out of contact");
                     }
                     else if (l_rfForceZ < OUT_OF_CONTACT_FORCE && l_lhForceZ < OUT_OF_CONTACT_FORCE) {
                         l_rfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
-                        ROS_INFO("RF and LH feet are swinging and are out of contact");
+                        ROS_DEBUG("RF and LH feet are swinging and are out of contact");
                     }
 
                     if (l_swingingFeetOutOfContact) {
@@ -408,7 +408,7 @@ void Navigation::executeHighLevelCommands() {
                                               << m_feetConfigurationCoM[1].z << ", "
                                               << m_feetConfigurationCoM[2].z << ", "
                                               << m_feetConfigurationCoM[3].z);
-            ROS_INFO_STREAM("O.O.C forces: " << m_latestFeetForces[0] << ", "
+            ROS_INFO_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
                                              << m_latestFeetForces[1] << ", "
                                              << m_latestFeetForces[2] << ", "
                                              << m_latestFeetForces[3]);
@@ -582,7 +582,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < FOOTSTEP_HORIZON; i++) {
+        for (unsigned int i = 0; i < 1; i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;
