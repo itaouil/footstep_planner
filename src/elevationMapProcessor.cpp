@@ -109,25 +109,19 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
         }
 
-        cv::Mat l_elevationMapImageDilated;
-        cv::dilate(l_elevationMapImage, l_elevationMapImageDilated, cv::Mat());
+        int l_heightChangeX[9]{-1, 0, 1, -1, 0, 1, -1, 0, 1};
+        int l_heightChangeY[9]{-1, -1, -1, 0, 0, 0, 1, 1, 1};
+        cv::Mat l_heightChangeKernelX(3, 3, CV_32F, l_heightChangeX);
+        cv::Mat l_heightChangeKernelY(3, 3, CV_32F, l_heightChangeY);
 
-        cv::Mat l_elevationMapImageEroded;
-        cv::erode(l_elevationMapImageDilated, l_elevationMapImageEroded, cv::Mat());
+        cv::Mat l_heightChangeFilterX;
+        cv::Mat l_heightChangeFilterY;
+        cv::filter2D(l_elevationMapImage, l_heightChangeFilterX, -1, l_heightChangeKernelX);
+        cv::filter2D(l_elevationMapImage, l_heightChangeFilterY, -1, l_heightChangeKernelY);
 
-        cv::Mat l_elevationMapImageFiltered;
-        cv::medianBlur(l_elevationMapImageEroded, l_elevationMapImageFiltered, 3);
-
-        cv::Mat l_sobelX, l_sobelY;
-        cv::Sobel(l_elevationMapImageFiltered, l_sobelX, CV_32F, 1, 0, 3);
-        cv::Sobel(l_elevationMapImageFiltered, l_sobelY, CV_32F, 0, 1, 3);
-
-        cv::Mat l_sobelMagnitude;
-        cv::magnitude(l_sobelX, l_sobelY, l_sobelMagnitude);
-
-        // Set free cells to 1, and occupied to 0
         cv::Mat l_costmap;
-        cv::threshold(l_sobelMagnitude, l_costmap, GRADIENT_THRESHOLD, 1, cv::THRESH_BINARY_INV);
+        cv::threshold(l_heightChangeFilterX, l_costmap, HEIGHT_FILTER_THRESHOLD, 1, cv::THRESH_BINARY_INV);
+        cv::threshold(l_heightChangeFilterY, l_costmap, HEIGHT_FILTER_THRESHOLD, 1, cv::THRESH_BINARY_INV);
         l_costmap.convertTo(l_costmap, CV_8UC1);
 
         cv::Mat l_costmapCV8UC1;
@@ -139,12 +133,6 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                                                                           l_elevationMap,
                                                                           0.0,
                                                                           1.0);
-
-        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_elevationMapImage,
-                                                                  "processed_elevation",
-                                                                  l_elevationMap,
-                                                                  l_elevationMap["median"].minCoeffOfFinites(),
-                                                                  l_elevationMap["median"].maxCoeffOfFinites());
 
         grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(l_distanceTransform,
                                                                   "distance",
@@ -232,7 +220,7 @@ double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) 
     double l_cellHeight;
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-        l_cellHeight = m_gridMap["processed_elevation"].coeff(p_row, p_col);
+        l_cellHeight = m_gridMap["median"].coeff(p_row, p_col);
     }
 
     return l_cellHeight;
@@ -269,7 +257,7 @@ bool ElevationMapProcessor::validFootstep(const int &p_prevRow,
     return l_safeFootstep && 
            !l_invalidFootstep &&
            p_footDistance >= MIN_STAIR_DISTANCE && 
-           abs(l_newFootstepHeight - l_prevFootstepHeight) < MAX_FOOTSTEP_HEIGHT;
+           abs(l_newFootstepHeight - l_prevFootstepHeight) <= MAX_FOOTSTEP_HEIGHT;
 }
 
 /**
