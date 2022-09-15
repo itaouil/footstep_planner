@@ -99,25 +99,23 @@ void ElevationMapProcessor::gridMapPostProcessing() {
             ROS_ERROR("ElevationMapProcessor: Could not convert grid_map_msgs to grid_map.");
         }
 
-        cv::Mat l_elevationMapImage;
-        if (!grid_map::GridMapCvConverter::toImage<float, 1>(l_elevationMap,
-                                                             "median",
-                                                             CV_32F,
-                                                             l_elevationMap["median"].minCoeffOfFinites(),
-                                                             l_elevationMap["median"].maxCoeffOfFinites(),
-                                                             l_elevationMapImage)) {
-            ROS_ERROR("ElevationMapProcessor: Could not convert grid_map to cv::Mat.");
+        cv::Mat l_elevationMapImage = cv::Mat::zeros(l_elevationMap["median"].rows(), l_elevationMap["median"].cols(), CV_32F);
+        for (uint x = 0; x < l_elevationMap["median"].rows(); x++) {
+            for (uint y = 0; y < l_elevationMap["median"].cols(); y++) {
+                l_elevationMapImage.at<float>(x, y) = l_elevationMap["median"].coeff(x, y);
+            }
         }
-
-        int l_heightChangeX[9]{-1, 0, 1, -1, 0, 1, -1, 0, 1};
-        int l_heightChangeY[9]{-1, -1, -1, 0, 0, 0, 1, 1, 1};
-        cv::Mat l_heightChangeKernelX(3, 3, CV_32F, l_heightChangeX);
-        cv::Mat l_heightChangeKernelY(3, 3, CV_32F, l_heightChangeY);
 
         cv::Mat l_heightChangeFilterX;
         cv::Mat l_heightChangeFilterY;
+        cv::Mat l_heightChangeKernelX = (cv::Mat_<double>(3, 3) << 0, 0, 0, -1, 0, 1, 0, 0, 0);
+        cv::Mat l_heightChangeKernelY = (cv::Mat_<double>(3, 3) << 0, -1, 0, 0, 0, 0, 0, 1, 0);
+
         cv::filter2D(l_elevationMapImage, l_heightChangeFilterX, -1, l_heightChangeKernelX);
         cv::filter2D(l_elevationMapImage, l_heightChangeFilterY, -1, l_heightChangeKernelY);
+
+        l_heightChangeFilterX = cv::abs(l_heightChangeFilterX);
+        l_heightChangeFilterY = cv::abs(l_heightChangeFilterY);
 
         cv::Mat l_costmap;
         cv::threshold(l_heightChangeFilterX, l_costmap, HEIGHT_FILTER_THRESHOLD, 1, cv::THRESH_BINARY_INV);
