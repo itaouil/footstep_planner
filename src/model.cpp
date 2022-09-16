@@ -370,7 +370,7 @@ void Model::predictNextState(double p_previousVelocity,
 
     ROS_DEBUG_STREAM("Prev Velocity: " << p_previousVelocity);
     ROS_DEBUG_STREAM("Next Velocity: " << p_nextVelocity);
-    ROS_INFO_STREAM("Predictions: " << l_predictions[0] << ", "
+    ROS_DEBUG_STREAM("Predictions: " << l_predictions[0] << ", "
                                     << l_predictions[1] << ", "
                                     << l_predictions[2] << ", "
                                     << l_predictions[3] << ", "
@@ -457,5 +457,5 @@ void Model::predictNextState(double p_previousVelocity,
 //     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
 //     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-//     ros::Duration(10).sleep();
+//     ros::Duration(1).sleep();
 }
