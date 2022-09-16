@@ -247,8 +247,10 @@ void Navigation::updateVariablesFromCache() {
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
     m_latestCoMPose.pose.pose.position.x -= 0.32025391296;
+    m_latestCoMPose.twist.twist.linear.x = l_latestHighState->velocity[0];
+    m_latestCoMPose.twist.twist.linear.y = l_latestHighState->velocity[1];
 
-    // Clear vector before repopulating it
+    // Clear vector before re-populating it
     m_feetConfigurationCoM.clear();
 
     // Feet poses w.r.t to CoM
