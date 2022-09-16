@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
 }
 
 /**
@@ -417,10 +417,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                                            l_rrGridPose.y);
 
                     l_validFootstepFound = true;
-                    l_hindFootCost = (l_hindFootDistance >= MIN_FOOT_DISTANCE) ? 0.0 :
-                                     (MIN_FOOT_DISTANCE - l_hindFootDistance);
-                    l_frontFootCost = (l_frontFootDistance >= MIN_FOOT_DISTANCE) ? 0.0 :
-                                      (MIN_FOOT_DISTANCE - l_frontFootDistance);
+                    l_hindFootCost = (l_hindFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
+                                     (ZERO_COST_FOOT_DISTANCE - l_hindFootDistance);
+                    l_frontFootCost = (l_frontFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
+                                      (ZERO_COST_FOOT_DISTANCE - l_frontFootDistance);
 
                     ROS_DEBUG_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
                     ROS_DEBUG_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
@@ -447,6 +447,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
+                float l_feetDistanceCost = 500 * (l_hindFootCost + l_frontFootCost);
+                ROS_DEBUG_STREAM(l_feetDistanceCost);
+
                 if (successor == nullptr) {
                     successor = new Node(m_actions[i],
                                          l_newGridCoordinatesCoM,
@@ -458,7 +461,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                Node{Action{0, 0, 0},
                                                                l_targetGridCoordinates,
                                                                p_targetWorldCoordinates,
-                                                               l_newFeetConfiguration});
+                                                               l_newFeetConfiguration}) + l_feetDistanceCost;
                     successor->velocity = l_nextVelocity;
                     l_openSet.push_back(successor);
                     ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
@@ -468,7 +471,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                Node{Action{0, 0, 0},
                                                                l_targetGridCoordinates,
                                                                p_targetWorldCoordinates,
-                                                               l_newFeetConfiguration});
+                                                               l_newFeetConfiguration}) + l_feetDistanceCost;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;

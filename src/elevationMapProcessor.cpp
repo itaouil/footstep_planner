@@ -102,14 +102,19 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         cv::Mat l_elevationMapImage = cv::Mat::zeros(l_elevationMap["median"].rows(), l_elevationMap["median"].cols(), CV_32F);
         for (uint x = 0; x < l_elevationMap["median"].rows(); x++) {
             for (uint y = 0; y < l_elevationMap["median"].cols(); y++) {
-                l_elevationMapImage.at<float>(x, y) = l_elevationMap["median"].coeff(x, y);
+                if (std::isnan(l_elevationMap["elevation"].coeff(x, y))) {
+                    l_elevationMapImage.at<float>(x, y) = -10;
+                }
+                else {
+                    l_elevationMapImage.at<float>(x, y) = l_elevationMap["median"].coeff(x, y);
+                }
             }
         }
 
         cv::Mat l_heightChangeFilterX;
         cv::Mat l_heightChangeFilterY;
-        cv::Mat l_heightChangeKernelX = (cv::Mat_<double>(3, 3) << 0, 0, 0, -1, 0, 1, 0, 0, 0);
-        cv::Mat l_heightChangeKernelY = (cv::Mat_<double>(3, 3) << 0, -1, 0, 0, 0, 0, 0, 1, 0);
+        cv::Mat l_heightChangeKernelX = (cv::Mat_<double>(3, 3) << -1, 0, 1, -1, 0, 1, -1, 0, 1);
+        cv::Mat l_heightChangeKernelY = (cv::Mat_<double>(3, 3) << -1, -1, -1, 0, 0, 0, 1, 1, 1);
 
         cv::filter2D(l_elevationMapImage, l_heightChangeFilterX, -1, l_heightChangeKernelX);
         cv::filter2D(l_elevationMapImage, l_heightChangeFilterY, -1, l_heightChangeKernelY);
