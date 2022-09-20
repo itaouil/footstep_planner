@@ -532,6 +532,7 @@ void Model::predictNextState(uint p_plannedFootstep,
     // Predict feet and CoM displacements
     std::vector<double> l_predictions(11);
     if (p_plannedFootstep == 0) {
+        ROS_INFO_STREAM("lol");
         predictFirstStep(p_action.x * p_previousVelocity,
                          p_action.y * p_previousVelocity,
                          p_action.theta * p_previousVelocity,
@@ -541,8 +542,18 @@ void Model::predictNextState(uint p_plannedFootstep,
                          p_odomVelocityState,
                          p_currentFeetConfiguration,
                          l_predictions);
+
+        // predictOnwardSteps(p_action.x * p_previousVelocity,
+        //                    p_action.y * p_previousVelocity,
+        //                    p_action.theta * p_previousVelocity,
+        //                    p_action.x * p_nextVelocity,
+        //                    p_action.y * p_nextVelocity,
+        //                    p_action.theta * p_nextVelocity,
+        //                    p_currentFeetConfiguration,
+        //                    l_predictions);
     }
     else {
+        ROS_INFO_STREAM("lol2");
         predictOnwardSteps(p_action.x * p_previousVelocity,
                            p_action.y * p_previousVelocity,
                            p_action.theta * p_previousVelocity,
@@ -642,5 +653,5 @@ void Model::predictNextState(uint p_plannedFootstep,
     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-    ros::Duration(3).sleep();
+    ros::Duration(1).sleep();
 }

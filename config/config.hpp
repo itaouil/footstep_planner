@@ -42,7 +42,7 @@ const bool VISUALIZE(false);
 const double HEIGHT_FILTER_THRESHOLD(0.09);
 
 // Distance used for heuristic in the planner
-const float ZERO_COST_FOOT_DISTANCE(0.10);
+const float ZERO_COST_FOOT_DISTANCE(0.05);
 
 // Max footstep height
 const float MAX_FOOTSTEP_HEIGHT(0.06);
