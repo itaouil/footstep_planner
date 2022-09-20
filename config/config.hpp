@@ -21,7 +21,7 @@ const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_co
 
 // Subscribed topics
 const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
-const std::string ROBOT_POSE_TOPIC("/t265/odom/sample");
+const std::string ROBOT_POSE_TOPIC("/aliengo_bridge/odometry");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
 // TF reference frames
@@ -30,7 +30,7 @@ const std::string LF_FOOT_REFERENCE_FRAME("FL_foot");
 const std::string RF_FOOT_REFERENCE_FRAME("FR_foot");
 const std::string LH_FOOT_REFERENCE_FRAME("RL_foot");
 const std::string RH_FOOT_REFERENCE_FRAME("RR_foot");
-const std::string HEIGHT_MAP_REFERENCE_FRAME("t265_odom_frame");
+const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map
 const bool PUBLISH(true);
@@ -39,13 +39,13 @@ const bool PUBLISH(true);
 const bool VISUALIZE(false);
 
 // Height threshold when computing unsafe edges
-const double HEIGHT_FILTER_THRESHOLD(0.06);
+const double HEIGHT_FILTER_THRESHOLD(0.09);
 
 // Distance used for heuristic in the planner
-const float ZERO_COST_FOOT_DISTANCE(0.05);
+const float ZERO_COST_FOOT_DISTANCE(0.10);
 
 // Max footstep height
-const float MAX_FOOTSTEP_HEIGHT(0.04);
+const float MAX_FOOTSTEP_HEIGHT(0.06);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(10);
@@ -57,10 +57,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(2);
+const unsigned int FOOTSTEP_HORIZON(20);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.02);
+const float MIN_STAIR_DISTANCE(0.03);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);
