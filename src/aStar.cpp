@@ -330,7 +330,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
                 }
 
-                m_model.predictNextState(l_tempNode.velocity,
+                m_model.predictNextState(m_validFootstepsFound,
+                                         l_tempNode.velocity,
                                          l_nextVelocity,
                                          m_actions[i],
                                          p_odomVelocityState,
