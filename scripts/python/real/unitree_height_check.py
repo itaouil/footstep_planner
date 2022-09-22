@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -18,12 +18,10 @@
 # General imports
 import time
 import rospy
-import message_filters
 
 # ROS msgs imports
 from std_msgs.msg import Bool
-from geometry_msgs.msg import TwistStamped
-from unitree_legged_msgs.msg import HighStateStamped, HighCmdStamped
+from unitree_legged_msgs.msg import HighStateStamped
 
 # Global flags (footstep extraction)
 first_footstep = True
@@ -125,7 +123,7 @@ def valid_footstep(footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.25 and swing2_max_height > -0.25
+        max_heights_condition = swing1_max_height > -0.3 and swing2_max_height > -0.3
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -148,87 +146,12 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
-def live_extraction(cmd, state):
+def live_extraction(state):
     # Globals
     global file_object
 
-    print("Inside")
-
     # Check at this time a valid footstep is detected
-    is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
-
-    # If not a valid footstep, skip callback
-    if not is_valid_footstep:
-        return
-    file_object.write(str(time.time()) + "," +  # 0
-
-                      str(cmd.twist.linear.x) + "," +  # 1
-                      str(cmd.twist.linear.y) + "," +  # 2
-                      str(cmd.twist.angular.z) + "," +     # 3
-
-                      str(state.footPosition2Body[1].x) + "," +  # 4
-                      str(state.footPosition2Body[1].y) + "," +  # 5
-                      str(state.footPosition2Body[1].z) + "," +  # 6
-                      str(state.footPosition2Body[0].x) + "," +  # 7
-                      str(state.footPosition2Body[0].y) + "," +  # 8
-                      str(state.footPosition2Body[0].z) + "," +  # 9
-                      str(state.footPosition2Body[3].x) + "," +  # 10
-                      str(state.footPosition2Body[3].y) + "," +  # 11
-                      str(state.footPosition2Body[3].z) + "," +  # 12
-                      str(state.footPosition2Body[2].x) + "," +  # 13
-                      str(state.footPosition2Body[2].y) + "," +  # 14
-                      str(state.footPosition2Body[2].z) + "," +  # 15
-
-                      str(state.position[0]) + "," +  # 16
-                      str(state.position[1]) + "," +  # 17
-                      str(state.position[2]) + "," +  # 18
-
-                      str(state.velocity[0]) + "," +  # 19
-                      str(state.velocity[1]) + "," +  # 20
-                      str(state.velocity[2]) + "," +  # 21
-                      str(state.yawSpeed) + "," +  # 22
-
-                      str(state.footSpeed2Body[1].x) + "," +  # 23
-                      str(state.footSpeed2Body[1].y) + "," +  # 24
-                      str(state.footSpeed2Body[1].z) + "," +  # 25
-                      str(state.footSpeed2Body[0].x) + "," +  # 26
-                      str(state.footSpeed2Body[0].y) + "," +  # 27
-                      str(state.footSpeed2Body[0].z) + "," +  # 28
-                      str(state.footSpeed2Body[3].x) + "," +  # 29
-                      str(state.footSpeed2Body[3].y) + "," +  # 30
-                      str(state.footSpeed2Body[3].z) + "," +  # 31
-                      str(state.footSpeed2Body[2].x) + "," +  # 32
-                      str(state.footSpeed2Body[2].y) + "," +  # 33
-                      str(state.footSpeed2Body[2].z) + "," +  # 34
-
-                      str(0) + "," +  # 35
-                      str(0) + "," +  # 36
-                      str(0) + "," +  # 37
-                      str(0) + "," +  # 38
-                      str(0) + "," +  # 39
-                      str(0) + "," +  # 40
-                      str(0) + "," +  # 41
-                      str(0) + "," +  # 42
-                      str(0) + "," +  # 43
-                      str(0) + "," +  # 44
-                      str(0) + "," +  # 45
-                      str(0) + "," +  # 46
-                      str(0) + "," +  # 47
-
-                      str(state.imu.quaternion[0]) + "," + # 48
-                      str(state.imu.quaternion[1]) + "," + # 49
-                      str(state.imu.quaternion[2]) + "," + # 50
-                      str(state.imu.quaternion[3]) + "," + # 51
-
-                      str(state.imu.rpy[0]) + "," + # 52
-                      str(state.imu.rpy[1]) + "," + # 53
-                      str(state.imu.rpy[2]) + "," + # 54
-
-                      str(fl_moving) + "," +  # 55
-                      str(fr_moving) + "," +  # 56
-                      str(rl_moving) + "," +  # 57
-                      str(rr_moving) + "\n")  # 58
-
+    valid_footstep(state)
 
 def main():
     # Globals
@@ -243,12 +166,8 @@ def main():
     rospy.set_param("/height_threshold", 0.02)
     rospy.set_param("/feet_in_contact", False)
 
-    publisher = rospy.Publisher('footstep', Bool, queue_size=10)
-
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped)
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped)
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10000, 1000000000)
-    ts.registerCallback(live_extraction)
+    publisher = rospy.Publisher('footstep', Bool, queue_size=1)
+    rospy.Subscriber("/aliengo_bridge/high_state", HighStateStamped, live_extraction, queue_size=1)
 
     rospy.spin()
 

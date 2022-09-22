@@ -303,8 +303,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
         for (float &l_nextVelocity: m_velocities) {
             for (unsigned int i = 0; i < m_numberOfActions; ++i) {
                 ROS_DEBUG_STREAM("\nAction " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
-                ROS_INFO_STREAM("Current Velocity: " << l_currentNode->velocity);
-                ROS_INFO_STREAM("Next Velocity: " << l_nextVelocity);
+                ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
+                ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
                 ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
@@ -448,7 +448,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
-                float l_feetDistanceCost = 500 * (l_hindFootCost + l_frontFootCost);
+                float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
                 ROS_DEBUG_STREAM(l_feetDistanceCost);
 
                 if (successor == nullptr) {
