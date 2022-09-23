@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -38,8 +38,8 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/dls"
-file_object = open(path + "/forward_accelerations.csv", "a")
+path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/monica/step_0.10"
+file_object = open(path + "/forward_continuous.csv", "a")
 
 
 def clean_max_heights():
@@ -125,7 +125,7 @@ def valid_footstep(footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.25 and swing2_max_height > -0.25
+        max_heights_condition = swing1_max_height > -0.30 and swing2_max_height > -0.30
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -151,8 +151,6 @@ def valid_footstep(footholds_msg):
 def live_extraction(cmd, state):
     # Globals
     global file_object
-
-    print("Inside")
 
     # Check at this time a valid footstep is detected
     is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
@@ -243,11 +241,11 @@ def main():
     rospy.set_param("/height_threshold", 0.02)
     rospy.set_param("/feet_in_contact", False)
 
-    publisher = rospy.Publisher('footstep', Bool, queue_size=10)
+    publisher = rospy.Publisher('footstep', Bool, queue_size=1)
 
     cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped)
     state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped)
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10000, 1000000000)
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10, 0.05)
     ts.registerCallback(live_extraction)
 
     rospy.spin()
