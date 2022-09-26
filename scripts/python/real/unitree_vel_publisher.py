@@ -28,17 +28,36 @@ STOP_MOTION = False
 MAX_NON_FWD_VELOCITY = 1.05
 ACCELERATION_ENABLED = True
 
+
 def on_press(key):
     global STOP_MOTION
 
     try:
         if key.char == 's':
-            STOP_MOTION = True
+            STOP_MOTION = not STOP_MOTION
     except AttributeError:
         pass
 
+
 def on_release(key):
     return True
+
+
+def send_zero_velocity(velocity_publisher):
+    twist = TwistStamped()
+    twist.twist.angular.x = 0
+    twist.twist.angular.y = 0
+    twist.twist.angular.z = 0
+    twist.twist.linear.x = 0
+    twist.twist.linear.y = 0
+    twist.twist.linear.z = 0
+
+    rate = rospy.Rate(1000)
+    while STOP_MOTION:
+        twist.header.stamp = rospy.Time.now()
+        velocity_publisher.publish(twist)
+        rate.sleep()
+
 
 def get_twist_message(velocities):
     twist = TwistStamped()
@@ -102,8 +121,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
             end_time = time.time() + random.uniform(0.6, 0.9)
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 if STOP_MOTION:
-                    input("Press any key to resume")
-                    STOP_MOTION = False
+                    send_zero_velocity(velocity_publisher)
 
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
@@ -124,9 +142,8 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
             end_time = time.time() + random.uniform(0.6, 0.9)
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 if STOP_MOTION:
-                    input("Press any key to resume")
-                    STOP_MOTION = False
-                
+                    send_zero_velocity(velocity_publisher)
+
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
 
@@ -140,10 +157,9 @@ def publish_joy_continuous(twist, velocity_publisher):
     rate = rospy.Rate(1000)
     end_time = time.time() + SECONDS_TO_WAIT
 
-    while time.time() < end_time:
+    while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
         if STOP_MOTION:
-            input("Press any key to resume")
-            STOP_MOTION = False
+            send_zero_velocity(velocity_publisher)
 
         twist.header.stamp = rospy.Time.now()
         velocity_publisher.publish(twist)
@@ -162,7 +178,7 @@ def joy_publisher():
     listener.start()
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.2, 0.8, 0.1):
+        for velocity in np.arange(0.0, 0.8, 0.1):
 
             print(velocity)
 
@@ -174,10 +190,10 @@ def joy_publisher():
             else:
                 if velocity == 0.0:
                     continue
-            
+
                 print("Publishing continuous forward command")
                 publish_joy_continuous(twist, velocity_publisher)
-            
+
             stomping(velocity_publisher)
 
             # # Clockwise rotation
@@ -208,7 +224,7 @@ def joy_publisher():
             #     publish_joy_continuous(twist, velocity_publisher)
             #
             # stomping(velocity_publisher)
-            
+
             #
             # # Right stepping
             # joy = Joy()
@@ -247,7 +263,7 @@ def joy_publisher():
             #     joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
             #     print("Publishing forward + clockwise command")
             #     publish_joy_continuous(joy, velocity_publisher)
-                
+
             # # Forward + counter clockwise
             # for velocity2 in np.arange(0.1, 0.6, 0.1):
             #     # Counterclockwise rotation
@@ -258,7 +274,7 @@ def joy_publisher():
             #     joy.buttons = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
             #     print("Publishing forward + counter clockwise command")
             #     publish_joy_continuous(joy, velocity_publisher)
-                
+
             print(f"Sequence {velocity} finished")
 
         break
