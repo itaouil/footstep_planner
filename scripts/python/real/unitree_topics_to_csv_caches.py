@@ -31,6 +31,7 @@ prev_footstep_time = None
 prev_footstep_flag = False
 
 # Global parameters (footstep extraction)
+cmd_cache = None
 publisher = None
 fl_max_height = 0
 fr_max_height = 0
@@ -39,7 +40,10 @@ rr_max_height = 0
 
 # Global variables
 path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/gianpaolo/step_0.10"
-file_object = open(path + "/forward_accelerations.csv", "a")
+file_object = open(path + "/forward_accelerations_sharp.csv", "a")
+
+# Output
+output = []
 
 
 def clean_max_heights():
@@ -84,11 +88,11 @@ def valid_footstep(footholds_msg):
     rr_max_height = max(rr_max_height, rr_height)
 
     # Compute feet height difference booleans
-    left_height_difference_in_range = abs(fl_height - rl_height) < height_threshold
-    right_height_difference_in_range = abs(fr_height - rr_height) < height_threshold
-
+    front_height_difference_in_range = abs(fl_height - fr_height) < height_threshold
+    hind_height_difference_in_range = abs(rl_height - rr_height) < height_threshold
+    
     # Check if footstep detected or not
-    if right_height_difference_in_range and left_height_difference_in_range:
+    if hind_height_difference_in_range and front_height_difference_in_range:
         if first_footstep:
             footstep.data = True
             first_footstep = False
@@ -96,11 +100,12 @@ def valid_footstep(footholds_msg):
             prev_footstep_time = time.time()
         else:
             if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
-                #print("Time: ", time.time() - prev_footstep_time)
+                print("Time: ", time.time() - prev_footstep_time)
                 footstep.data = True
                 prev_footstep_flag = True
                 prev_footstep_time = time.time()
     else:
+        footstep.data = False
         prev_footstep_flag = False
 
     # Check that the feet motion that
@@ -125,7 +130,7 @@ def valid_footstep(footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.32 and swing2_max_height > -0.32
+        max_heights_condition = swing1_max_height > -0.30 and swing2_max_height > -0.30
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -141,6 +146,9 @@ def valid_footstep(footholds_msg):
         clean_max_heights()
 
     # Publish footstep detection boolean
+    # if footstep.data:
+    #     print("Here: ", abs(fl_height - fr_height), abs(rl_height - rr_height))
+
     publisher.publish(footstep)
 
     rospy.set_param("/feet_in_contact", footstep.data)
@@ -148,16 +156,26 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
 
 
-def live_extraction(cmd, state):
+def live_extraction(state):
     # Globals
+    global output
+    global cmd_cache
     global file_object
 
     # Check at this time a valid footstep is detected
     is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
 
+    # Get synced command with cache
+    stamp = cmd_cache.getLastestTime()
+    cmd = cmd_cache.getElemBeforeTime(stamp)
+
+    if not cmd:
+        return
+
     # If not a valid footstep, skip callback
     if not is_valid_footstep:
         return
+
     file_object.write(str(time.time()) + "," +  # 0
 
                       str(cmd.twist.linear.x) + "," +  # 1
@@ -232,6 +250,7 @@ def main():
     # Globals
     global client
     global publisher
+    global cmd_cache
 
     print("Starting node")
 
@@ -243,10 +262,10 @@ def main():
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped)
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped)
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 100, 0.5)
-    ts.registerCallback(live_extraction)
+    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, queue_size=1)
+    cmd_cache = message_filters.Cache(cmd_sub, 1000)
+
+    rospy.Subscriber("/aliengo_bridge/high_state", HighStateStamped, live_extraction, queue_size=1)
 
     rospy.spin()
 
