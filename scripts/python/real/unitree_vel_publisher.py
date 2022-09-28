@@ -23,10 +23,11 @@ from geometry_msgs.msg import TwistStamped
 
 # Global variables
 listener = None
-SECONDS_TO_WAIT = 30
 STOP_MOTION = False
+ADDITIONAL_TIME = 0
+SECONDS_TO_WAIT = 30
 MAX_NON_FWD_VELOCITY = 1.05
-ACCELERATION_ENABLED = True
+ACCELERATION_ENABLED = False
 
 
 def on_press(key):
@@ -35,6 +36,7 @@ def on_press(key):
     try:
         if key.char == 's':
             STOP_MOTION = not STOP_MOTION
+            print("STOP MOTION: ", STOP_MOTION)
     except AttributeError:
         pass
 
@@ -44,6 +46,8 @@ def on_release(key):
 
 
 def send_zero_velocity(velocity_publisher):
+    global ADDITIONAL_TIME
+
     twist = TwistStamped()
     twist.twist.angular.x = 0
     twist.twist.angular.y = 0
@@ -52,11 +56,14 @@ def send_zero_velocity(velocity_publisher):
     twist.twist.linear.y = 0
     twist.twist.linear.z = 0
 
+    start = time.time()
     rate = rospy.Rate(1000)
     while STOP_MOTION:
         twist.header.stamp = rospy.Time.now()
         velocity_publisher.publish(twist)
         rate.sleep()
+    
+    ADDITIONAL_TIME = time.time() - start
 
 
 def get_twist_message(velocities):
@@ -122,6 +129,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 if STOP_MOTION:
                     send_zero_velocity(velocity_publisher)
+                    end_time += ADDITIONAL_TIME
 
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
@@ -143,6 +151,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 if STOP_MOTION:
                     send_zero_velocity(velocity_publisher)
+                    end_time += ADDITIONAL_TIME
 
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
@@ -153,6 +162,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
 
 def publish_joy_continuous(twist, velocity_publisher):
     global STOP_MOTION
+    global ADDITIONAL_TIME
 
     rate = rospy.Rate(1000)
     end_time = time.time() + SECONDS_TO_WAIT
@@ -160,6 +170,7 @@ def publish_joy_continuous(twist, velocity_publisher):
     while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
         if STOP_MOTION:
             send_zero_velocity(velocity_publisher)
+            end_time += ADDITIONAL_TIME
 
         twist.header.stamp = rospy.Time.now()
         velocity_publisher.publish(twist)
@@ -275,7 +286,7 @@ def joy_publisher():
             #     print("Publishing forward + counter clockwise command")
             #     publish_joy_continuous(joy, velocity_publisher)
 
-            print(f"Sequence {velocity} finished")
+            print("Sequence ", velocity, " finished")
 
         break
 
