@@ -246,6 +246,9 @@ void Navigation::updateVariablesFromCache() {
     // Access last odometry pose
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
+    m_latestCoMPose.pose.pose.position.x -= 0.33;
+    m_latestCoMPose.twist.twist.linear.x = l_latestHighState->velocity[0];
+    m_latestCoMPose.twist.twist.linear.y = l_latestHighState->velocity[1];
 
     // Clear vector before re-populating it
     m_feetConfigurationCoM.clear();
@@ -344,7 +347,7 @@ void Navigation::executeHighLevelCommands() {
             if (l_actionInExecution > 1) {
                 break;
             }
-
+            
             // Update global variables from cache
             updateVariablesFromCache();
             
@@ -583,7 +586,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < 1; i++) {
+        for (unsigned int i = 0; i < 2; i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;

@@ -103,7 +103,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
         for (uint x = 0; x < l_elevationMap["median"].rows(); x++) {
             for (uint y = 0; y < l_elevationMap["median"].cols(); y++) {
                 if (std::isnan(l_elevationMap["elevation"].coeff(x, y))) {
-                    l_elevationMapImage.at<float>(x, y) = -10;
+                    l_elevationMapImage.at<float>(x, y) = -100;
                 }
                 else {
                     l_elevationMapImage.at<float>(x, y) = l_elevationMap["median"].coeff(x, y);
@@ -121,7 +121,7 @@ void ElevationMapProcessor::gridMapPostProcessing() {
 
         l_heightChangeFilterX = cv::abs(l_heightChangeFilterX);
         l_heightChangeFilterY = cv::abs(l_heightChangeFilterY);
-
+        
         cv::Mat l_costmap;
         cv::threshold(l_heightChangeFilterX, l_costmap, HEIGHT_FILTER_THRESHOLD, 1, cv::THRESH_BINARY_INV);
         cv::threshold(l_heightChangeFilterY, l_costmap, HEIGHT_FILTER_THRESHOLD, 1, cv::THRESH_BINARY_INV);
