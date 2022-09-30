@@ -637,5 +637,5 @@ void Model::predictNextState(uint p_plannedFootstep,
 //     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
 //     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-//     ros::Duration(1).sleep();
+//     ros::Duration(0.3).sleep();
 }

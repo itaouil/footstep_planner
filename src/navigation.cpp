@@ -586,7 +586,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < 3; i++) {
+        for (unsigned int i = 0; i < 1; i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;

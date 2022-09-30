@@ -325,9 +325,9 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
                 }
 
-                if (std::abs(l_tempNode.velocity - l_nextVelocity) > 0.5) {
-                    continue;
-                }
+                // if (std::abs(l_tempNode.velocity - l_nextVelocity) > 0.5) {
+                //     continue;
+                // }
 
                 m_model.predictNextState(m_validFootstepsFound,
                                          l_tempNode.velocity,
@@ -447,7 +447,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
-                float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
+                // float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
+                float l_feetDistanceCost = 10 * (l_hindFootCost + l_frontFootCost);
                 ROS_DEBUG_STREAM(l_feetDistanceCost);
 
                 if (successor == nullptr) {
@@ -457,21 +458,23 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newFeetConfiguration,
                                          l_currentNode);
                     successor->G = l_currentNode->G + 1;
-                    successor->H = AStar::Heuristic::euclidean(*successor,
-                                                               Node{Action{0, 0, 0},
-                                                               l_targetGridCoordinates,
-                                                               p_targetWorldCoordinates,
-                                                               l_newFeetConfiguration}) + l_feetDistanceCost;
+                    // successor->H = AStar::Heuristic::euclidean(*successor,
+                    //                                            Node{Action{0, 0, 0},
+                    //                                            l_targetGridCoordinates,
+                    //                                            p_targetWorldCoordinates,
+                    //                                            l_newFeetConfiguration}) + l_feetDistanceCost;
+                    successor->H = l_feetDistanceCost;
                     successor->velocity = l_nextVelocity;
                     l_openSet.push_back(successor);
                     ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
                 } else if ((l_currentNode->G + 1) < successor->G) {
                     successor->G = l_currentNode->G + 1;
-                    successor->H = AStar::Heuristic::euclidean(*successor,
-                                                               Node{Action{0, 0, 0},
-                                                               l_targetGridCoordinates,
-                                                               p_targetWorldCoordinates,
-                                                               l_newFeetConfiguration}) + l_feetDistanceCost;
+                    // successor->H = AStar::Heuristic::euclidean(*successor,
+                    //                                            Node{Action{0, 0, 0},
+                    //                                            l_targetGridCoordinates,
+                    //                                            p_targetWorldCoordinates,
+                    //                                            l_newFeetConfiguration}) + l_feetDistanceCost;
+                    successor->H = l_feetDistanceCost;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;
