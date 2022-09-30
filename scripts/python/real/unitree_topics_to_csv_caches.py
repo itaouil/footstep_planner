@@ -39,7 +39,7 @@ rl_max_height = 0
 rr_max_height = 0
 
 # Global variables
-path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/gianpaolo/step_0.10"
+path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/gianpaolo/step_0.10/force"
 file_object = open(path + "/forward_accelerations_sharp.csv", "a")
 
 # Output
@@ -81,6 +81,12 @@ def valid_footstep(footholds_msg):
     rl_height = footholds_msg.footPosition2Body[3].z
     rr_height = footholds_msg.footPosition2Body[2].z
 
+    # Acquire feet forces
+    fl_force = footholds_msg.footForce[1]
+    fr_force = footholds_msg.footForce[0]
+    rl_force = footholds_msg.footForce[3]
+    rr_force = footholds_msg.footForce[2]
+
     # Update recorded max heights for each foot
     fl_max_height = max(fl_max_height, fl_height)
     fr_max_height = max(fr_max_height, fr_height)
@@ -90,9 +96,12 @@ def valid_footstep(footholds_msg):
     # Compute feet height difference booleans
     front_height_difference_in_range = abs(fl_height - fr_height) < height_threshold
     hind_height_difference_in_range = abs(rl_height - rr_height) < height_threshold
+
+    # Force condition check
+    force_condition = fl_force > 20 and fr_force > 20 and rl_force > 20 and rr_force > 20
     
     # Check if footstep detected or not
-    if hind_height_difference_in_range and front_height_difference_in_range:
+    if hind_height_difference_in_range and front_height_difference_in_range and force_condition:
         if first_footstep:
             footstep.data = True
             first_footstep = False
@@ -217,10 +226,10 @@ def live_extraction(state):
                       str(state.footSpeed2Body[2].y) + "," +  # 33
                       str(state.footSpeed2Body[2].z) + "," +  # 34
 
-                      str(0) + "," +  # 35
-                      str(0) + "," +  # 36
-                      str(0) + "," +  # 37
-                      str(0) + "," +  # 38
+                      str(state.footForce[1]) + "," +  # 35
+                      str(state.footForce[0]) + "," +  # 36
+                      str(state.footForce[3]) + "," +  # 37
+                      str(state.footForce[2]) + "," +  # 38
                       str(0) + "," +  # 39
                       str(0) + "," +  # 40
                       str(0) + "," +  # 41
@@ -248,7 +257,6 @@ def live_extraction(state):
 
 def main():
     # Globals
-    global client
     global publisher
     global cmd_cache
 
@@ -257,7 +265,7 @@ def main():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
-    rospy.set_param("/height_threshold", 0.02)
+    rospy.set_param("/height_threshold", 0.03)
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)

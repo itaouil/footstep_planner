@@ -393,12 +393,12 @@ void Navigation::executeHighLevelCommands() {
                 // Check when swinging feet get back in contact (to re-plan)
                 if (l_swingingFeetOutOfContact) {
                     if (l_lfDiagonalSwinging) {
-                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE || l_rhForceZ > BACK_IN_CONTACT_FORCE) {
+                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE && l_rhForceZ > BACK_IN_CONTACT_FORCE) {
                             l_feetInContact = true;
                         }
                     }
                     else if (l_rfDiagonalSwinging) {
-                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE || l_lhForceZ > BACK_IN_CONTACT_FORCE) {
+                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE && l_lhForceZ > BACK_IN_CONTACT_FORCE) {
                             l_feetInContact = true;
                         }
                     }
