@@ -309,11 +309,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
 
-//                // Disallow velocities above 0.5 for non-forward actions
-//                if (m_actions[i].x != 1 && l_nextVelocity > 0.7) {
-//                    continue;
-//                }
-
                 World3D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfiguration;
 
@@ -328,6 +323,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                     // Set map feet configuration based on idle CoM poses of the feet
                     setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
+                }
+
+                if (std::abs(l_tempNode.velocity - l_nextVelocity) > 0.5) {
+                    continue;
                 }
 
                 m_model.predictNextState(m_validFootstepsFound,

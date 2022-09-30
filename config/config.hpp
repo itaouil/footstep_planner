@@ -39,10 +39,10 @@ const bool PUBLISH(true);
 const bool VISUALIZE(false);
 
 // Height threshold when computing unsafe edges
-const double HEIGHT_FILTER_THRESHOLD(0.05);
+const double HEIGHT_FILTER_THRESHOLD(0.07);
 
 // Distance used for heuristic in the planner
-const float ZERO_COST_FOOT_DISTANCE(0.07);
+const float ZERO_COST_FOOT_DISTANCE(0.08);
 
 // Max footstep height
 const float MAX_FOOTSTEP_HEIGHT(0.06);
@@ -57,7 +57,7 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(7);
 
 // Minimum distance for cell to be considered traversable
 const float MIN_STAIR_DISTANCE(0.03);
@@ -66,7 +66,10 @@ const float MIN_STAIR_DISTANCE(0.03);
 const float ANGLE_DIFFERENCE_TOLERANCE(2);
 
 // Out of contact force
-const float OUT_OF_CONTACT_FORCE(10.0);
+const float OUT_OF_CONTACT_FORCE(20.0);
 
 // Back in contact force
-const float BACK_IN_CONTACT_FORCE(50.0);
+const float BACK_IN_CONTACT_FORCE(30.0);
+
+// Elevation map layer to use
+const std::string ELEVATION_LAYER("elevation");
