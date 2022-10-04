@@ -75,6 +75,12 @@ def valid_footstep(footholds_msg):
     rl_height = footholds_msg.footPosition2Body[3].z
     rr_height = footholds_msg.footPosition2Body[2].z
 
+    # Acquire feet forces
+    fl_force = footholds_msg.footForce[1]
+    fr_force = footholds_msg.footForce[0]
+    rl_force = footholds_msg.footForce[3]
+    rr_force = footholds_msg.footForce[2]
+
     # Update recorded max heights for each foot
     fl_max_height = max(fl_max_height, fl_height)
     fr_max_height = max(fr_max_height, fr_height)
@@ -82,11 +88,14 @@ def valid_footstep(footholds_msg):
     rr_max_height = max(rr_max_height, rr_height)
 
     # Compute feet height difference booleans
-    left_height_difference_in_range = abs(fl_height - rl_height) < height_threshold
-    right_height_difference_in_range = abs(fr_height - rr_height) < height_threshold
+    front_height_difference_in_range = abs(fl_height - fr_height) < height_threshold
+    hind_height_difference_in_range = abs(rl_height - rr_height) < height_threshold
 
+    # Force condition check
+    force_condition = fl_force > 20 and fr_force > 20 and rl_force > 20 and rr_force > 20
+    
     # Check if footstep detected or not
-    if right_height_difference_in_range and left_height_difference_in_range:
+    if hind_height_difference_in_range and front_height_difference_in_range and force_condition:
         if first_footstep:
             footstep.data = True
             first_footstep = False
@@ -99,6 +108,7 @@ def valid_footstep(footholds_msg):
                 prev_footstep_flag = True
                 prev_footstep_time = time.time()
     else:
+        footstep.data = False
         prev_footstep_flag = False
 
     # Check that the feet motion that
@@ -123,7 +133,7 @@ def valid_footstep(footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.3 and swing2_max_height > -0.3
+        max_heights_condition = swing1_max_height > -0.30 and swing2_max_height > -0.30
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -139,6 +149,9 @@ def valid_footstep(footholds_msg):
         clean_max_heights()
 
     # Publish footstep detection boolean
+    # if footstep.data:
+    #     print("Here: ", abs(fl_height - fr_height), abs(rl_height - rr_height))
+
     publisher.publish(footstep)
 
     rospy.set_param("/feet_in_contact", footstep.data)
