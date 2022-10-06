@@ -18,6 +18,7 @@
 # General imports
 import time
 import rospy
+import numpy as np
 import message_filters
 
 # ROS msgs imports
@@ -37,6 +38,7 @@ fl_max_height = 0
 fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
+in_between_vel = []
 
 # Global variables
 path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/gianpaolo/step_0.10/force"
@@ -99,7 +101,7 @@ def valid_footstep(footholds_msg):
 
     # Force condition check
     force_condition = fl_force > 20 and fr_force > 20 and rl_force > 20 and rr_force > 20
-    
+
     # Check if footstep detected or not
     if hind_height_difference_in_range and front_height_difference_in_range and force_condition:
         if first_footstep:
@@ -109,7 +111,6 @@ def valid_footstep(footholds_msg):
             prev_footstep_time = time.time()
         else:
             if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
-                print("Time: ", time.time() - prev_footstep_time)
                 footstep.data = True
                 prev_footstep_flag = True
                 prev_footstep_time = time.time()
@@ -119,8 +120,6 @@ def valid_footstep(footholds_msg):
 
     # Check that the feet motion that
     # brought the footstep is regular
-    # (i.e. two feet on the ground and
-    # and two in the air)
     fl_moving, fr_moving, rl_moving, rr_moving = None, None, None, None
     if footstep.data:
         # Compute booleans indicating which feet
@@ -139,7 +138,7 @@ def valid_footstep(footholds_msg):
 
         # Compute booleans for swinging and max height conditions
         swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.30 and swing2_max_height > -0.30
+        max_heights_condition = swing1_max_height > -0.32 and swing2_max_height > -0.32
 
         if not swinging_condition or not max_heights_condition:
             footstep.data = False
@@ -154,10 +153,6 @@ def valid_footstep(footholds_msg):
         # Clean max height variable if footstep detected
         clean_max_heights()
 
-    # Publish footstep detection boolean
-    # if footstep.data:
-    #     print("Here: ", abs(fl_height - fr_height), abs(rl_height - rr_height))
-
     publisher.publish(footstep)
 
     rospy.set_param("/feet_in_contact", footstep.data)
@@ -170,20 +165,26 @@ def live_extraction(state):
     global output
     global cmd_cache
     global file_object
+    global in_between_vel
 
     # Check at this time a valid footstep is detected
     is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
 
     # Get synced command with cache
-    stamp = cmd_cache.getLastestTime()
-    cmd = cmd_cache.getElemBeforeTime(stamp)
+    cmd = cmd_cache.getElemBeforeTime(state.header.stamp)
 
     if not cmd:
+        print("Invalid command")
         return
 
     # If not a valid footstep, skip callback
     if not is_valid_footstep:
+        in_between_vel.append(state.velocity)
         return
+
+    in_between_vel_np = np.array(in_between_vel)
+    in_between_vel.clear()
+    in_between_vel_np_mean = np.mean(in_between_vel_np, axis=0)
 
     file_object.write(str(time.time()) + "," +  # 0
 
@@ -230,9 +231,9 @@ def live_extraction(state):
                       str(state.footForce[0]) + "," +  # 36
                       str(state.footForce[3]) + "," +  # 37
                       str(state.footForce[2]) + "," +  # 38
-                      str(0) + "," +  # 39
-                      str(0) + "," +  # 40
-                      str(0) + "," +  # 41
+                      str(in_between_vel_np_mean[0]) + "," +  # 39
+                      str(in_between_vel_np_mean[1]) + "," +  # 40
+                      str(in_between_vel_np_mean[2]) + "," +  # 41
                       str(0) + "," +  # 42
                       str(0) + "," +  # 43
                       str(0) + "," +  # 44
@@ -265,13 +266,13 @@ def main():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
-    rospy.set_param("/height_threshold", 0.03)
+    rospy.set_param("/height_threshold", 0.05)
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
     cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, queue_size=1)
-    cmd_cache = message_filters.Cache(cmd_sub, 1000)
+    cmd_cache = message_filters.Cache(cmd_sub, 100)
 
     rospy.Subscriber("/aliengo_bridge/high_state", HighStateStamped, live_extraction, queue_size=1)
 
