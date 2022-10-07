@@ -236,46 +236,41 @@ void Navigation::updateVariablesFromCache() {
     // Update callback
     ros::spinOnce();
 
-    // Latest ros time for cache extraction purposes
+    // Stamp used to access cache data
     auto l_latestROSTime = ros::Time::now();
 
-    // Access last high state message
+    // Robot's high state
     boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_latestHighState =
             m_highStateCache.getElemBeforeTime(l_latestROSTime);
 
-    // Access last odometry pose
+    // Robot's odometry
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
 
-    // Clear vector before re-populating it
-    m_feetConfigurationCoM.clear();
-
     // Feet poses w.r.t to CoM
     unitree_legged_msgs::Cartesian l_latestLFCoMPose;
+    unitree_legged_msgs::Cartesian l_latestRFCoMPose;
+    unitree_legged_msgs::Cartesian l_latestLHCoMPose;
+    unitree_legged_msgs::Cartesian l_latestRHCoMPose;
     l_latestLFCoMPose.x = l_latestHighState->footPosition2Body[1].x;
     l_latestLFCoMPose.y = l_latestHighState->footPosition2Body[1].y;
     l_latestLFCoMPose.z = l_latestHighState->footPosition2Body[1].z;
-    m_feetConfigurationCoM.push_back(l_latestLFCoMPose);
-
-    unitree_legged_msgs::Cartesian l_latestRFCoMPose;
     l_latestRFCoMPose.x = l_latestHighState->footPosition2Body[0].x;
     l_latestRFCoMPose.y = l_latestHighState->footPosition2Body[0].y;
     l_latestRFCoMPose.z = l_latestHighState->footPosition2Body[0].z;
-    m_feetConfigurationCoM.push_back(l_latestRFCoMPose);
-
-    unitree_legged_msgs::Cartesian l_latestLHCoMPose;
     l_latestLHCoMPose.x = l_latestHighState->footPosition2Body[3].x;
     l_latestLHCoMPose.y = l_latestHighState->footPosition2Body[3].y;
     l_latestLHCoMPose.z = l_latestHighState->footPosition2Body[3].z;
-    m_feetConfigurationCoM.push_back(l_latestLHCoMPose);
-
-    unitree_legged_msgs::Cartesian l_latestRHCoMPose;
     l_latestRHCoMPose.x = l_latestHighState->footPosition2Body[2].x;
     l_latestRHCoMPose.y = l_latestHighState->footPosition2Body[2].y;
     l_latestRHCoMPose.z = l_latestHighState->footPosition2Body[2].z;
+    m_feetConfigurationCoM.clear();
+    m_feetConfigurationCoM.push_back(l_latestLFCoMPose);
+    m_feetConfigurationCoM.push_back(l_latestRFCoMPose);
+    m_feetConfigurationCoM.push_back(l_latestLHCoMPose);
     m_feetConfigurationCoM.push_back(l_latestRHCoMPose);
 
-    // Store latest feet forces
+    // Feet forces
     m_latestFeetForces = {static_cast<float>(l_latestHighState->footForce[1]),
                           static_cast<float>(l_latestHighState->footForce[0]),
                           static_cast<float>(l_latestHighState->footForce[3]),
