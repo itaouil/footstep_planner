@@ -58,6 +58,27 @@ public:
     void setModelsCoefficients();
 
     /**
+     * Quaternion to rotation matrix.
+     * 
+     * @param q 
+     * @return Eigen::Matrix3d 
+     */
+    inline Eigen::Matrix3d quatToRotMat(const Eigen::Quaterniond & q) {
+        Eigen::Matrix3d R;
+        R(0, 0) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.x() * q.x());
+        R(1, 1) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.y() * q.y());
+        R(2, 2) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.z() * q.z());
+        R(0, 1) = 2.0 * (q.x() * q.y() + q.w() * q.z());
+        R(0, 2) = 2.0 * (q.x() * q.z() - q.w() * q.y());
+        R(1, 0) = 2.0 * (q.x() * q.y() - q.w() * q.z());
+        R(1, 2) = 2.0 * (q.y() * q.z() + q.w() * q.x());
+        R(2, 0) = 2.0 * (q.x() * q.z() + q.w() * q.y());
+        R(2, 1) = 2.0 * (q.y() * q.z() - q.w() * q.x());
+
+        return R;
+    }
+
+    /**
      * Footstep prediction for first step.
      *
      * @param p_previousVelocityX
@@ -101,6 +122,15 @@ public:
                             double p_nextAngularVelocity,
                             const FeetConfiguration &p_currentFeetConfiguration,
                             std::vector<double> &p_predictions);
+
+    /**
+     * Rotate predictions accordint to
+     * robot's rotation.
+     * 
+     * @param l_predictions 
+     * @param l_odometry 
+     */
+    void rotatePredictions(std::vector<double> &l_predictions, const World3D &l_odometry);
 
     /**
      * Compute new CoM in world coordinates.
