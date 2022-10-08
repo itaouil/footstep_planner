@@ -59,7 +59,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
     };
 
     // Available velocities
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 }
 
 /**
@@ -325,9 +325,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
                 }
 
-                // if (std::abs(l_tempNode.velocity - l_nextVelocity) > 0.5) {
-                //     continue;
-                // }
+                // Only allow acceleration to 0.1 from 0.0
+                if (l_tempNode.velocity == 0.0 && l_nextVelocity > 0.1) {
+                    continue;
+                }
 
                 m_model.predictNextState(m_validFootstepsFound,
                                          l_tempNode.velocity,
@@ -447,9 +448,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
-                // float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
-                float l_feetDistanceCost = 10 * (l_hindFootCost + l_frontFootCost);
-                ROS_DEBUG_STREAM(l_feetDistanceCost);
+                float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
 
                 if (successor == nullptr) {
                     successor = new Node(m_actions[i],
