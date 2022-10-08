@@ -549,9 +549,9 @@ void Model::predictNextState(uint p_plannedFootstep,
                            l_predictions);
     }
 
-    ROS_DEBUG_STREAM("Prev Velocity: " << p_previousVelocity);
-    ROS_DEBUG_STREAM("Next Velocity: " << p_nextVelocity);
-    ROS_DEBUG_STREAM("Predictions: " << l_predictions[0] << ", "
+    ROS_INFO_STREAM("Prev Velocity: " << p_previousVelocity);
+    ROS_INFO_STREAM("Next Velocity: " << p_nextVelocity);
+    ROS_INFO_STREAM("Predictions: " << l_predictions[0] << ", "
                                     << l_predictions[1] << ", "
                                     << l_predictions[2] << ", "
                                     << l_predictions[3] << ", "

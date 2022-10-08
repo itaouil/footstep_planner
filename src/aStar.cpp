@@ -326,7 +326,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 }
 
                 // Only allow acceleration to 0.1 from 0.0
-                if (l_tempNode.velocity == 0.0 && l_nextVelocity > 0.1) {
+                if (l_tempNode.velocity == 0.0 && l_nextVelocity > 0.15) {
+                    ROS_INFO_STREAM("Skipping: " << l_tempNode.velocity << ", " << l_nextVelocity);
                     continue;
                 }
 
