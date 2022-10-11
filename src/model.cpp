@@ -367,6 +367,8 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
             p_currentFeetConfiguration.rrCoM.y,
             1;
 
+    ROS_INFO_STREAM("Input: " << l_modelInput);
+
     // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         p_predictions[0] = m_fr_rl_com_x * l_modelInput;
@@ -416,35 +418,38 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
 void Model::rotatePredictions(std::vector<double> &l_predictions, const World3D &l_odometry) {
         // Quaternion to rotation matrix
         Eigen::Quaternion<double> l_quaternion(l_odometry.q.w(), l_odometry.q.x(), l_odometry.q.y(), l_odometry.q.z());
-        Eigen::Matrix3d l_rotationMatrix = quatToRotMat(l_quaternion);
+        Eigen::Matrix3d l_rotationMatrix = quatToRotMat(l_quaternion).transpose();
+
+        ROS_INFO_STREAM(l_odometry.q.w() << l_odometry.q.x() << l_odometry.q.y() << l_odometry.q.z());
+        ROS_INFO_STREAM("Rot: " << l_rotationMatrix);
 
         // CoM prediction
         Eigen::VectorXd l_modelInput1(3);
         l_modelInput1 << l_predictions[0], l_predictions[1], 0.0;
-        auto com_prediction_rotated = l_rotationMatrix.transpose() * l_modelInput1;
+        auto com_prediction_rotated = l_rotationMatrix * l_modelInput1;
 
         // FL prediction
         Eigen::VectorXd l_modelInput2(3);
         l_modelInput2 << l_predictions[2], l_predictions[3], 0.0;
-        auto fl_prediction_rotated = l_rotationMatrix.transpose() * l_modelInput2;
+        auto fl_prediction_rotated = l_rotationMatrix * l_modelInput2;
 
         // FR prediction
         Eigen::VectorXd l_modelInput3(3);
         l_modelInput3 << l_predictions[4], l_predictions[5], 0.0;
-        auto fr_prediction_rotated = l_rotationMatrix.transpose() * l_modelInput3;
+        auto fr_prediction_rotated = l_rotationMatrix * l_modelInput3;
 
         // RL prediction
         Eigen::VectorXd l_modelInput4(3);
         l_modelInput4 << l_predictions[6], l_predictions[7], 0.0;
-        auto rl_prediction_rotated = l_rotationMatrix.transpose() * l_modelInput4;
+        auto rl_prediction_rotated = l_rotationMatrix * l_modelInput4;
 
         // RR prediction
         Eigen::VectorXd l_modelInput5(3);
         l_modelInput5 << l_predictions[8], l_predictions[9], 0.0;
-        auto rr_prediction_rotated = l_rotationMatrix.transpose() * l_modelInput5;
+        auto rr_prediction_rotated = l_rotationMatrix * l_modelInput5;
 
         ROS_INFO_STREAM(l_modelInput5);
-        ROS_INFO_STREAM(rr_prediction_rotated);
+        ROS_INFO_STREAM(rr_prediction_rotated << "\n");
 
         // Update predictions
         l_predictions[0] = com_prediction_rotated[0];
@@ -604,6 +609,20 @@ void Model::predictNextState(uint p_plannedFootstep,
                            l_predictions);
     }
 
+    ROS_INFO_STREAM(p_previousVelocity << ", " << p_nextVelocity);
+
+    ROS_INFO_STREAM("Predictions before: " << l_predictions[0] << ", "
+                                    << l_predictions[1] << ", "
+                                    << l_predictions[2] << ", "
+                                    << l_predictions[3] << ", "
+                                    << l_predictions[4] << ", "
+                                    << l_predictions[5] << ", "
+                                    << l_predictions[6] << ", "
+                                    << l_predictions[7] << ", "
+                                    << l_predictions[8] << ", "
+                                    << l_predictions[9] << ", "
+                                    << l_predictions[10]);
+
     rotatePredictions(l_predictions, p_currentWorldCoordinatesCoM);
 
     ROS_INFO_STREAM("Prev Velocity: " << p_previousVelocity);
@@ -695,5 +714,5 @@ void Model::predictNextState(uint p_plannedFootstep,
     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-    ros::Duration(1.0).sleep();
+    ros::Duration(2).sleep();
 }
