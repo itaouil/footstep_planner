@@ -42,7 +42,7 @@ const bool VISUALIZE(false);
 const double HEIGHT_FILTER_THRESHOLD(0.07);
 
 // Distance used for heuristic in the planner
-const float ZERO_COST_FOOT_DISTANCE(0.10);
+const float ZERO_COST_FOOT_DISTANCE(0.15);
 
 // Max footstep height
 const float MAX_FOOTSTEP_HEIGHT(0.03);
@@ -57,7 +57,7 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(3);
+const unsigned int FOOTSTEP_HORIZON(4);
 
 // Minimum distance for cell to be considered traversable
 const float MIN_STAIR_DISTANCE(0.03);
