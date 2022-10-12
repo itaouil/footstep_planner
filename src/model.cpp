@@ -287,7 +287,7 @@ void Model::predictFirstStep(double p_previousVelocityX,
              p_currentFeetConfiguration.rrCoM.y,
              1;
 
-    ROS_INFO_STREAM("Input: " << l_modelInput);
+    ROS_DEBUG_STREAM("Input: " << l_modelInput);
 
     // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
@@ -367,7 +367,7 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
             p_currentFeetConfiguration.rrCoM.y,
             1;
 
-    ROS_INFO_STREAM("Input: " << l_modelInput);
+    ROS_DEBUG_STREAM("Input: " << l_modelInput);
 
     // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
@@ -579,9 +579,9 @@ void Model::predictNextState(uint p_plannedFootstep,
                            l_predictions);
     }
 
-    ROS_INFO_STREAM("Prev Velocity: " << p_previousVelocity);
-    ROS_INFO_STREAM("Next Velocity: " << p_nextVelocity);
-    ROS_INFO_STREAM("Predictions: " << l_predictions[0] << ", "
+    ROS_DEBUG_STREAM("Prev Velocity: " << p_previousVelocity);
+    ROS_DEBUG_STREAM("Next Velocity: " << p_nextVelocity);
+    ROS_DEBUG_STREAM("Predictions: " << l_predictions[0] << ", "
                                     << l_predictions[1] << ", "
                                     << l_predictions[2] << ", "
                                     << l_predictions[3] << ", "
@@ -668,5 +668,5 @@ void Model::predictNextState(uint p_plannedFootstep,
     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-    ros::Duration(2).sleep();
+    ros::Duration(0.5).sleep();
 }

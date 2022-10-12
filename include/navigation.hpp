@@ -198,9 +198,13 @@ private:
     //! Latest feet poses w.r.t to the CoM
     std::vector<unitree_legged_msgs::Cartesian> m_feetConfigurationCoM;
 
-    //! Odometry cache
+    //! Robot odometry cache
     message_filters::Cache<nav_msgs::Odometry> m_robotPoseCache;
     message_filters::Subscriber<nav_msgs::Odometry> m_robotPoseSubscriber;
+
+    //! T265 odometry cache
+    message_filters::Cache<nav_msgs::Odometry> m_t265PoseCache;
+    message_filters::Subscriber<nav_msgs::Odometry> m_t265PoseSubscriber;
 
     //! Feet forces cache
     message_filters::Cache<unitree_legged_msgs::HighStateStamped> m_highStateCache;

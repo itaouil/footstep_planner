@@ -39,6 +39,10 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     m_robotPoseCache.connectInput(m_robotPoseSubscriber);
     m_robotPoseCache.setCacheSize(CACHE_SIZE);
 
+    m_t265PoseSubscriber.subscribe(m_nh, T265_POSE_TOPIC, 1);
+    m_t265PoseCache.connectInput(m_t265PoseSubscriber);
+    m_t265PoseCache.setCacheSize(CACHE_SIZE);
+
     m_highStateSubscriber.subscribe(m_nh, HIGH_STATE_SUBSCRIBER, 1);
     m_highStateCache.connectInput(m_highStateSubscriber);
     m_highStateCache.setCacheSize(CACHE_SIZE);
@@ -242,10 +246,15 @@ void Navigation::updateVariablesFromCache() {
     // Robot's high state
     boost::shared_ptr<unitree_legged_msgs::HighStateStamped const> l_latestHighState =
             m_highStateCache.getElemBeforeTime(l_latestROSTime);
+    
+    // T265's odometry
+    boost::shared_ptr<nav_msgs::Odometry const> l_latestT265Pose = m_t265PoseCache.getElemBeforeTime(l_latestROSTime);
+    auto m_latestT265Pose = *l_latestT265Pose;
 
     // Robot's odometry
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
+    m_latestCoMPose.pose.pose.orientation = m_latestT265Pose.pose.pose.orientation;
 
     // Feet poses w.r.t to CoM
     unitree_legged_msgs::Cartesian l_latestLFCoMPose;
@@ -578,7 +587,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < FOOTSTEP_HORIZON; i++) {
+        for (unsigned int i = 0; i < m_path.size(); i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;
@@ -640,6 +649,8 @@ void Navigation::publishOnlinePredictedFootsteps() {
             l_onlineConfiguration.markers.push_back(l_predictedFR);
             l_onlineConfiguration.markers.push_back(l_predictedRL);
             l_onlineConfiguration.markers.push_back(l_predictedRR);
+
+            ROS_INFO_STREAM("Heights: " << m_path[i].feetConfiguration.flMap.z << ", " << m_path[i].feetConfiguration.frMap.z << ", " << m_path[i].feetConfiguration.rlMap.z << ", " << m_path[i].feetConfiguration.rrMap.z);
 
             m_targetFeetConfigurationPublisher.publish(l_onlineConfiguration);
         }

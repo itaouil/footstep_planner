@@ -39,6 +39,9 @@ struct Node
     //! Feet configuration of the state (CoM frame)
     FeetConfiguration feetConfiguration;
 
+    //! Number of sequences till this node
+    uint sequence;
+
     /**
      * Struct constructor.
      *
@@ -46,11 +49,14 @@ struct Node
      * @param p_worldCoordinates
      * @param p_parent
      */
-    explicit Node(Action p_action,
+    explicit Node(uint sequence,
+                  Action p_action,
                   Vec2D p_gridCoordinates,
                   World3D p_worldCoordinates,
                   FeetConfiguration feetConfiguration,
-                  Node *p_parent = nullptr):
+                  Node *p_parent = nullptr
+                  ):
+            sequence(sequence),
             parent(p_parent),
             action(p_action),
             G(0.0),

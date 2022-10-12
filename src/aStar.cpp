@@ -239,8 +239,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
         ROS_WARN("AStar: Could not convert target world coordinates to target grid coordinates");
     }
 
-    ROS_INFO("Convert from world to Grid");
-
     // Create open and closed sets for the search process
     std::vector<Node *> l_openSet, l_closedSet;
     l_openSet.reserve(100);
@@ -250,7 +248,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
     Node *l_currentNode = nullptr;
 
     // Push to initial open set the source node
-    l_openSet.push_back(new Node(p_initialAction,
+    l_openSet.push_back(new Node(1,
+                                 p_initialAction,
                                  l_sourceGridCoordinates,
                                  p_sourceWorldCoordinates,
                                  p_sourceFeetConfiguration));
@@ -275,14 +274,16 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         ROS_DEBUG_STREAM(
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
+        
+        ROS_INFO_STREAM("Current sequence: " << l_currentNode->sequence);
 
         // If target was reached or already planned
         // for the footstep horizon stop any further
         // search
-        if (m_validFootstepsFound == FOOTSTEP_HORIZON ||
+        if (l_currentNode->sequence == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                           l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            ROS_DEBUG_STREAM("Search: Planning completed. " << m_validFootstepsFound);
+            ROS_INFO_STREAM("Search: Planning completed. " << m_validFootstepsFound);
             break;
         }
 
@@ -417,7 +418,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                                            l_rlGridPose.y);
                     l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
                                                                                            l_rrGridPose.y);
-
+                    
                     l_validFootstepFound = true;
                     l_hindFootCost = (l_hindFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
                                      (ZERO_COST_FOOT_DISTANCE - l_hindFootDistance);
@@ -452,35 +453,37 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
 
                 if (successor == nullptr) {
-                    successor = new Node(m_actions[i],
+                    successor = new Node(l_currentNode->sequence + 1,
+                                         m_actions[i],
                                          l_newGridCoordinatesCoM,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
                                          l_currentNode);
                     successor->G = l_currentNode->G + 1;
-                    // successor->H = AStar::Heuristic::euclidean(*successor,
-                    //                                            Node{Action{0, 0, 0},
-                    //                                            l_targetGridCoordinates,
-                    //                                            p_targetWorldCoordinates,
-                    //                                            l_newFeetConfiguration}) + l_feetDistanceCost;
-                    successor->H = l_feetDistanceCost;
                     successor->velocity = l_nextVelocity;
+                    successor->H = AStar::Heuristic::euclidean(*successor,
+                                                               Node{0,
+                                                                    Action{0, 0, 0},
+                                                                    l_targetGridCoordinates,
+                                                                    p_targetWorldCoordinates,
+                                                                    l_newFeetConfiguration}) + l_feetDistanceCost;
                     l_openSet.push_back(successor);
                     ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
                 } else if ((l_currentNode->G + 1) < successor->G) {
                     successor->G = l_currentNode->G + 1;
-                    // successor->H = AStar::Heuristic::euclidean(*successor,
-                    //                                            Node{Action{0, 0, 0},
-                    //                                            l_targetGridCoordinates,
-                    //                                            p_targetWorldCoordinates,
-                    //                                            l_newFeetConfiguration}) + l_feetDistanceCost;
-                    successor->H = l_feetDistanceCost;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;
+                    successor->sequence = l_currentNode->sequence;
                     successor->gridCoordinates = l_newGridCoordinatesCoM;
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;
                     successor->feetConfiguration = l_newFeetConfiguration;
+                    successor->H = AStar::Heuristic::euclidean(*successor,
+                                                               Node{0,
+                                                                    Action{0, 0, 0},
+                                                                    l_targetGridCoordinates,
+                                                                    p_targetWorldCoordinates,
+                                                                    l_newFeetConfiguration}) + l_feetDistanceCost;
                 }
             }
         }
