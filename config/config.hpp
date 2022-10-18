@@ -27,10 +27,6 @@ const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
 // TF reference frames
 const std::string ROBOT_REFERENCE_FRAME("base");
-const std::string LF_FOOT_REFERENCE_FRAME("FL_foot");
-const std::string RF_FOOT_REFERENCE_FRAME("FR_foot");
-const std::string LH_FOOT_REFERENCE_FRAME("RL_foot");
-const std::string RH_FOOT_REFERENCE_FRAME("RR_foot");
 const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map

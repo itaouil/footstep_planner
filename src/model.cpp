@@ -258,38 +258,35 @@ void Model::setModelsCoefficients() {
  */
 void Model::predictFirstStep(double p_previousVelocityX,
                              double p_previousVelocityY,
-                           double p_previousAngularVelocity,
-                           double p_nextVelocityX,
-                           double p_nextVelocityY,
-                           double p_nextAngularVelocity,
-                           const geometry_msgs::Twist &p_odomVelocityState,
-                           const FeetConfiguration &p_currentFeetConfiguration,
-                           std::vector<double> &p_predictions) {
-    // Regression input
-     Eigen::VectorXd l_modelInput(19);
-     l_modelInput << p_previousVelocityX,
-             p_previousVelocityY,
-             p_previousAngularVelocity,
-             p_nextVelocityX,
-             p_nextVelocityY,
-             p_nextAngularVelocity,
-             p_odomVelocityState.linear.x,
-             p_odomVelocityState.linear.y,
-             p_odomVelocityState.linear.z,
-             p_odomVelocityState.angular.z,
-             p_currentFeetConfiguration.flCoM.x,
-             p_currentFeetConfiguration.flCoM.y,
-             p_currentFeetConfiguration.frCoM.x,
-             p_currentFeetConfiguration.frCoM.y,
-             p_currentFeetConfiguration.rlCoM.x,
-             p_currentFeetConfiguration.rlCoM.y,
-             p_currentFeetConfiguration.rrCoM.x,
-             p_currentFeetConfiguration.rrCoM.y,
-             1;
+                             double p_previousAngularVelocity,
+                             double p_nextVelocityX,
+                             double p_nextVelocityY,
+                             double p_nextAngularVelocity,
+                             const geometry_msgs::Twist &p_odomVelocityState,
+                             const FeetConfiguration &p_currentFeetConfiguration,
+                             std::vector<double> &p_predictions) {
+    Eigen::VectorXd l_modelInput(19);
+    l_modelInput << p_previousVelocityX,
+                    p_previousVelocityY,
+                    p_previousAngularVelocity,
+                    p_nextVelocityX,
+                    p_nextVelocityY,
+                    p_nextAngularVelocity,
+                    p_odomVelocityState.linear.x,
+                    p_odomVelocityState.linear.y,
+                    p_odomVelocityState.linear.z,
+                    p_odomVelocityState.angular.z,
+                    p_currentFeetConfiguration.flCoM.x,
+                    p_currentFeetConfiguration.flCoM.y,
+                    p_currentFeetConfiguration.frCoM.x,
+                    p_currentFeetConfiguration.frCoM.y,
+                    p_currentFeetConfiguration.rlCoM.x,
+                    p_currentFeetConfiguration.rlCoM.y,
+                    p_currentFeetConfiguration.rrCoM.x,
+                    p_currentFeetConfiguration.rrCoM.y,
+                    1;
 
     ROS_DEBUG_STREAM("Input: " << l_modelInput);
-
-    // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         p_predictions[0] = m_fr_rl_com_x_fs * l_modelInput;
         p_predictions[1] = m_fr_rl_com_y_fs * l_modelInput;
@@ -308,7 +305,6 @@ void Model::predictFirstStep(double p_previousVelocityX,
 
         p_predictions[10] = m_fr_rl_com_theta_fs * l_modelInput;
     }
-        // FL/RR are swinging
     else {
         p_predictions[0] = m_fl_rr_com_x_fs * l_modelInput;
         p_predictions[1] = m_fl_rr_com_y_fs * l_modelInput;
@@ -349,27 +345,25 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
                                double p_nextAngularVelocity,
                                const FeetConfiguration &p_currentFeetConfiguration,
                                std::vector<double> &p_predictions) {
-    // Common input to all models
     Eigen::VectorXd l_modelInput(15);
     l_modelInput << p_previousVelocityX,
-            p_previousVelocityY,
-            p_previousAngularVelocity,
-            p_nextVelocityX,
-            p_nextVelocityY,
-            p_nextAngularVelocity,
-            p_currentFeetConfiguration.flCoM.x,
-            p_currentFeetConfiguration.flCoM.y,
-            p_currentFeetConfiguration.frCoM.x,
-            p_currentFeetConfiguration.frCoM.y,
-            p_currentFeetConfiguration.rlCoM.x,
-            p_currentFeetConfiguration.rlCoM.y,
-            p_currentFeetConfiguration.rrCoM.x,
-            p_currentFeetConfiguration.rrCoM.y,
-            1;
+                    p_previousVelocityY,
+                    p_previousAngularVelocity,
+                    p_nextVelocityX,
+                    p_nextVelocityY,
+                    p_nextAngularVelocity,
+                    p_currentFeetConfiguration.flCoM.x,
+                    p_currentFeetConfiguration.flCoM.y,
+                    p_currentFeetConfiguration.frCoM.x,
+                    p_currentFeetConfiguration.frCoM.y,
+                    p_currentFeetConfiguration.rlCoM.x,
+                    p_currentFeetConfiguration.rlCoM.y,
+                    p_currentFeetConfiguration.rrCoM.x,
+                    p_currentFeetConfiguration.rrCoM.y,
+                    1;
 
     ROS_DEBUG_STREAM("Input: " << l_modelInput);
 
-    // FR/RL are swinging
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         p_predictions[0] = m_fr_rl_com_x * l_modelInput;
         p_predictions[1] = m_fr_rl_com_y * l_modelInput;
@@ -388,7 +382,6 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
 
         p_predictions[10] = m_fr_rl_com_theta * l_modelInput;
     }
-        // FL/RR are swinging
     else {
         p_predictions[0] = m_fl_rr_com_x * l_modelInput;
         p_predictions[1] = m_fl_rr_com_y * l_modelInput;
@@ -410,7 +403,7 @@ void Model::predictOnwardSteps(double p_previousVelocityX,
 }
 
 /**
-  * Compute new CoM in world coordinates.
+  * Compute new CoM in world frame.
   *
   * @param p_predictedCoMDisplacementX
   * @param p_predictedCoMDisplacementY
@@ -423,44 +416,43 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
                           const double p_predictedCoMDisplacementTheta,
                           const World3D &p_currentWorldCoordinatesCoM,
                           World3D &p_newWorldCoordinatesCoM) {
-    // Rotation transform of the CoM w.r.t Map
-    geometry_msgs::TransformStamped l_rotationTransform;
-    l_rotationTransform.header.stamp = ros::Time::now();
-    l_rotationTransform.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_rotationTransform.transform.translation.x = 0;
-    l_rotationTransform.transform.translation.y = 0;
-    l_rotationTransform.transform.translation.z = 0;
-    l_rotationTransform.transform.rotation.x = p_currentWorldCoordinatesCoM.q.x();
-    l_rotationTransform.transform.rotation.y = p_currentWorldCoordinatesCoM.q.y();
-    l_rotationTransform.transform.rotation.z = p_currentWorldCoordinatesCoM.q.z();
-    l_rotationTransform.transform.rotation.w = p_currentWorldCoordinatesCoM.q.w();
+    // Rotation of CoM w.r.t World
+    geometry_msgs::TransformStamped l_R_W_C;
+    l_R_W_C.header.stamp = ros::Time::now();
+    l_R_W_C.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+    l_R_W_C.transform.translation.x = 0;
+    l_R_W_C.transform.translation.y = 0;
+    l_R_W_C.transform.translation.z = 0;
+    l_R_W_C.transform.rotation.x = p_currentWorldCoordinatesCoM.q.x();
+    l_R_W_C.transform.rotation.y = p_currentWorldCoordinatesCoM.q.y();
+    l_R_W_C.transform.rotation.z = p_currentWorldCoordinatesCoM.q.z();
+    l_R_W_C.transform.rotation.w = p_currentWorldCoordinatesCoM.q.w();
 
-    // CoM displacement predicted
+    // Predicted CoM displacement (in CoM frame)
     geometry_msgs::PointStamped l_displacementRobotFrame;
     l_displacementRobotFrame.header.stamp = ros::Time::now();
-    l_displacementRobotFrame.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+    l_displacementRobotFrame.header.frame_id = ROBOT_REFERENCE_FRAME;
     l_displacementRobotFrame.point.x = p_predictedCoMDisplacementX;
     l_displacementRobotFrame.point.y = p_predictedCoMDisplacementY;
     l_displacementRobotFrame.point.z = 0;
 
-    // Apply CoM rotation to the predicted displacement
+    // Transform CoM displacement to world frame
     geometry_msgs::PointStamped l_displacementMapFrame;
-    tf2::doTransform(l_displacementRobotFrame, l_displacementMapFrame, l_rotationTransform);
+    tf2::doTransform(l_displacementRobotFrame, l_displacementMapFrame, l_R_W_C);
 
-    // Update CoM coordinates
+    // Update CoM position in world frame
     p_newWorldCoordinatesCoM.x = p_currentWorldCoordinatesCoM.x + l_displacementMapFrame.point.x;
     p_newWorldCoordinatesCoM.y = p_currentWorldCoordinatesCoM.y + l_displacementMapFrame.point.y;
 
-    // Get yaw rotation in quaternion form
+    // Compute quaternion representation of predicted rotation
     tf2::Quaternion l_velocityCommandQuaternion;
     //l_velocityCommandQuaternion.setRPY(0, 0, p_predictedCoMDisplacementTheta);
     l_velocityCommandQuaternion.setRPY(0, 0, 0);
 
-    // Apply rotation command rotation to CoM quaternion
+    // Apply predicted quaternion rotation to
+    // current CoM's rotation in world frame
     tf2::Quaternion l_newCoMRotation = p_currentWorldCoordinatesCoM.q * l_velocityCommandQuaternion;
     l_newCoMRotation.normalize();
-
-    // Set new CoM rotation
     p_newWorldCoordinatesCoM.q = l_newCoMRotation;
 }
 
@@ -475,49 +467,50 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
                                         const std::vector<double> &p_predictions,
                                         const FeetConfiguration &p_currentFeetConfiguration,
                                         FeetConfiguration &p_newFeetConfiguration) {
-    // Rotation transform of the CoM w.r.t Map
-    geometry_msgs::TransformStamped l_rotationTransform;
-    l_rotationTransform.header.stamp = ros::Time::now();
-    l_rotationTransform.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_rotationTransform.transform.translation.x = 0;
-    l_rotationTransform.transform.translation.y = 0;
-    l_rotationTransform.transform.translation.z = 0;
-    l_rotationTransform.transform.rotation.x = p_newWorldCoordinatesCoM.q.x();
-    l_rotationTransform.transform.rotation.y = p_newWorldCoordinatesCoM.q.y();
-    l_rotationTransform.transform.rotation.z = p_newWorldCoordinatesCoM.q.z();
-    l_rotationTransform.transform.rotation.w = p_newWorldCoordinatesCoM.q.w();
+    // Rotation of CoM w.r.t World
+    geometry_msgs::TransformStamped l_R_W_C;
+    l_R_W_C.header.stamp = ros::Time::now();
+    l_R_W_C.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+    l_R_W_C.transform.translation.x = 0;
+    l_R_W_C.transform.translation.y = 0;
+    l_R_W_C.transform.translation.z = 0;
+    l_R_W_C.transform.rotation.x = p_newWorldCoordinatesCoM.q.x();
+    l_R_W_C.transform.rotation.y = p_newWorldCoordinatesCoM.q.y();
+    l_R_W_C.transform.rotation.z = p_newWorldCoordinatesCoM.q.z();
+    l_R_W_C.transform.rotation.w = p_newWorldCoordinatesCoM.q.w();
 
-    // Transform predictions from map to CoM
-    std::vector<double> l_feetPredictionCoMFrame;
-    geometry_msgs::PointStamped l_footDisplacementMapFrame;
-    l_footDisplacementMapFrame.header.stamp = ros::Time::now();
-    l_footDisplacementMapFrame.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+    // Transform predicted footstep predictions
+    // from CoM frame to world frame
+    std::vector<double> l_feetPredictionWorldFrame;
+    geometry_msgs::PointStamped l_feetPredictionCoMFrame;
+    l_feetPredictionCoMFrame.header.stamp = ros::Time::now();
+    l_feetPredictionCoMFrame.header.frame_id = ROBOT_REFERENCE_FRAME;
     for (int x = 0; x < 4; x++) {
-        l_footDisplacementMapFrame.point.x = p_predictions[x + 2 + x * 1];
-        l_footDisplacementMapFrame.point.y = p_predictions[x + 3 + x * 1];
-        l_footDisplacementMapFrame.point.z = 0;
+        l_feetPredictionCoMFrame.point.x = p_predictions[x + 2 + x * 1];
+        l_feetPredictionCoMFrame.point.y = p_predictions[x + 3 + x * 1];
+        l_feetPredictionCoMFrame.point.z = 0;
 
-        geometry_msgs::PointStamped l_footDisplacementCoMFrame;
-        tf2::doTransform(l_footDisplacementMapFrame, l_footDisplacementCoMFrame, l_rotationTransform);
+        geometry_msgs::PointStamped l_footDisplacementWorldFrame;
+        tf2::doTransform(l_feetPredictionCoMFrame, l_footDisplacementWorldFrame, l_R_W_C);
 
-        l_feetPredictionCoMFrame.push_back(l_footDisplacementCoMFrame.point.x);
-        l_feetPredictionCoMFrame.push_back(l_footDisplacementCoMFrame.point.y);
+        l_feetPredictionWorldFrame.push_back(l_footDisplacementWorldFrame.point.x);
+        l_feetPredictionWorldFrame.push_back(l_footDisplacementWorldFrame.point.y);
     }
 
-    // Map poses
-    p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x + l_feetPredictionCoMFrame[0];
-    p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y + l_feetPredictionCoMFrame[1];
+    // Feet poses in world frame
+    p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x + l_feetPredictionWorldFrame[0];
+    p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y + l_feetPredictionWorldFrame[1];
 
-    p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x + l_feetPredictionCoMFrame[2];
-    p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y + l_feetPredictionCoMFrame[3];
+    p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x + l_feetPredictionWorldFrame[2];
+    p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y + l_feetPredictionWorldFrame[3];
 
-    p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + l_feetPredictionCoMFrame[4];
-    p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + l_feetPredictionCoMFrame[5];
+    p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + l_feetPredictionWorldFrame[4];
+    p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + l_feetPredictionWorldFrame[5];
 
-    p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + l_feetPredictionCoMFrame[6];
-    p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + l_feetPredictionCoMFrame[7];
+    p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + l_feetPredictionWorldFrame[6];
+    p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + l_feetPredictionWorldFrame[7];
 
-    // CoM Poses
+    // Feet poses in CoM frame
     p_newFeetConfiguration.flCoM.x = p_newFeetConfiguration.flMap.x - p_newWorldCoordinatesCoM.x;
     p_newFeetConfiguration.flCoM.y = p_newFeetConfiguration.flMap.y - p_newWorldCoordinatesCoM.y;
 
@@ -530,13 +523,14 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
     p_newFeetConfiguration.rrCoM.x = p_newFeetConfiguration.rrMap.x - p_newWorldCoordinatesCoM.x;
     p_newFeetConfiguration.rrCoM.y = p_newFeetConfiguration.rrMap.y - p_newWorldCoordinatesCoM.y;
 
+    // Change swinging sequence
     p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;
 }
 
 /**
- * Predicts new feet configuration using
- * the learnt models and extracts new CoM
- * from them.
+ * Predicts new robot state given
+ * the previous state and a new
+ * velocity.
  *
  * @param p_previousVelocity
  * @param p_nextVelocity
@@ -555,8 +549,8 @@ void Model::predictNextState(uint p_plannedFootstep,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              FeetConfiguration &p_newFeetConfiguration,
                              World3D &p_newWorldCoordinatesCoM) {
-    // Predict feet and CoM displacements
     std::vector<double> l_predictions(11);
+
     if (p_plannedFootstep == 0) {
         predictFirstStep(p_action.x * p_previousVelocity,
                          p_action.y * p_previousVelocity,
@@ -593,21 +587,16 @@ void Model::predictNextState(uint p_plannedFootstep,
                                     << l_predictions[9] << ", "
                                     << l_predictions[10] <<"\n");
 
-    // Compute new CoM
     computeNewCoM(l_predictions[0],
                   l_predictions[1],
                   l_predictions[10],
                   p_currentWorldCoordinatesCoM,
                   p_newWorldCoordinatesCoM);
 
-    // Compute new feet configuration
     computeNewFeetConfiguration(p_newWorldCoordinatesCoM,
                                 l_predictions,
                                 p_currentFeetConfiguration,
                                 p_newFeetConfiguration);
-
-    // Change swinging feet pair
-    p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;
 
 //     // Publish predicted CoM and feet poses
 //     int j = 0;

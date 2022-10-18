@@ -482,7 +482,7 @@ void Navigation::executeHighLevelCommands() {
             m_latestCoMPose.pose.pose.position.x <= m_goalMsg.pose.position.x) {
             // Store actual CoM and feet poses in map
             // coordinates for visualization purposes
-            storeMapCoordinates(false);
+            storeMapCoordinates(true);
 
             m_planner.plan(m_path, 
                            m_swingingFRRL, 
