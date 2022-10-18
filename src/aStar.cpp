@@ -43,7 +43,6 @@ bool AStar::Search::worldToGrid(const World3D &p_worldCoordinates,
 AStar::Search::Search(ros::NodeHandle &p_nh) :
         m_model(p_nh),
         m_firstSearch(true),
-        m_validFootstepsFound(0),
         m_listener(m_buffer),
         m_elevationMapProcessor(p_nh) {
     // Set if diagonal movements are allowed
@@ -218,7 +217,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
     }
 
     // Reset/Set variables used during search
-    m_validFootstepsFound = 0;
     unsigned int l_expandedNodes = 0;
 
     // Update elevation map parameters
@@ -248,7 +246,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     Node *l_currentNode = nullptr;
 
     // Push to initial open set the source node
-    l_openSet.push_back(new Node(1,
+    l_openSet.push_back(new Node(0,
                                  p_initialAction,
                                  l_sourceGridCoordinates,
                                  p_sourceWorldCoordinates,
@@ -283,7 +281,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         if (l_currentNode->sequence == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
                           l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            ROS_INFO_STREAM("Search: Planning completed. " << m_validFootstepsFound);
+            ROS_INFO_STREAM("Search: Planning completed. " << l_currentNode->sequence);
             break;
         }
 
@@ -306,7 +304,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 ROS_DEBUG_STREAM("\nAction " << m_actions[i].x << ", " << m_actions[i].y << ", " << m_actions[i].theta);
                 ROS_DEBUG_STREAM("Current Velocity: " << l_currentNode->velocity);
                 ROS_DEBUG_STREAM("Next Velocity: " << l_nextVelocity);
-                ROS_DEBUG_STREAM("Footstep checked: " << m_validFootstepsFound);
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
 
@@ -332,7 +329,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     continue;
                 }
 
-                m_model.predictNextState(m_validFootstepsFound,
+                m_model.predictNextState(l_currentNode->sequence,
                                          l_tempNode.velocity,
                                          l_nextVelocity,
                                          m_actions[i],
@@ -355,90 +352,90 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
                 float l_hindFootCost = 0;
                 float l_frontFootCost = 0;
-                if (m_validFootstepsFound < FOOTSTEP_HORIZON) {
-                    setFeetConfigurationMapFields(l_newWorldCoordinatesCoM, l_newFeetConfiguration);
 
-                    // New feet configuration grid pose
-                    Vec2D l_flGridPose{};
-                    Vec2D l_frGridPose{};
-                    Vec2D l_rlGridPose{};
-                    Vec2D l_rrGridPose{};
-                    worldToGrid(l_newFeetConfiguration.flMap, l_flGridPose);
-                    worldToGrid(l_newFeetConfiguration.frMap, l_frGridPose);
-                    worldToGrid(l_newFeetConfiguration.rlMap, l_rlGridPose);
-                    worldToGrid(l_newFeetConfiguration.rrMap, l_rrGridPose);
+                setFeetConfigurationMapFields(l_newWorldCoordinatesCoM, l_newFeetConfiguration);
 
-                    // Current feet configuration grid pose
-                    Vec2D l_flPrevGridPose{};
-                    Vec2D l_frPrevGridPose{};
-                    Vec2D l_rlPrevGridPose{};
-                    Vec2D l_rrPrevGridPose{};
-                    worldToGrid(l_currentNode->feetConfiguration.flMap, l_flPrevGridPose);
-                    worldToGrid(l_currentNode->feetConfiguration.frMap, l_frPrevGridPose);
-                    worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlPrevGridPose);
-                    worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrPrevGridPose);
+                // New feet configuration grid pose
+                Vec2D l_flGridPose{};
+                Vec2D l_frGridPose{};
+                Vec2D l_rlGridPose{};
+                Vec2D l_rrGridPose{};
+                worldToGrid(l_newFeetConfiguration.flMap, l_flGridPose);
+                worldToGrid(l_newFeetConfiguration.frMap, l_frGridPose);
+                worldToGrid(l_newFeetConfiguration.rlMap, l_rlGridPose);
+                worldToGrid(l_newFeetConfiguration.rrMap, l_rrGridPose);
 
-                    float l_hindFootDistance = 0;
-                    float l_frontFootDistance = 0;
-                    if (l_currentNode->feetConfiguration.fr_rl_swinging) {
-                        if (!m_elevationMapProcessor.validFootstep(l_frPrevGridPose.x,
-                                                                   l_frPrevGridPose.y,
-                                                                   l_frGridPose.x,
-                                                                   l_frGridPose.y,
-                                                                   l_frontFootDistance) ||
-                            !m_elevationMapProcessor.validFootstep(l_rlPrevGridPose.x,
-                                                                   l_rlPrevGridPose.y,
-                                                                   l_rlGridPose.x,
-                                                                   l_rlGridPose.y,
-                                                                   l_hindFootDistance)) {
-                            ROS_DEBUG_STREAM("Invalid FR/RL Footstep");
-                            continue;
-                        }
-                    } else {
-                        if (!m_elevationMapProcessor.validFootstep(l_flPrevGridPose.x,
-                                                                   l_flPrevGridPose.y,
-                                                                   l_flGridPose.x,
-                                                                   l_flGridPose.y,
-                                                                   l_frontFootDistance) ||
-                            !m_elevationMapProcessor.validFootstep(l_rrPrevGridPose.x,
-                                                                   l_rrPrevGridPose.y,
-                                                                   l_rrGridPose.x,
-                                                                   l_rrGridPose.y,
-                                                                   l_hindFootDistance)) {
-                            ROS_DEBUG_STREAM("Invalid FL/RR Footstep");
-                            continue;
-                        }
+                // Current feet configuration grid pose
+                Vec2D l_flPrevGridPose{};
+                Vec2D l_frPrevGridPose{};
+                Vec2D l_rlPrevGridPose{};
+                Vec2D l_rrPrevGridPose{};
+                worldToGrid(l_currentNode->feetConfiguration.flMap, l_flPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.frMap, l_frPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrPrevGridPose);
+
+                // Footstep validity check
+                float l_hindFootDistance = 0;
+                float l_frontFootDistance = 0;
+                if (l_currentNode->feetConfiguration.fr_rl_swinging) {
+                    if (!m_elevationMapProcessor.validFootstep(l_frPrevGridPose.x,
+                                                               l_frPrevGridPose.y,
+                                                               l_frGridPose.x,
+                                                               l_frGridPose.y,
+                                                               l_frontFootDistance) ||
+                        !m_elevationMapProcessor.validFootstep(l_rlPrevGridPose.x,
+                                                               l_rlPrevGridPose.y,
+                                                               l_rlGridPose.x,
+                                                               l_rlGridPose.y,
+                                                               l_hindFootDistance)) {
+                        ROS_DEBUG_STREAM("Invalid FR/RL Footstep");
+                        continue;
                     }
-
-                    l_newFeetConfiguration.flMap.z = m_elevationMapProcessor.getCellHeight(l_flGridPose.x,
-                                                                                           l_flGridPose.y);
-                    l_newFeetConfiguration.frMap.z = m_elevationMapProcessor.getCellHeight(l_frGridPose.x,
-                                                                                           l_frGridPose.y);
-                    l_newFeetConfiguration.rlMap.z = m_elevationMapProcessor.getCellHeight(l_rlGridPose.x,
-                                                                                           l_rlGridPose.y);
-                    l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
-                                                                                           l_rrGridPose.y);
-                    
-                    l_validFootstepFound = true;
-                    l_hindFootCost = (l_hindFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
-                                     (ZERO_COST_FOOT_DISTANCE - l_hindFootDistance);
-                    l_frontFootCost = (l_frontFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
-                                      (ZERO_COST_FOOT_DISTANCE - l_frontFootDistance);
-
-                    ROS_DEBUG_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
-                    ROS_DEBUG_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
-
-                    ROS_DEBUG_STREAM(
-                            "Heights: " << l_newFeetConfiguration.flMap.z << ", "
-                                        << l_newFeetConfiguration.frMap.z << ", "
-                                        << l_newFeetConfiguration.rlMap.z << ", "
-                                        << l_newFeetConfiguration.rrMap.z);
-                    ROS_DEBUG_STREAM(
-                            "Coordinates: " << l_flGridPose.x << ", "
-                                            << l_flGridPose.y << ", "
-                                            << l_rrGridPose.x << ", "
-                                            << l_rrGridPose.y);
+                } else {
+                    if (!m_elevationMapProcessor.validFootstep(l_flPrevGridPose.x,
+                                                               l_flPrevGridPose.y,
+                                                               l_flGridPose.x,
+                                                               l_flGridPose.y,
+                                                               l_frontFootDistance) ||
+                        !m_elevationMapProcessor.validFootstep(l_rrPrevGridPose.x,
+                                                               l_rrPrevGridPose.y,
+                                                               l_rrGridPose.x,
+                                                               l_rrGridPose.y,
+                                                               l_hindFootDistance)) {
+                        ROS_DEBUG_STREAM("Invalid FL/RR Footstep");
+                        continue;
+                    }
                 }
+
+                l_newFeetConfiguration.flMap.z = m_elevationMapProcessor.getCellHeight(l_flGridPose.x,
+                                                                                       l_flGridPose.y);
+                l_newFeetConfiguration.frMap.z = m_elevationMapProcessor.getCellHeight(l_frGridPose.x,
+                                                                                       l_frGridPose.y);
+                l_newFeetConfiguration.rlMap.z = m_elevationMapProcessor.getCellHeight(l_rlGridPose.x,
+                                                                                       l_rlGridPose.y);
+                l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
+                                                                                       l_rrGridPose.y);
+                    
+                l_validFootstepFound = true;
+                l_hindFootCost = (l_hindFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
+                                 (ZERO_COST_FOOT_DISTANCE - l_hindFootDistance);
+                l_frontFootCost = (l_frontFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
+                                  (ZERO_COST_FOOT_DISTANCE - l_frontFootDistance);
+
+                ROS_DEBUG_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
+                ROS_DEBUG_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
+
+                ROS_DEBUG_STREAM(
+                        "Heights: " << l_newFeetConfiguration.flMap.z << ", "
+                                    << l_newFeetConfiguration.frMap.z << ", "
+                                    << l_newFeetConfiguration.rlMap.z << ", "
+                                    << l_newFeetConfiguration.rrMap.z);
+                ROS_DEBUG_STREAM(
+                        "Coordinates: " << l_flGridPose.x << ", "
+                                        << l_flGridPose.y << ", "
+                                        << l_rrGridPose.x << ", "
+                                        << l_rrGridPose.y);
 
                 l_newWorldCoordinatesCoM.z =
                         p_sourceWorldCoordinates.z + m_elevationMapProcessor.getCellHeight(l_newGridCoordinatesCoM.x,
@@ -484,16 +481,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     l_targetGridCoordinates,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration}) + l_feetDistanceCost;
+                    
+
                 }
             }
         }
 
         l_expandedNodes += 1;
-        if (l_validFootstepFound) {
-            m_validFootstepsFound += 1;
-        } else {
-            ROS_DEBUG_STREAM("Search: No valid footstep found...");
-        }
 
         ros::spinOnce();
     }

@@ -609,64 +609,64 @@ void Model::predictNextState(uint p_plannedFootstep,
     // Change swinging feet pair
     p_newFeetConfiguration.fr_rl_swinging = !p_currentFeetConfiguration.fr_rl_swinging;
 
-    // Publish predicted CoM and feet poses
-    int j = 0;
-    visualization_msgs::Marker l_footCommonMarker;
-    l_footCommonMarker.header.stamp = ros::Time::now();
-    l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_footCommonMarker.type = 2;
-    l_footCommonMarker.action = 0;
-    l_footCommonMarker.lifetime = ros::Duration(1);
-    l_footCommonMarker.pose.orientation.x = 0;
-    l_footCommonMarker.pose.orientation.y = 0;
-    l_footCommonMarker.pose.orientation.z = 0;
-    l_footCommonMarker.pose.orientation.w = 1;
-    l_footCommonMarker.scale.x = 0.05;
-    l_footCommonMarker.scale.y = 0.035;
-    l_footCommonMarker.scale.z = 0.035;
-    l_footCommonMarker.color.r = 0;
-    l_footCommonMarker.color.g = 1;
-    l_footCommonMarker.color.b = 0;
-    l_footCommonMarker.color.a = 0.7;
+//     // Publish predicted CoM and feet poses
+//     int j = 0;
+//     visualization_msgs::Marker l_footCommonMarker;
+//     l_footCommonMarker.header.stamp = ros::Time::now();
+//     l_footCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+//     l_footCommonMarker.type = 2;
+//     l_footCommonMarker.action = 0;
+//     l_footCommonMarker.lifetime = ros::Duration(1);
+//     l_footCommonMarker.pose.orientation.x = 0;
+//     l_footCommonMarker.pose.orientation.y = 0;
+//     l_footCommonMarker.pose.orientation.z = 0;
+//     l_footCommonMarker.pose.orientation.w = 1;
+//     l_footCommonMarker.scale.x = 0.05;
+//     l_footCommonMarker.scale.y = 0.035;
+//     l_footCommonMarker.scale.z = 0.035;
+//     l_footCommonMarker.color.r = 0;
+//     l_footCommonMarker.color.g = 1;
+//     l_footCommonMarker.color.b = 0;
+//     l_footCommonMarker.color.a = 0.7;
 
-    visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
-    l_CoMMarker.id = j++;
-    l_CoMMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-    l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x;
-    l_CoMMarker.pose.position.y = p_newWorldCoordinatesCoM.y;
-    l_CoMMarker.pose.position.z = 0;
+//     visualization_msgs::Marker l_CoMMarker = l_footCommonMarker;
+//     l_CoMMarker.id = j++;
+//     l_CoMMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+//     l_CoMMarker.pose.position.x = p_newWorldCoordinatesCoM.x;
+//     l_CoMMarker.pose.position.y = p_newWorldCoordinatesCoM.y;
+//     l_CoMMarker.pose.position.z = 0;
 
-    visualization_msgs::Marker l_flFootMarker = l_footCommonMarker;
-    l_flFootMarker.id = j++;
-    l_flFootMarker.pose.position.x = p_newFeetConfiguration.flMap.x;
-    l_flFootMarker.pose.position.y = p_newFeetConfiguration.flMap.y;
-    l_flFootMarker.pose.position.z = 0;
+//     visualization_msgs::Marker l_flFootMarker = l_footCommonMarker;
+//     l_flFootMarker.id = j++;
+//     l_flFootMarker.pose.position.x = p_newFeetConfiguration.flMap.x;
+//     l_flFootMarker.pose.position.y = p_newFeetConfiguration.flMap.y;
+//     l_flFootMarker.pose.position.z = 0;
 
-    visualization_msgs::Marker l_frFootMarker = l_footCommonMarker;
-    l_frFootMarker.id = j++;
-    l_frFootMarker.pose.position.x = p_newFeetConfiguration.frMap.x;
-    l_frFootMarker.pose.position.y = p_newFeetConfiguration.frMap.y;
-    l_frFootMarker.pose.position.z = 0;
+//     visualization_msgs::Marker l_frFootMarker = l_footCommonMarker;
+//     l_frFootMarker.id = j++;
+//     l_frFootMarker.pose.position.x = p_newFeetConfiguration.frMap.x;
+//     l_frFootMarker.pose.position.y = p_newFeetConfiguration.frMap.y;
+//     l_frFootMarker.pose.position.z = 0;
 
-    visualization_msgs::Marker l_rlFootMarker = l_footCommonMarker;
-    l_rlFootMarker.id = j++;
-    l_rlFootMarker.pose.position.x = p_newFeetConfiguration.rlMap.x;
-    l_rlFootMarker.pose.position.y = p_newFeetConfiguration.rlMap.y;
-    l_rlFootMarker.pose.position.z = 0;
+//     visualization_msgs::Marker l_rlFootMarker = l_footCommonMarker;
+//     l_rlFootMarker.id = j++;
+//     l_rlFootMarker.pose.position.x = p_newFeetConfiguration.rlMap.x;
+//     l_rlFootMarker.pose.position.y = p_newFeetConfiguration.rlMap.y;
+//     l_rlFootMarker.pose.position.z = 0;
 
-    visualization_msgs::Marker l_rrFootMarker = l_footCommonMarker;
-    l_rrFootMarker.id = j++;
-    l_rrFootMarker.pose.position.x = p_newFeetConfiguration.rrMap.x;
-    l_rrFootMarker.pose.position.y = p_newFeetConfiguration.rrMap.y;
-    l_rrFootMarker.pose.position.z = 0;
+//     visualization_msgs::Marker l_rrFootMarker = l_footCommonMarker;
+//     l_rrFootMarker.id = j++;
+//     l_rrFootMarker.pose.position.x = p_newFeetConfiguration.rrMap.x;
+//     l_rrFootMarker.pose.position.y = p_newFeetConfiguration.rrMap.y;
+//     l_rrFootMarker.pose.position.z = 0;
 
-    visualization_msgs::MarkerArray l_pathFeetConfiguration;
-    l_pathFeetConfiguration.markers.push_back(l_CoMMarker);
-    l_pathFeetConfiguration.markers.push_back(l_flFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_frFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_rlFootMarker);
-    l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
+//     visualization_msgs::MarkerArray l_pathFeetConfiguration;
+//     l_pathFeetConfiguration.markers.push_back(l_CoMMarker);
+//     l_pathFeetConfiguration.markers.push_back(l_flFootMarker);
+//     l_pathFeetConfiguration.markers.push_back(l_frFootMarker);
+//     l_pathFeetConfiguration.markers.push_back(l_rlFootMarker);
+//     l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
-    m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-    ros::Duration(0.5).sleep();
+//     m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
+//     ros::Duration(0.5).sleep();
 }

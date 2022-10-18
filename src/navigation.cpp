@@ -74,6 +74,7 @@ Navigation::~Navigation() {
 void Navigation::cmdPublisher() {
     while (ros::ok()) {
         if (m_startedCmdPublisher) {
+            m_velCmd.header.stamp = ros::Time::now();
             m_velocityPublisher.publish(m_velCmd);
             m_rate.sleep();
             ros::spinOnce();
@@ -254,7 +255,10 @@ void Navigation::updateVariablesFromCache() {
     // Robot's odometry
     boost::shared_ptr<nav_msgs::Odometry const> l_latestCoMPose = m_robotPoseCache.getElemBeforeTime(l_latestROSTime);
     m_latestCoMPose = *l_latestCoMPose;
+
+    m_latestCoMPose.pose.pose.position = m_latestT265Pose.pose.pose.position;
     m_latestCoMPose.pose.pose.orientation = m_latestT265Pose.pose.pose.orientation;
+    m_latestCoMPose.pose.pose.position.x -= 0.33118;
 
     // Feet poses w.r.t to CoM
     unitree_legged_msgs::Cartesian l_latestLFCoMPose;
@@ -649,8 +653,6 @@ void Navigation::publishOnlinePredictedFootsteps() {
             l_onlineConfiguration.markers.push_back(l_predictedFR);
             l_onlineConfiguration.markers.push_back(l_predictedRL);
             l_onlineConfiguration.markers.push_back(l_predictedRR);
-
-            ROS_INFO_STREAM("Heights: " << m_path[i].feetConfiguration.flMap.z << ", " << m_path[i].feetConfiguration.frMap.z << ", " << m_path[i].feetConfiguration.rlMap.z << ", " << m_path[i].feetConfiguration.rrMap.z);
 
             m_targetFeetConfigurationPublisher.publish(l_onlineConfiguration);
         }
