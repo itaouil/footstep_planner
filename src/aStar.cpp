@@ -305,8 +305,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
 
-        // Find which node in the open
-        // set to expand based on cost
+        // Find next node to expand
         for (auto it = l_openSet.begin(); it != l_openSet.end(); it++) {
             auto l_iteratorNode = *it;
             if (l_iteratorNode->getScore() <= l_currentNode->getScore()) {
@@ -317,7 +316,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
 
         ROS_DEBUG_STREAM(
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
-        
         ROS_INFO_STREAM("Current sequence: " << l_currentNode->sequence);
 
         // Stop planning if horizon reached or target expanded
@@ -347,13 +345,11 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
 
+                Node l_tempNode = *l_currentNode;
                 World3D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfiguration;
 
-                Node l_tempNode = *l_currentNode;
-
-                // If a new different action than current one is applied,
-                // start the robot from an idle configuration.
+                // Start from idle configuration if new action selected
                 if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0}) {
                     l_tempNode.velocity = 0.0;
                     l_tempNode.action = Action{0, 0, 0};
@@ -369,7 +365,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     continue;
                 }
 
-                m_model.predictNextState(l_currentNode->sequence,
+                m_model.predictNextState(l_tempNode.sequence,
                                          l_tempNode.velocity,
                                          l_nextVelocity,
                                          m_actions[i],
@@ -408,15 +404,15 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 Vec2D l_frPrevGridPose{};
                 Vec2D l_rlPrevGridPose{};
                 Vec2D l_rrPrevGridPose{};
-                worldToGrid(l_currentNode->feetConfiguration.flMap, l_flPrevGridPose);
-                worldToGrid(l_currentNode->feetConfiguration.frMap, l_frPrevGridPose);
-                worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlPrevGridPose);
-                worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrPrevGridPose);
+                worldToGrid(l_tempNode.feetConfiguration.flMap, l_flPrevGridPose);
+                worldToGrid(l_tempNode.feetConfiguration.frMap, l_frPrevGridPose);
+                worldToGrid(l_tempNode.feetConfiguration.rlMap, l_rlPrevGridPose);
+                worldToGrid(l_tempNode.feetConfiguration.rrMap, l_rrPrevGridPose);
 
                 // Footstep validity check
                 float l_hindFootDistance = 0;
                 float l_frontFootDistance = 0;
-                if (l_currentNode->feetConfiguration.fr_rl_swinging) {
+                if (l_tempNode.feetConfiguration.fr_rl_swinging) {
                     if (!m_elevationMapProcessor.validFootstep(l_frPrevGridPose.x,
                                                                l_frPrevGridPose.y,
                                                                l_frGridPose.x,
@@ -487,13 +483,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
 
                 if (successor == nullptr) {
-                    successor = new Node(l_currentNode->sequence + 1,
+                    successor = new Node(l_tempNode.sequence + 1,
                                          m_actions[i],
                                          l_newGridCoordinatesCoM,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
-                                         l_currentNode);
-                    successor->G = l_currentNode->G + 1;
+                                         &l_tempNode);
+                    successor->G = l_tempNode.G + 1;
                     successor->velocity = l_nextVelocity;
                     successor->H = AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
@@ -502,13 +498,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration}) + l_feetDistanceCost;
                     l_openSet.push_back(successor);
-                    ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
-                } else if ((l_currentNode->G + 1) < successor->G) {
-                    successor->G = l_currentNode->G + 1;
+                    ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_tempNode.G + l_tempNode.H);
+                } else if ((l_tempNode.G + 1) < successor->G) {
+                    successor->G = l_tempNode.G + 1;
                     successor->action = m_actions[i];
-                    successor->parent = l_currentNode;
+                    successor->parent = &l_tempNode;
                     successor->velocity = l_nextVelocity;
-                    successor->sequence = l_currentNode->sequence;
+                    successor->sequence = l_tempNode.sequence;
                     successor->gridCoordinates = l_newGridCoordinatesCoM;
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;
                     successor->feetConfiguration = l_newFeetConfiguration;
@@ -525,7 +521,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
         }
 
         l_expandedNodes += 1;
-
         ros::spinOnce();
     }
 

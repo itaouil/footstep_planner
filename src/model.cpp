@@ -480,8 +480,7 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
     l_R_W_C.transform.rotation.z = p_newWorldCoordinatesCoM.q.z();
     l_R_W_C.transform.rotation.w = p_newWorldCoordinatesCoM.q.w();
 
-    // Transform predicted footstep predictions
-    // from CoM frame to world frame
+    // Transform predicted footstep predictions from CoM to world frame
     std::vector<double> l_feetPredictionWorldFrame;
     geometry_msgs::PointStamped l_feetPredictionCoMFrame;
     l_feetPredictionCoMFrame.header.stamp = ros::Time::now();

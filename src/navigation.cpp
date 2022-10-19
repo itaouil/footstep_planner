@@ -18,16 +18,16 @@
 Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros::TransformListener &p_tf2) :
         m_nh(p_nh),
         m_tf2(p_tf2),
-        m_rate(1000),
         m_buffer(p_buffer),
         m_planner(p_nh),
         m_swingingFRRL(false),
+        m_rate(1000),
         m_previousVelocity(0.0),
         m_startedCmdPublisher(false),
         m_previousAction{0, 0, 0} {
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_CoM_PATH_TOPIC, 1);
-    m_velocityPublisher = m_nh.advertise<geometry_msgs::TwistStamped>(VELOCITY_CMD_TOPIC, 1);
     m_targetPathPublisher = m_nh.advertise<nav_msgs::Path>(PREDICTED_CoM_PATH_TOPIC, 1);
+    m_velocityPublisher = m_nh.advertise<geometry_msgs::TwistStamped>(VELOCITY_CMD_TOPIC, 1);
     m_realFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(
         REAL_FEET_CONFIGURATION_MARKERS_TOPIC, 1);
     m_targetFeetConfigurationPublisher = m_nh.advertise<visualization_msgs::MarkerArray>(
@@ -168,9 +168,6 @@ void Navigation::buildInitialHeightMap() {
  * @param p_velocity
  */
 void Navigation::setCmd(const Action &p_action, const double &p_velocity) {
-    // Velocity to be sent
-    const auto l_velocityCommand = static_cast<float>(p_velocity);
-
     m_velCmd.header.stamp = ros::Time::now();
     m_velCmd.twist.linear.x = 0;
     m_velCmd.twist.linear.y = 0;
@@ -201,9 +198,6 @@ void Navigation::setCmd(const Action &p_action, const double &p_velocity) {
  * @param real
  */
 void Navigation::storeMapCoordinates(const bool real) {
-    updateVariablesFromCache();
-
-    std::vector<unitree_legged_msgs::Cartesian> l_feetConfigurationMap;
     unitree_legged_msgs::Cartesian l_lf;
     l_lf.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x;
     l_lf.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y;
@@ -220,6 +214,8 @@ void Navigation::storeMapCoordinates(const bool real) {
     l_rh.x = m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x;
     l_rh.y = m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y;
     l_rh.z = m_latestCoMPose.pose.pose.position.z + m_feetConfigurationCoM[3].z;
+
+    std::vector<unitree_legged_msgs::Cartesian> l_feetConfigurationMap;
     l_feetConfigurationMap.push_back(l_lf);
     l_feetConfigurationMap.push_back(l_rf);
     l_feetConfigurationMap.push_back(l_lh);
@@ -239,9 +235,6 @@ void Navigation::storeMapCoordinates(const bool real) {
  * Update variables from caches.
  */
 void Navigation::updateVariablesFromCache() {
-    // Update callback
-    ros::spinOnce();
-
     // Stamp used to access cache data
     auto l_latestROSTime = ros::Time::now();
 
@@ -301,9 +294,9 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
     // Start cmd publisher if not running
-    // if (!m_startedCmdPublisher) {
-    //     startCmdPublisher();
-    // }
+     if (!m_startedCmdPublisher) {
+         startCmdPublisher();
+     }
 
     ros::Duration(7).sleep();
 

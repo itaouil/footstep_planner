@@ -198,13 +198,14 @@ bool ElevationMapProcessor::worldToGrid(const World3D &p_worldCoordinates, Vec2D
 
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
-
-        // Get 2D grid index from 2D world pose
         grid_map::Position l_worldCoordinates{p_worldCoordinates.x, p_worldCoordinates.y};
         l_successful = m_gridMap.getIndex(l_worldCoordinates, l_gridCoordinates);
+
+        ROS_INFO_STREAM("World coordinates of the base: " << p_worldCoordinates.x << ", " << p_worldCoordinates.y);
+        ROS_INFO_STREAM("Grid coordinates of the base: " << l_gridCoordinates.x() << ", " << l_gridCoordinates.y());
+        ROS_INFO_STREAM("Successful conversion: " << l_successful);
     }
 
-    // Copy over cell index
     if (l_successful) {
         p_gridCoordinates.x = l_gridCoordinates.x();
         p_gridCoordinates.y = l_gridCoordinates.y();
@@ -222,8 +223,8 @@ bool ElevationMapProcessor::worldToGrid(const World3D &p_worldCoordinates, Vec2D
  * @return true if access was successful, otherwise false
  */
 double ElevationMapProcessor::getCellHeight(const int &p_row, const int &p_col) {
-    // Obtain latest elevation map
     double l_cellHeight;
+
     {
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         l_cellHeight = m_gridMap["median"].coeff(p_row, p_col);

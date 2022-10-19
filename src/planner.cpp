@@ -32,6 +32,8 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
                                    const nav_msgs::Odometry &p_robotPose,
                                    FeetConfiguration &p_feetConfiguration,
                                    const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses) {
+    //TODO: Rotate CoM feet poses by CoM rotation w.r.t world
+
     // Feet poses w.r.t map
     p_feetConfiguration.flMap.x = p_robotPose.pose.pose.position.x + p_latestCoMFeetPoses[0].x;
     p_feetConfiguration.flMap.y = p_robotPose.pose.pose.position.y + p_latestCoMFeetPoses[0].y;
@@ -87,7 +89,7 @@ void Planner::plan(std::vector<Node> &p_path,
                    const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses) {
     auto start = high_resolution_clock::now();
 
-    // Create World3D start object
+    // Starting position
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(p_robotPose.pose.pose.orientation, l_startPositionQuaternion);
     World3D l_worldStartPosition{p_robotPose.pose.pose.position.x,
@@ -95,7 +97,7 @@ void Planner::plan(std::vector<Node> &p_path,
                                  p_robotPose.pose.pose.position.z,
                                  l_startPositionQuaternion};
 
-    // Create World3D goal object
+    // Goal position
     tf2::Quaternion l_goalPositionQuaternion;
     tf2::convert(p_goalPosition.pose.orientation, l_goalPositionQuaternion);
     World3D l_worldGoalPosition{p_goalPosition.pose.position.x,
@@ -103,10 +105,10 @@ void Planner::plan(std::vector<Node> &p_path,
                                 0,
                                 l_goalPositionQuaternion};
 
-    ROS_INFO_STREAM("Received goal pose: " << p_goalPosition.pose.position.x << ", "
+    ROS_DEBUG_STREAM("Received goal pose: " << p_goalPosition.pose.position.x << ", "
                                            << p_goalPosition.pose.position.y << ", "
                                            << p_goalPosition.pose.position.z);
-    ROS_INFO_STREAM("Current robot pose: " << p_robotPose.pose.pose.position.x << ", "
+    ROS_DEBUG_STREAM("Current robot pose: " << p_robotPose.pose.pose.position.x << ", "
                                            << p_robotPose.pose.pose.position.y);
 
     // Create FeetConfiguration object
