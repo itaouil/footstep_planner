@@ -294,9 +294,9 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
     // Start cmd publisher if not running
-     if (!m_startedCmdPublisher) {
-         startCmdPublisher();
-     }
+    if (!m_startedCmdPublisher) {
+        startCmdPublisher();
+    }
 
     ros::Duration(7).sleep();
 
@@ -588,7 +588,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < 1; i++) {
+        for (unsigned int i = 0; i < m_path.size(); i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;

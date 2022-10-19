@@ -200,10 +200,6 @@ bool ElevationMapProcessor::worldToGrid(const World3D &p_worldCoordinates, Vec2D
         std::lock_guard<std::mutex> l_lockGuard(m_mutex);
         grid_map::Position l_worldCoordinates{p_worldCoordinates.x, p_worldCoordinates.y};
         l_successful = m_gridMap.getIndex(l_worldCoordinates, l_gridCoordinates);
-
-        ROS_INFO_STREAM("World coordinates of the base: " << p_worldCoordinates.x << ", " << p_worldCoordinates.y);
-        ROS_INFO_STREAM("Grid coordinates of the base: " << l_gridCoordinates.x() << ", " << l_gridCoordinates.y());
-        ROS_INFO_STREAM("Successful conversion: " << l_successful);
     }
 
     if (l_successful) {

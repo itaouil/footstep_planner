@@ -274,13 +274,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // Convert source and target world coordinates to grid coordinates
     Vec2D l_sourceGridCoordinates{};
     Vec2D l_targetGridCoordinates{};
-    if (!worldToGrid(p_sourceWorldCoordinates, l_sourceGridCoordinates)) {
-        ROS_WARN("AStar: Could not convert source world coordinates to source grid coordinates.");
-    }
-
-    if (!worldToGrid(p_targetWorldCoordinates, l_targetGridCoordinates)) {
-        ROS_WARN("AStar: Could not convert target world coordinates to target grid coordinates");
-    }
+    worldToGrid(p_sourceWorldCoordinates, l_sourceGridCoordinates);
+    worldToGrid(p_targetWorldCoordinates, l_targetGridCoordinates);
 
     // Create open and closed sets for the search process
     std::vector<Node *> l_openSet, l_closedSet;
@@ -345,33 +340,33 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 ROS_DEBUG_STREAM("Current G: " << l_currentNode->G);
                 ROS_DEBUG_STREAM("Current H: " << l_currentNode->H);
 
-                Node l_tempNode = *l_currentNode;
+                // Node l_tempNode = *l_currentNode;
                 World3D l_newWorldCoordinatesCoM{};
                 FeetConfiguration l_newFeetConfiguration;
 
-                // Start from idle configuration if new action selected
-                if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0}) {
-                    l_tempNode.velocity = 0.0;
-                    l_tempNode.action = Action{0, 0, 0};
-                    l_tempNode.feetConfiguration = m_idleFeetConfiguration;
+                // // Start from idle configuration if new action selected
+                // if (m_actions[i] != l_currentNode->action && l_currentNode->action != Action{0, 0, 0}) {
+                //     l_tempNode.velocity = 0.0;
+                //     l_tempNode.action = Action{0, 0, 0};
+                //     l_tempNode.feetConfiguration = m_idleFeetConfiguration;
 
-                    // Set map feet configuration based on idle CoM poses of the feet
-                    setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
-                }
+                //     // Set map feet configuration based on idle CoM poses of the feet
+                //     setFeetConfigurationMapFields(l_tempNode.worldCoordinates, l_tempNode.feetConfiguration);
+                // }
 
                 // Only allow acceleration to 0.1 from 0.0
-                if (l_tempNode.velocity == 0.0 && l_nextVelocity > 0.15) {
-                    ROS_INFO_STREAM("Skipping: " << l_tempNode.velocity << ", " << l_nextVelocity);
+                if (l_currentNode->velocity == 0.0 && l_nextVelocity > 0.15) {
+                    ROS_INFO_STREAM("Skipping: " << l_currentNode->velocity << ", " << l_nextVelocity);
                     continue;
                 }
 
-                m_model.predictNextState(l_tempNode.sequence,
-                                         l_tempNode.velocity,
+                m_model.predictNextState(l_currentNode->sequence,
+                                         l_currentNode->velocity,
                                          l_nextVelocity,
                                          m_actions[i],
                                          p_odomVelocityState,
-                                         l_tempNode.worldCoordinates,
-                                         l_tempNode.feetConfiguration,
+                                         l_currentNode->worldCoordinates,
+                                         l_currentNode->feetConfiguration,
                                          l_newFeetConfiguration,
                                          l_newWorldCoordinatesCoM);
 
@@ -404,15 +399,15 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 Vec2D l_frPrevGridPose{};
                 Vec2D l_rlPrevGridPose{};
                 Vec2D l_rrPrevGridPose{};
-                worldToGrid(l_tempNode.feetConfiguration.flMap, l_flPrevGridPose);
-                worldToGrid(l_tempNode.feetConfiguration.frMap, l_frPrevGridPose);
-                worldToGrid(l_tempNode.feetConfiguration.rlMap, l_rlPrevGridPose);
-                worldToGrid(l_tempNode.feetConfiguration.rrMap, l_rrPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.flMap, l_flPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.frMap, l_frPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.rlMap, l_rlPrevGridPose);
+                worldToGrid(l_currentNode->feetConfiguration.rrMap, l_rrPrevGridPose);
 
                 // Footstep validity check
                 float l_hindFootDistance = 0;
                 float l_frontFootDistance = 0;
-                if (l_tempNode.feetConfiguration.fr_rl_swinging) {
+                if (l_currentNode->feetConfiguration.fr_rl_swinging) {
                     if (!m_elevationMapProcessor.validFootstep(l_frPrevGridPose.x,
                                                                l_frPrevGridPose.y,
                                                                l_frGridPose.x,
@@ -483,13 +478,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 float l_feetDistanceCost = 700 * (l_hindFootCost + l_frontFootCost);
 
                 if (successor == nullptr) {
-                    successor = new Node(l_tempNode.sequence + 1,
+                    successor = new Node(l_currentNode->sequence + 1,
                                          m_actions[i],
                                          l_newGridCoordinatesCoM,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
-                                         &l_tempNode);
-                    successor->G = l_tempNode.G + 1;
+                                         l_currentNode);
+                    successor->G = l_currentNode->G + 1;
                     successor->velocity = l_nextVelocity;
                     successor->H = AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
@@ -498,13 +493,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration}) + l_feetDistanceCost;
                     l_openSet.push_back(successor);
-                    ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_tempNode.G + l_tempNode.H);
-                } else if ((l_tempNode.G + 1) < successor->G) {
-                    successor->G = l_tempNode.G + 1;
+                    ROS_DEBUG_STREAM("Total cost: " << successor->G + successor->H << ". Prev cost: " << l_currentNode->G + l_currentNode->H);
+                } else if ((l_currentNode->G + 1) < successor->G) {
+                    successor->G = l_currentNode->G + 1;
                     successor->action = m_actions[i];
-                    successor->parent = &l_tempNode;
+                    successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;
-                    successor->sequence = l_tempNode.sequence;
+                    successor->sequence = l_currentNode->sequence;
                     successor->gridCoordinates = l_newGridCoordinatesCoM;
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;
                     successor->feetConfiguration = l_newFeetConfiguration;
@@ -528,7 +523,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // (i.e. the starting action as this was already executed)
     // which happens to be the root node (i.e. null parent)
     while (l_currentNode != nullptr && l_currentNode->parent != nullptr) {
-        ROS_DEBUG_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
+        ROS_INFO_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
                                     << l_currentNode->action.theta);
         p_path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
@@ -541,8 +536,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
     releaseNodes(l_openSet);
     releaseNodes(l_closedSet);
 
-    ROS_DEBUG_STREAM("Number of expanded nodes: " << l_expandedNodes);
-    ROS_DEBUG_STREAM("Path size: " << p_path.size());
+    ROS_INFO_STREAM("Number of expanded nodes: " << l_expandedNodes);
+    ROS_INFO_STREAM("Path size: " << p_path.size());
 }
 
 /**
