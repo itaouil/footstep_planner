@@ -201,30 +201,30 @@ void AStar::Search::setFeetConfigurationMapFields(const World3D &p_newCoMWorldCo
     geometry_msgs::PointStamped l_frFootPoseWorld;
     l_frFootPoseCoM.header.stamp = ros::Time::now();
     l_frFootPoseCoM.header.frame_id = ROBOT_REFERENCE_FRAME;
-    l_frFootPoseCoM.point.x = p_newFeetConfiguration.flCoM.x;
-    l_frFootPoseCoM.point.y = p_newFeetConfiguration.flCoM.y;
+    l_frFootPoseCoM.point.x = p_newFeetConfiguration.frCoM.x;
+    l_frFootPoseCoM.point.y = p_newFeetConfiguration.frCoM.y;
     l_frFootPoseCoM.point.z = 0;
     tf2::doTransform(l_frFootPoseCoM, l_frFootPoseWorld, l_R_W_C);
 
     // Transform RL foot pose from CoM to world frame
     geometry_msgs::PointStamped l_rlFootPoseCoM;
     geometry_msgs::PointStamped l_rlFootPoseWorld;
-    l_flFootPoseCoM.header.stamp = ros::Time::now();
-    l_flFootPoseCoM.header.frame_id = ROBOT_REFERENCE_FRAME;
-    l_flFootPoseCoM.point.x = p_newFeetConfiguration.flCoM.x;
-    l_flFootPoseCoM.point.y = p_newFeetConfiguration.flCoM.y;
-    l_flFootPoseCoM.point.z = 0;
-    tf2::doTransform(l_flFootPoseCoM, l_rlFootPoseWorld, l_R_W_C);
+    l_rlFootPoseCoM.header.stamp = ros::Time::now();
+    l_rlFootPoseCoM.header.frame_id = ROBOT_REFERENCE_FRAME;
+    l_rlFootPoseCoM.point.x = p_newFeetConfiguration.rlCoM.x;
+    l_rlFootPoseCoM.point.y = p_newFeetConfiguration.rlCoM.y;
+    l_rlFootPoseCoM.point.z = 0;
+    tf2::doTransform(l_rlFootPoseCoM, l_rlFootPoseWorld, l_R_W_C);
 
     // Transform RR foot pose from CoM to world frame
     geometry_msgs::PointStamped l_rrFootPoseCoM;
     geometry_msgs::PointStamped l_rrFootPoseWorld;
-    l_flFootPoseCoM.header.stamp = ros::Time::now();
-    l_flFootPoseCoM.header.frame_id = ROBOT_REFERENCE_FRAME;
-    l_flFootPoseCoM.point.x = p_newFeetConfiguration.flCoM.x;
-    l_flFootPoseCoM.point.y = p_newFeetConfiguration.flCoM.y;
-    l_flFootPoseCoM.point.z = 0;
-    tf2::doTransform(l_flFootPoseCoM, l_rrFootPoseWorld, l_R_W_C);
+    l_rrFootPoseCoM.header.stamp = ros::Time::now();
+    l_rrFootPoseCoM.header.frame_id = ROBOT_REFERENCE_FRAME;
+    l_rrFootPoseCoM.point.x = p_newFeetConfiguration.rrCoM.x;
+    l_rrFootPoseCoM.point.y = p_newFeetConfiguration.rrCoM.y;
+    l_rrFootPoseCoM.point.z = 0;
+    tf2::doTransform(l_rrFootPoseCoM, l_rrFootPoseWorld, l_R_W_C);
 
     p_newFeetConfiguration.flMap.x = p_newCoMWorldCoordinates.x + l_flFootPoseWorld.point.x;
     p_newFeetConfiguration.flMap.y = p_newCoMWorldCoordinates.y + l_flFootPoseWorld.point.y;

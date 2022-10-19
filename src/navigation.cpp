@@ -112,6 +112,7 @@ void Navigation::stopCmdPublisher() {
     m_velCmd.twist.angular.x = 0;
     m_velCmd.twist.angular.y = 0;
     m_velCmd.twist.angular.z = 0;
+    m_startedCmdPublisher = false;
     ROS_INFO("Navigation: Cmd publisher stopped.");
 }
 
@@ -299,6 +300,11 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
+    // Start cmd publisher if not running
+    // if (!m_startedCmdPublisher) {
+    //     startCmdPublisher();
+    // }
+
     ros::Duration(7).sleep();
 
     // // Open file stream file
@@ -437,9 +443,7 @@ void Navigation::executeHighLevelCommands() {
             // Update planning variables
             m_previousAction = l_node.action;
             m_previousVelocity = l_node.velocity;
-            if (m_feetConfigurationCoM[1].x < m_feetConfigurationCoM[0].x) {
-                ROS_INFO_STREAM("FR and FL x relatively: " << m_feetConfigurationCoM[1].x << ", "
-                                                           << m_feetConfigurationCoM[0].x);
+            if (m_feetConfigurationCoM[0].x > m_feetConfigurationCoM[1].x) {
                 m_swingingFRRL = true;
             } else {
                 m_swingingFRRL = false;
@@ -477,7 +481,7 @@ void Navigation::executeHighLevelCommands() {
         }
 
         // Re-planning if goal not within reach
-        if ((std::abs(m_latestCoMPose.pose.pose.position.x - m_goalMsg.pose.position.x) > 0.01 ||
+        if ((std::abs(m_latestCoMPose.pose.pose.position.x - m_goalMsg.pose.position.x) > 0.05 ||
              std::abs(m_latestCoMPose.pose.pose.position.y - m_goalMsg.pose.position.y) > 0.2) &&
             m_latestCoMPose.pose.pose.position.x <= m_goalMsg.pose.position.x) {
             // Store actual CoM and feet poses in map
@@ -591,7 +595,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         int j = 0;
 
         // Populate marker array
-        for (unsigned int i = 0; i < m_path.size(); i++) {
+        for (unsigned int i = 0; i < 1; i++) {
             visualization_msgs::MarkerArray l_onlineConfiguration;
 
             visualization_msgs::Marker l_predictionCommon;

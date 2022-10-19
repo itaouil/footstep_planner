@@ -287,6 +287,7 @@ void Model::predictFirstStep(double p_previousVelocityX,
                     1;
 
     ROS_DEBUG_STREAM("Input: " << l_modelInput);
+
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         p_predictions[0] = m_fr_rl_com_x_fs * l_modelInput;
         p_predictions[1] = m_fr_rl_com_y_fs * l_modelInput;
@@ -486,8 +487,8 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
     l_feetPredictionCoMFrame.header.stamp = ros::Time::now();
     l_feetPredictionCoMFrame.header.frame_id = ROBOT_REFERENCE_FRAME;
     for (int x = 0; x < 4; x++) {
-        l_feetPredictionCoMFrame.point.x = p_predictions[x + 2 + x * 1];
-        l_feetPredictionCoMFrame.point.y = p_predictions[x + 3 + x * 1];
+        l_feetPredictionCoMFrame.point.x = p_predictions[2 * x + 2];
+        l_feetPredictionCoMFrame.point.y = p_predictions[2 * x + 3];
         l_feetPredictionCoMFrame.point.z = 0;
 
         geometry_msgs::PointStamped l_footDisplacementWorldFrame;
