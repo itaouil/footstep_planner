@@ -17,7 +17,7 @@ const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/twist_cmd");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
-const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
+const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration2");
 
 // Subscribed topics
 const std::string HEIGHT_MAP_TOPIC("/local_gridmap");

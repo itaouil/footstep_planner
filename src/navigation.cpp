@@ -293,12 +293,12 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-    // Start cmd publisher if not running
-    if (!m_startedCmdPublisher) {
-        startCmdPublisher();
-    }
-
-    ros::Duration(7).sleep();
+//    // Start cmd publisher if not running
+//    if (!m_startedCmdPublisher) {
+//        startCmdPublisher();
+//    }
+//
+//    ros::Duration(7).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
