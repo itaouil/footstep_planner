@@ -376,6 +376,12 @@ void Navigation::executeHighLevelCommands() {
                 auto l_lhForceZ = m_latestFeetForces[2];
                 auto l_rhForceZ = m_latestFeetForces[3];
 
+                // Get feet heights
+                auto l_lfHeightZ = m_feetConfigurationCoM[0].z;
+                auto l_rfHeightZ = m_feetConfigurationCoM[1].z;
+                auto l_lhHeightZ = m_feetConfigurationCoM[2].z;
+                auto l_rhHeightZ = m_feetConfigurationCoM[3].z;
+
                 // Check when swinging feet get out of contact
                 if (!l_swingingFeetOutOfContact) {
                     if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
@@ -394,16 +400,25 @@ void Navigation::executeHighLevelCommands() {
                     }
                 }
 
-                // Check when swinging feet get back in contact (to re-plan)
-                if (l_swingingFeetOutOfContact) {
-                    if (l_lfDiagonalSwinging) {
-                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE && l_rhForceZ > BACK_IN_CONTACT_FORCE) {
-                            l_feetInContact = true;
-                        }
+                if (SCENARIO == "gaps") {
+                    if (l_swingingFeetOutOfContact) {
+                            if (std:abs(l_lfHeightZ - l_rfHeightZ) < BACK_IN_CONTACT_HEIGHT && std:abs(l_lhHeightZ - l_rhHeightZ) < BACK_IN_CONTACT_HEIGHT) {
+                                l_feetInContact = true;
+                            }
                     }
-                    else if (l_rfDiagonalSwinging) {
-                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE && l_lhForceZ > BACK_IN_CONTACT_FORCE) {
-                            l_feetInContact = true;
+                }
+                else {
+                    // Check when swinging feet get back in contact (to re-plan)
+                    if (l_swingingFeetOutOfContact) {
+                        if (l_lfDiagonalSwinging) {
+                            if (l_lfForceZ > BACK_IN_CONTACT_FORCE && l_rhForceZ > BACK_IN_CONTACT_FORCE) {
+                                l_feetInContact = true;
+                            }
+                        }
+                        else if (l_rfDiagonalSwinging) {
+                            if (l_rfForceZ > BACK_IN_CONTACT_FORCE && l_lhForceZ > BACK_IN_CONTACT_FORCE) {
+                                l_feetInContact = true;
+                            }
                         }
                     }
                 }
