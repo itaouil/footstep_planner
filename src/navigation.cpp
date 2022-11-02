@@ -50,7 +50,6 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
     m_cmdPubThread = std::thread(&Navigation::cmdPublisher, this);
-    m_predFeetThread = std::thread(&Navigation::publishOnlinePredictedFootsteps, this);
 }
 
 /**
@@ -59,10 +58,6 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
 Navigation::~Navigation() {
     if (m_cmdPubThread.joinable()) {
         m_cmdPubThread.join();
-    }
-
-    if (m_predFeetThread.joinable()) {
-        m_predFeetThread.join();
     }
 }
 
@@ -88,7 +83,6 @@ void Navigation::cmdPublisher() {
  * configuration.
  */
 void Navigation::startCmdPublisher() {
-    m_velCmd.header.stamp = ros::Time::now();
     m_velCmd.twist.linear.x = 0;
     m_velCmd.twist.linear.y = 0;
     m_velCmd.twist.linear.z = 0;
@@ -105,7 +99,6 @@ void Navigation::startCmdPublisher() {
  * configuration.
  */
 void Navigation::stopCmdPublisher() {
-    m_velCmd.header.stamp = ros::Time::now();
     m_velCmd.twist.linear.x = 0;
     m_velCmd.twist.linear.y = 0;
     m_velCmd.twist.linear.z = 0;
@@ -136,7 +129,6 @@ void Navigation::buildInitialHeightMap() {
     double l_t0 = ros::Time::now().toSec();
 
     // Angular velocity command
-    m_velCmd.header.stamp = ros::Time::now();
     m_velCmd.twist.linear.x = 0;
     m_velCmd.twist.linear.y = 0;
     m_velCmd.twist.linear.z = 0;
@@ -168,27 +160,33 @@ void Navigation::buildInitialHeightMap() {
  * @param p_velocity
  */
 void Navigation::setCmd(const Action &p_action, const double &p_velocity) {
-    m_velCmd.header.stamp = ros::Time::now();
-    m_velCmd.twist.linear.x = 0;
-    m_velCmd.twist.linear.y = 0;
-    m_velCmd.twist.linear.z = 0;
-    m_velCmd.twist.angular.x = 0;
-    m_velCmd.twist.angular.y = 0;
-    m_velCmd.twist.angular.z = 0;
+    ROS_INFO_STREAM("Set velocity: " << p_velocity);
 
-    // Set axes and buttons based on action
     if (p_action == Action{1, 0, 0}) {
         m_velCmd.twist.linear.x = p_velocity;
+        m_velCmd.twist.linear.y = 0;
+        m_velCmd.twist.angular.z = 0;
     } else if (p_action == Action{0, -1, 0}) {
+        m_velCmd.twist.linear.x = 0;
         m_velCmd.twist.linear.y = -p_velocity;
+        m_velCmd.twist.angular.z = 0;
     } else if (p_action == Action{0, 1, 0}) {
+        m_velCmd.twist.linear.x = 0;
         m_velCmd.twist.linear.y = p_velocity;
+        m_velCmd.twist.angular.z = 0;
     } else if (p_action == Action{0, 0, -1}) {
+        m_velCmd.twist.linear.x = 0;
+        m_velCmd.twist.linear.y = 0;
         m_velCmd.twist.angular.z = -p_velocity;
     } else if (p_action == Action{0, 0, 1}) {
+        m_velCmd.twist.linear.x = 0;
+        m_velCmd.twist.linear.y = 0;
         m_velCmd.twist.angular.z = p_velocity;
     } else {
-        ROS_WARN("Navigation: Action is not recognized (cmd message)!");
+        m_velCmd.twist.linear.x = 0;
+        m_velCmd.twist.linear.y = 0;
+        m_velCmd.twist.angular.z = 0;
+        ROS_WARN("Navigation: Action is not recognized (cmd message)!. Sending 0 velocities");
     }
 }
 
@@ -293,12 +291,12 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-//    // Start cmd publisher if not running
+   // Start cmd publisher if not running
 //    if (!m_startedCmdPublisher) {
 //        startCmdPublisher();
 //    }
-//
-//    ros::Duration(7).sleep();
+
+   ros::Duration(7).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -352,8 +350,8 @@ void Navigation::executeHighLevelCommands() {
                 break;
             }
             
-            // Update global variables from cache
-            updateVariablesFromCache();
+            // Publish predictions
+            publishOnlinePredictedFootsteps();
             
             // Set cmd to be sent
             setCmd(l_node.action, l_node.velocity);
@@ -400,15 +398,15 @@ void Navigation::executeHighLevelCommands() {
                     }
                 }
 
+                // Check when swinging feet get back in contact (to re-plan).
                 if (SCENARIO == "gaps") {
                     if (l_swingingFeetOutOfContact) {
-                            if (std:abs(l_lfHeightZ - l_rfHeightZ) < BACK_IN_CONTACT_HEIGHT && std:abs(l_lhHeightZ - l_rhHeightZ) < BACK_IN_CONTACT_HEIGHT) {
+                            if (std::abs(l_lfHeightZ - l_rfHeightZ) <= BACK_IN_CONTACT_HEIGHT && std::abs(l_lhHeightZ - l_rhHeightZ) <= BACK_IN_CONTACT_HEIGHT) {
                                 l_feetInContact = true;
                             }
                     }
                 }
                 else {
-                    // Check when swinging feet get back in contact (to re-plan)
                     if (l_swingingFeetOutOfContact) {
                         if (l_lfDiagonalSwinging) {
                             if (l_lfForceZ > BACK_IN_CONTACT_FORCE && l_rhForceZ > BACK_IN_CONTACT_FORCE) {
@@ -451,7 +449,7 @@ void Navigation::executeHighLevelCommands() {
             // Update planning variables
             m_previousAction = l_node.action;
             m_previousVelocity = l_node.velocity;
-            if (m_feetConfigurationCoM[0].x > m_feetConfigurationCoM[1].x) {
+            if (l_lfDiagonalSwinging) {
                 m_swingingFRRL = true;
             } else {
                 m_swingingFRRL = false;
@@ -594,80 +592,75 @@ void Navigation::publishPredictedCoMPath() {
  * predicted footsteps
  */
 void Navigation::publishOnlinePredictedFootsteps() {
-    while (ros::ok()) {
-        if (m_path.empty()) {
-            continue;
-        }
+    // Counters
+    int j = 0;
 
-        // Counters
-        int j = 0;
+    // Populate marker array
+    for (unsigned int i = 0; i < m_path.size(); i++) {
+        visualization_msgs::MarkerArray l_onlineConfiguration;
 
-        // Populate marker array
-        for (unsigned int i = 0; i < m_path.size(); i++) {
-            visualization_msgs::MarkerArray l_onlineConfiguration;
+        visualization_msgs::Marker l_predictionCommon;
+        l_predictionCommon.header.stamp = ros::Time::now();
+        l_predictionCommon.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
+        l_predictionCommon.lifetime = ros::Duration(0.5);
+        l_predictionCommon.type = 2;
+        l_predictionCommon.action = 0;
+        l_predictionCommon.pose.orientation.x = 0;
+        l_predictionCommon.pose.orientation.y = 0;
+        l_predictionCommon.pose.orientation.z = 0;
+        l_predictionCommon.pose.orientation.w = 1;
+        l_predictionCommon.scale.x = 0.05;
+        l_predictionCommon.scale.y = 0.035;
+        l_predictionCommon.scale.z = 0.035;
 
-            visualization_msgs::Marker l_predictionCommon;
-            l_predictionCommon.header.stamp = ros::Time::now();
-            l_predictionCommon.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-            l_predictionCommon.type = 2;
-            l_predictionCommon.action = 0;
-            l_predictionCommon.pose.orientation.x = 0;
-            l_predictionCommon.pose.orientation.y = 0;
-            l_predictionCommon.pose.orientation.z = 0;
-            l_predictionCommon.pose.orientation.w = 1;
-            l_predictionCommon.scale.x = 0.05;
-            l_predictionCommon.scale.y = 0.035;
-            l_predictionCommon.scale.z = 0.035;
+        visualization_msgs::Marker l_predictedFL = l_predictionCommon;
+        l_predictedFL.id = j++;
+        l_predictedFL.color.r = 1;
+        l_predictedFL.color.g = 0.501;
+        l_predictedFL.color.b = 0;
+        l_predictedFL.color.a = static_cast<float>(1 - (i * 0.1));
+        l_predictedFL.pose.position.x = m_path[i].feetConfiguration.flMap.x;
+        l_predictedFL.pose.position.y = m_path[i].feetConfiguration.flMap.y;
+        l_predictedFL.pose.position.z = m_path[i].feetConfiguration.flMap.z;
 
-            visualization_msgs::Marker l_predictedFL = l_predictionCommon;
-            l_predictedFL.id = j++;
-            l_predictedFL.color.r = 1;
-            l_predictedFL.color.g = 0.501;
-            l_predictedFL.color.b = 0;
-            l_predictedFL.color.a = static_cast<float>(1 - (i * 0.1));
-            l_predictedFL.pose.position.x = m_path[i].feetConfiguration.flMap.x;
-            l_predictedFL.pose.position.y = m_path[i].feetConfiguration.flMap.y;
-            l_predictedFL.pose.position.z = m_path[i].feetConfiguration.flMap.z;
+        visualization_msgs::Marker l_predictedFR = l_predictionCommon;
+        l_predictedFR.id = j++;
+        l_predictedFR.color.r = 1;
+        l_predictedFR.color.g = 0.4;
+        l_predictedFR.color.b = 0.4;
+        l_predictedFR.color.a = static_cast<float>(1 - (i * 0.1));
+        l_predictedFR.pose.position.x = m_path[i].feetConfiguration.frMap.x;
+        l_predictedFR.pose.position.y = m_path[i].feetConfiguration.frMap.y;
+        l_predictedFR.pose.position.z = m_path[i].feetConfiguration.frMap.z;
 
-            visualization_msgs::Marker l_predictedFR = l_predictionCommon;
-            l_predictedFR.id = j++;
-            l_predictedFR.color.r = 1;
-            l_predictedFR.color.g = 0.4;
-            l_predictedFR.color.b = 0.4;
-            l_predictedFR.color.a = static_cast<float>(1 - (i * 0.1));
-            l_predictedFR.pose.position.x = m_path[i].feetConfiguration.frMap.x;
-            l_predictedFR.pose.position.y = m_path[i].feetConfiguration.frMap.y;
-            l_predictedFR.pose.position.z = m_path[i].feetConfiguration.frMap.z;
+        visualization_msgs::Marker l_predictedRL = l_predictionCommon;
+        l_predictedRL.id = j++;
+        l_predictedRL.id = j++;
+        l_predictedRL.color.r = 0;
+        l_predictedRL.color.g = 1;
+        l_predictedRL.color.b = 0.501;
+        l_predictedRL.color.a = static_cast<float>(1 - (i * 0.1));
+        l_predictedRL.pose.position.x = m_path[i].feetConfiguration.rlMap.x;
+        l_predictedRL.pose.position.y = m_path[i].feetConfiguration.rlMap.y;
+        l_predictedRL.pose.position.z = m_path[i].feetConfiguration.rlMap.z;
 
-            visualization_msgs::Marker l_predictedRL = l_predictionCommon;
-            l_predictedRL.id = j++;
-            l_predictedRL.id = j++;
-            l_predictedRL.color.r = 0;
-            l_predictedRL.color.g = 1;
-            l_predictedRL.color.b = 0.501;
-            l_predictedRL.color.a = static_cast<float>(1 - (i * 0.1));
-            l_predictedRL.pose.position.x = m_path[i].feetConfiguration.rlMap.x;
-            l_predictedRL.pose.position.y = m_path[i].feetConfiguration.rlMap.y;
-            l_predictedRL.pose.position.z = m_path[i].feetConfiguration.rlMap.z;
+        visualization_msgs::Marker l_predictedRR = l_predictionCommon;
+        l_predictedRR.id = j++;
+        l_predictedRR.id = j++;
+        l_predictedRR.color.r = 0;
+        l_predictedRR.color.g = 0.501;
+        l_predictedRR.color.b = 1;
+        l_predictedRR.color.a = static_cast<float>(1 - (i * 0.1));
+        l_predictedRR.pose.position.x = m_path[i].feetConfiguration.rrMap.x;
+        l_predictedRR.pose.position.y = m_path[i].feetConfiguration.rrMap.y;
+        l_predictedRR.pose.position.z = m_path[i].feetConfiguration.rrMap.z;
 
-            visualization_msgs::Marker l_predictedRR = l_predictionCommon;
-            l_predictedRR.id = j++;
-            l_predictedRR.id = j++;
-            l_predictedRR.color.r = 0;
-            l_predictedRR.color.g = 0.501;
-            l_predictedRR.color.b = 1;
-            l_predictedRR.color.a = static_cast<float>(1 - (i * 0.1));
-            l_predictedRR.pose.position.x = m_path[i].feetConfiguration.rrMap.x;
-            l_predictedRR.pose.position.y = m_path[i].feetConfiguration.rrMap.y;
-            l_predictedRR.pose.position.z = m_path[i].feetConfiguration.rrMap.z;
+        l_onlineConfiguration.markers.push_back(l_predictedFL);
+        l_onlineConfiguration.markers.push_back(l_predictedFR);
+        l_onlineConfiguration.markers.push_back(l_predictedRL);
+        l_onlineConfiguration.markers.push_back(l_predictedRR);
 
-            l_onlineConfiguration.markers.push_back(l_predictedFL);
-            l_onlineConfiguration.markers.push_back(l_predictedFR);
-            l_onlineConfiguration.markers.push_back(l_predictedRL);
-            l_onlineConfiguration.markers.push_back(l_predictedRR);
-
-            m_targetFeetConfigurationPublisher.publish(l_onlineConfiguration);
-        }
+        m_targetFeetConfigurationPublisher.publish(l_onlineConfiguration);
     }
 }
 
@@ -744,7 +737,7 @@ void Navigation::publishPredictedFootstepSequence() {
         l_inputFootCommon.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_inputFootCommon.type = 2;
         l_inputFootCommon.action = 0;
-        l_inputFootCommon.lifetime = ros::Duration(3);
+        l_inputFootCommon.lifetime = ros::Duration(0.5);
         l_inputFootCommon.pose.orientation.x = 0;
         l_inputFootCommon.pose.orientation.y = 0;
         l_inputFootCommon.pose.orientation.z = 0;
@@ -794,7 +787,7 @@ void Navigation::publishPredictedFootstepSequence() {
         l_predictionConfiguration.markers.push_back(l_inputRR);
 
         m_targetFeetConfigurationPublisher.publish(l_predictionConfiguration);
-        ros::Duration(3.2).sleep();
+        ros::Duration(0.55).sleep();
     }
 }
 
@@ -820,7 +813,7 @@ void Navigation::publishRealFootstepSequence() {
         l_targetFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_targetFootCommonMarker.type = 2;
         l_targetFootCommonMarker.action = 0;
-        l_targetFootCommonMarker.lifetime = ros::Duration(3);
+        l_targetFootCommonMarker.lifetime = ros::Duration(0.5);
         l_targetFootCommonMarker.pose.orientation.x = 0;
         l_targetFootCommonMarker.pose.orientation.y = 0;
         l_targetFootCommonMarker.pose.orientation.z = 0;
@@ -875,7 +868,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFootCommonMarker.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_realFootCommonMarker.type = 2;
         l_realFootCommonMarker.action = 0;
-        l_realFootCommonMarker.lifetime = ros::Duration(3);
+        l_realFootCommonMarker.lifetime = ros::Duration(0.5);
         l_realFootCommonMarker.pose.orientation.x = 0;
         l_realFootCommonMarker.pose.orientation.y = 0;
         l_realFootCommonMarker.pose.orientation.z = 0;
@@ -925,7 +918,7 @@ void Navigation::publishRealFootstepSequence() {
         l_realFeetConfiguration.markers.push_back(l_realRRFootMarker);
 
         m_realFeetConfigurationPublisher.publish(l_realFeetConfiguration);
-        ros::Duration(3.2).sleep();
+        ros::Duration(0.55).sleep();
     }
 }
 

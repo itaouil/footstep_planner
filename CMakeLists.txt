@@ -24,7 +24,7 @@ find_package(catkin REQUIRED
         ${CATKIN_PACKAGE_DEPENDENCIES}
         )
 
-find_package(OpenCV 4 REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 ###################################
