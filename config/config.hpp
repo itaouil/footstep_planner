@@ -36,13 +36,13 @@ const bool PUBLISH(true);
 const bool VISUALIZE(true);
 
 // Height threshold when computing unsafe edges
-const double HEIGHT_FILTER_THRESHOLD(0.10);
+const double HEIGHT_FILTER_THRESHOLD(0.05);
 
 // Distance used for heuristic in the planner
 const float ZERO_COST_FOOT_DISTANCE(0.15);
 
 // Max footstep height
-const float MAX_FOOTSTEP_HEIGHT(0.05);
+const float MAX_FOOTSTEP_HEIGHT(0.04);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(200);
@@ -54,10 +54,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(4);
+const unsigned int FOOTSTEP_HORIZON(6);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.05);
+const float MIN_STAIR_DISTANCE(0.03);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);

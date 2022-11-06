@@ -52,7 +52,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
             {0, -1, 0},  // Right
             {0, 1,  0}  // Left
     };
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 }
 
 /**
@@ -537,8 +537,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // (i.e. the starting action as this was already executed)
     // which happens to be the root node (i.e. null parent)
     while (l_currentNode != nullptr && l_currentNode->parent != nullptr) {
-        ROS_INFO_STREAM("Actions: " << l_currentNode->action.x << ", " << l_currentNode->action.y << ", "
-                                    << l_currentNode->action.theta);
+        ROS_INFO_STREAM("Velocity: " << l_currentNode->velocity << ". FL pose: " << l_currentNode->feetConfiguration.flMap.x << ". FR pose: " << l_currentNode->feetConfiguration.frMap.x);
         p_path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
 

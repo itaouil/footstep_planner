@@ -351,7 +351,7 @@ void Navigation::executeHighLevelCommands() {
             }
             
             // Publish predictions
-            publishOnlinePredictedFootsteps();
+            //publishOnlinePredictedFootsteps();
             
             // Set cmd to be sent
             setCmd(l_node.action, l_node.velocity);
@@ -595,6 +595,8 @@ void Navigation::publishOnlinePredictedFootsteps() {
     // Counters
     int j = 0;
 
+    ROS_INFO_STREAM("Path size is: " << m_path.size());
+
     // Populate marker array
     for (unsigned int i = 0; i < m_path.size(); i++) {
         visualization_msgs::MarkerArray l_onlineConfiguration;
@@ -602,7 +604,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         visualization_msgs::Marker l_predictionCommon;
         l_predictionCommon.header.stamp = ros::Time::now();
         l_predictionCommon.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
-        l_predictionCommon.lifetime = ros::Duration(0.5);
+        l_predictionCommon.lifetime = ros::Duration(50);
         l_predictionCommon.type = 2;
         l_predictionCommon.action = 0;
         l_predictionCommon.pose.orientation.x = 0;
@@ -623,6 +625,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         l_predictedFL.pose.position.y = m_path[i].feetConfiguration.flMap.y;
         l_predictedFL.pose.position.z = m_path[i].feetConfiguration.flMap.z;
 
+
         visualization_msgs::Marker l_predictedFR = l_predictionCommon;
         l_predictedFR.id = j++;
         l_predictedFR.color.r = 1;
@@ -632,7 +635,7 @@ void Navigation::publishOnlinePredictedFootsteps() {
         l_predictedFR.pose.position.x = m_path[i].feetConfiguration.frMap.x;
         l_predictedFR.pose.position.y = m_path[i].feetConfiguration.frMap.y;
         l_predictedFR.pose.position.z = m_path[i].feetConfiguration.frMap.z;
-
+        
         visualization_msgs::Marker l_predictedRL = l_predictionCommon;
         l_predictedRL.id = j++;
         l_predictedRL.id = j++;
@@ -683,7 +686,7 @@ void Navigation::publishPredictedFootstepSequence() {
         l_predictionCommon.header.frame_id = HEIGHT_MAP_REFERENCE_FRAME;
         l_predictionCommon.type = 2;
         l_predictionCommon.action = 0;
-        l_predictionCommon.lifetime = ros::Duration(3);
+        l_predictionCommon.lifetime = ros::Duration(0.5);
         l_predictionCommon.pose.orientation.x = 0;
         l_predictionCommon.pose.orientation.y = 0;
         l_predictionCommon.pose.orientation.z = 0;
