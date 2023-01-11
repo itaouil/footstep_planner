@@ -79,7 +79,7 @@ public:
     }
 
     /**
-     * Footstep prediction for first step.
+     * Motion prediction.
      *
      * @param p_previousVelocityX
      * @param p_previousVelocityY
@@ -91,7 +91,7 @@ public:
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
-    void predictFirstStep(double p_previousVelocityX,
+    void motionPrediction(double p_previousVelocityX,
                           double p_previousVelocityY,
                           double p_previousAngularVelocity,
                           double p_nextVelocityX,

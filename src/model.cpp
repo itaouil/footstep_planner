@@ -28,224 +28,80 @@ Model::~Model() = default;
 
 void Model::setModelsCoefficients() {
     // CoM models coefficients when FR/RL are swinging
-    m_fr_rl_com_x.resize(15);
-    m_fr_rl_com_x << 1.55476542e-02,  2.22044605e-16, -2.22044605e-16,
-            1.24370237e-01,  2.22044605e-16,  4.44089210e-16,
-            6.66308105e-01, -4.34299860e-01, -1.48564026e-01,
-            5.89749574e-01, -5.80109199e-01,  6.61961669e-01,
-            -3.40262714e-01,  7.81067377e-01, -0.21192527;
-
-    m_fr_rl_com_y.resize(15);
-    m_fr_rl_com_y << 1.08352146e-03,  6.67868538e-17, -5.20417043e-18,
-            1.18881486e-03, -1.11022302e-16,  0.00000000e+00,
-            -9.88107745e-03,  9.09466687e-02,  8.36384168e-04,
-            -8.93606112e-02,  8.58723839e-02, -6.01935483e-01,
-            7.68458080e-02,  1.60597778e-01, 0.12018495;
-
-    m_fr_rl_com_theta.resize(15);
-    m_fr_rl_com_theta << -5.25721471e-04, -1.90819582e-17,  2.42861287e-17,
-            2.48761318e-03,  0.00000000e+00,  3.46944695e-18,
-            -1.06575947e-02,  2.72193463e-02, -2.84351892e-03,
-            -3.15264338e-04, -7.44108469e-02, -4.90586961e-02,
-            -4.42046174e-02, -1.03480378e-03, -0.02405147;
+    m_fr_rl_com_x.resize(12);
+    m_fr_rl_com_x << 0.0011567 , 0.01173563, 0.25946189,
+                     0.14876435, 0.19506508, -0.13642727,
+                     0.07171638, 0.1660455 , -0.04137083,
+                     0.03316054, 0.18193484, 0.05903809;
+    m_fr_rl_com_y.resize(12);
+    m_fr_rl_com_y << -0.00486412, 0.01092449, -0.01614314,
+                     -0.02995122, 0.09147141, -0.11519531,
+                     -0.3614956 , 0.09755716, -0.34181869,
+                     0.13272687, 0.21362319, 0.10742517;
 
     // CoM models coefficients when FL/RR are swinging
-    m_fl_rr_com_x.resize(15);
-    m_fl_rr_com_x << 2.13060674e-02,  1.66533454e-16, -1.66533454e-16,
-            1.26510523e-01,  1.11022302e-16,  0.00000000e+00,
-            8.81433170e-01, -1.09894961e+00,  1.34764628e-01,
-            1.73731183e+00,  3.24921666e-01, -1.97849489e-01,
-            -1.57214009e+00, -5.48487795e-02, -0.18221264;
-
-    m_fl_rr_com_y.resize(15);
-    m_fl_rr_com_y << -1.01817056e-03, -1.76941795e-16, -1.37043155e-16,
-            5.94789356e-03, -2.77555756e-16, -5.55111512e-17,
-            1.61757065e-01, -4.34254858e-01,  5.05352570e-02,
-            3.59328902e-01, -9.18808358e-02,  7.59846965e-02,
-            -2.79053041e-01, -2.39756934e-01, -0.08715053;
-
-    m_fl_rr_com_theta.resize(15);
-    m_fl_rr_com_theta << 4.96150901e-04,  2.08166817e-17,  6.07153217e-17,
-            -2.79959932e-03,  0.00000000e+00, -2.77555756e-17,
-            -8.56784551e-02,  2.30646244e-02,  1.68399940e-02,
-            -7.07108868e-02,  3.06016991e-02, -1.79665741e-01,
-            1.92624350e-01,  1.11434322e-01, 0.09874808;
+    m_fl_rr_com_x.resize(12);
+    m_fl_rr_com_x << 1.49857491e-04,  1.06812964e-02,  2.56884380e-01,
+                     2.13577971e-01,  5.18128678e-02, -2.90948150e-01,
+                     1.60456988e-01,  4.81153876e-01, -2.40481820e-01,
+                     -2.38695871e-01, -1.31974486e-01, 0.10732999;
+    m_fl_rr_com_y.resize(12);
+    m_fl_rr_com_y << 0.00670126, -0.01005248,  0.04174253,
+                     0.00307524, -0.42677116, -0.1121159,
+                     0.16227162, -0.0219967 ,  0.12218918,
+                     -0.01897799, -0.34165275, 0.03031857;
 
     // FL models coefficients
-    m_fl_swinging_x.resize(15);
-    m_fl_swinging_x << 4.20600309e-02, -5.55111512e-16, -1.11022302e-16,
-            2.06952476e-01, -2.22044605e-16,  2.22044605e-16,
-            3.17740200e-01, -1.42997682e+00, -1.28564077e-01,
-            2.34331471e+00,  6.11250579e-01,  1.97573088e-01,
-            -2.38618624e+00, -2.55289131e-01, -0.07062906;
-
-    m_fl_swinging_y.resize(15);
-    m_fl_swinging_y << -8.70312999e-04,  2.16840434e-17,  9.71445147e-17,
-            1.25034194e-02,  1.11022302e-16,  0.00000000e+00,
-            3.26485833e-01, -1.38608334e+00,  1.56238251e-01,
-            7.70901464e-01, -2.30168468e-01,  2.78559425e-01,
-            -4.94983307e-01, -4.44662655e-01, -0.11971733;
+    m_fl_swinging_x.resize(12);
+    m_fl_swinging_x << 0.00570294,  0.02858605,  0.44163494,
+                       -0.68296909,  0.14547823, -0.49011532,
+                       0.14229049,  0.51272973, -0.12544422,
+                       -0.2429338, -0.34958484, 0.32263008;
+    m_fl_swinging_y.resize(12);
+    m_fl_swinging_y << 0.00822315, -0.01714012,  0.06325836,
+                       0.16097401, -1.69215963, 0.23578563,
+                       0.56869952, -0.42328756,  0.21201768,
+                       -0.17121913, -0.36983547, -0.03409555;
 
     // FR models coefficients
-    m_fr_swinging_x.resize(15);
-    m_fr_swinging_x << 3.05846348e-02,  0.00000000e+00,  0.00000000e+00,
-            2.13265380e-01,  0.00000000e+00,  2.22044605e-16,
-            8.12179238e-01, -4.70675267e-01, -1.13492826e+00,
-            1.05306748e+00, -1.00196696e+00,  8.87622596e-01,
-            -5.27874134e-01,  6.71587336e-01, -0.14272959;
-    m_fr_swinging_y.resize(15);
-    m_fr_swinging_y << 2.57320771e-03, -1.35308431e-16, -6.09321621e-17,
-            6.59747348e-03,  2.22044605e-16,  0.00000000e+00,
-            -7.98642419e-02,  3.73805608e-01,  1.69780011e-01,
-            -7.97532303e-02,  5.46915760e-03, -1.79611612e+00,
-            1.47892327e-01,  3.34829672e-01, 0.2355151;
+    m_fr_swinging_x.resize(12);
+    m_fr_swinging_x << 0.00550229,  0.02588771,  0.45332503,
+                       0.02748123,  0.29243984, -1.1091232,
+                       -0.02550018,  0.28212756,  0.13733254,
+                       0.01814569, -0.06288233, 0.2684454;
+    m_fr_swinging_y.resize(12);
+    m_fr_swinging_y << -0.00963771,  0.01948639, -0.03714665,
+                       -0.50867355,  0.41008513, -0.44334668,
+                       -1.45220629,  0.42501618, -0.30823327,
+                       0.65193678, 0.46239365, 0.36585215;
 
     // RL models coefficients
-    m_rl_swinging_x.resize(15);
-    m_rl_swinging_x << 3.07931536e-02,  3.33066907e-16,  1.11022302e-16,
-            2.11103962e-01, -2.22044605e-16,  4.44089210e-16,
-            8.68981546e-01, -6.23198792e-01, -3.33866232e-01,
-            9.00839440e-01, -1.86107306e+00,  1.18015837e+00,
-            -6.34753381e-01,  6.54572837e-01, -0.63735996;
-    m_rl_swinging_y.resize(15);
-    m_rl_swinging_y << 2.57320771e-03, -1.35308431e-16, -6.09321621e-17,
-            6.59747348e-03,  2.22044605e-16,  0.00000000e+00,
-            -7.98642419e-02,  3.73805608e-01,  1.69780011e-01,
-            -7.97532303e-02,  5.46915760e-03, -1.79611612e+00,
-            1.47892327e-01,  3.34829672e-01, 0.2355151;
+    m_rl_swinging_x.resize(12);
+    m_rl_swinging_x << 0.00614028,  0.02606511,  0.45206632,
+                       0.01408734,  0.28619424, -1.09905045,
+                       -0.0319237 ,  0.26490681,  0.1374636 ,
+                       0.02582283, -0.06409797, 0.26661697;
+    m_rl_swinging_y.resize(12);
+    m_rl_swinging_y << -0.0094809, 0.01908805, -0.03701736,
+                       -0.53545083, 0.4030889, -0.44274306,
+                       -1.44554363,  0.42226214, -0.33047541,
+                       0.67660477, 0.45502545, 0.38144811;
 
     // RR models coefficients
-    m_rr_swinging_x.resize(15);
-    m_rr_swinging_x << 3.74494867e-02,  6.66133815e-16,  3.33066907e-16,
-            2.17375414e-01,  0.00000000e+00,  4.44089210e-16,
-            1.37199999e+00, -1.70127875e+00,  4.60088837e-02,
-            2.32024043e+00,  4.44512538e-01,  2.87099424e-01,
-            -3.47622289e+00, -3.02327973e-01, -0.67954112;
-    m_rr_swinging_y.resize(15);
-    m_rr_swinging_y << -9.68396761e-04,  1.02348685e-16, -1.11022302e-16,
-            6.15428461e-03, -2.22044605e-16,  1.11022302e-16,
-            1.58101117e-01, -5.44408332e-01,  2.84881050e-02,
-            5.56203805e-01, -4.63776740e-02,  2.41075975e-01,
-            -2.55065105e-01, -7.60707747e-01, -0.11239619;
-
-    // CoM models coefficients when FR/RL are swinging
-    m_fr_rl_com_x_fs.resize(19);
-    m_fr_rl_com_x_fs << 4.59125776e-03,  2.22044605e-16,  2.58907479e-16,
-            4.79423471e-02, -2.63677968e-16,  2.77555756e-16,
-            2.47476264e-01, -1.84531234e-01, -8.53056614e-02,
-            -1.21467889e-02,  5.81296570e-01,  1.13816556e-01,
-            -1.31624245e-01,  3.57560521e-01,  1.78773100e-01,
-            2.30522418e-02, -7.33081009e-01,  1.51249337e-01, -0.19377041;
-
-    m_fr_rl_com_y_fs.resize(19);
-    m_fr_rl_com_y_fs << 2.41247703e-03, -2.81892565e-18,  7.45931095e-17,
-            9.96083816e-03,  9.02056208e-17, -1.38777878e-17,
-            -3.14860635e-02,  1.76816607e-02,  6.27707848e-03,
-            -2.58757166e-03, -8.45705059e-03,  2.66990732e-02,
-            -1.70024764e-03, -8.90444265e-02, -9.54108190e-03,
-            -5.16319865e-01,  1.37448775e-01,  2.43330452e-01, 0.11878082;
-
-    m_fr_rl_com_theta_fs.resize(19);
-    m_fr_rl_com_theta_fs << -6.76730810e-04, -2.60208521e-18,  2.25514052e-17,
-            5.11027226e-04,  0.00000000e+00, -1.73472348e-17,
-            4.95308808e-03, -2.65707866e-03, -8.93438168e-03,
-            -1.26937253e-02, -4.10816351e-02,  2.45681242e-02,
-            -7.08142790e-03, -3.92508888e-02, -5.60843590e-02,
-            -1.51652134e-02, -3.43587932e-02,  2.16107425e-03, -0.01683231;
-
-    // CoM models coefficients when FL/RR are swinging
-    m_fl_rr_com_x_fs.resize(19);
-    m_fl_rr_com_x_fs << 7.24552341e-03,  2.49800181e-16,  1.76941795e-16,
-            6.41195343e-02,  5.55111512e-17, -2.63677968e-16,
-            2.27727958e-01,  2.11152332e-01, -9.54239812e-02,
-            2.09440299e-03,  1.49950923e-01, -6.50530451e-01,
-            -3.87961824e-01,  6.57983614e-01,  2.10521581e-01,
-            5.67005503e-01, -2.26922012e-01,  4.26763477e-01, 0.21400358;
-
-    m_fl_rr_com_y_fs.resize(19);
-    m_fl_rr_com_y_fs << -3.27346856e-03,  1.26634814e-16,  7.97972799e-17,
-            -4.41215809e-03,  1.56125113e-17,  4.16333634e-17,
-            4.74372504e-02,  2.72256278e-02, -4.95738171e-03,
-            -1.59052453e-03,  1.05211971e-01, -4.17793035e-01,
-            -5.32452419e-02,  2.30569673e-01, -1.19047986e-01,
-            1.36511055e-01, -9.09861445e-02, -1.72150833e-01, -0.02391585;
-
-    m_fl_rr_com_theta_fs.resize(19);
-    m_fl_rr_com_theta_fs << 1.50704664e-03, -1.21430643e-17, -1.64798730e-17,
-            6.99620378e-04, -2.08166817e-17, -3.46944695e-17,
-            -8.87330895e-03, -1.65762421e-02,  7.51065314e-03,
-            -7.87796758e-03, -4.39059199e-02, -1.73056479e-02,
-            1.36747489e-02, -2.48819752e-02,  5.26059308e-02,
-            -1.77695465e-01,  1.23857129e-01,  8.83107424e-02, 0.08482643;
-
-    // FL models coefficients
-    m_fl_swinging_x_fs.resize(19);
-    m_fl_swinging_x_fs << 1.40279092e-02, -4.99600361e-16, -9.71445147e-16,
-            1.08621104e-01,  2.77555756e-16, -1.94289029e-16,
-            3.97684829e-01,  3.52009734e-01, -1.12523521e-01,
-            -7.14378290e-04, -6.47822537e-01, -8.93822283e-01,
-            -8.25165590e-01,  5.76822396e-01,  2.17618000e-01,
-            1.09877543e+00, -3.45350203e-01,  6.29666151e-01, 0.46885229;
-
-    m_fl_swinging_y_fs.resize(19);
-    m_fl_swinging_y_fs << -5.89003645e-03, -4.16333634e-17,  3.40005801e-16,
-            -5.01935848e-03, -1.24900090e-16, -1.56125113e-16,
-            8.36258980e-02,  4.36105605e-02, -1.67269514e-02,
-            -7.71144734e-03,  1.82965128e-01, -1.36326557e+00,
-            -1.93187865e-02,  4.66495023e-01, -2.96620343e-01,
-            4.93508728e-01, -1.24692982e-01, -3.12202613e-01, -0.01502302;
-
-    // FR models coefficients
-    m_fr_swinging_x_fs.resize(19);
-    m_fr_swinging_x_fs << 8.93720918e-03,  4.99600361e-16,  1.04083409e-15,
-            8.47085793e-02,  4.85722573e-16,  2.77555756e-16,
-            4.20077834e-01, -3.05615483e-01, -1.10729480e-01,
-            -3.07059451e-02,  6.66301589e-01,  3.51358889e-01,
-            -1.23157699e+00,  6.22568436e-01,  3.96842119e-01,
-            -1.32578032e-01, -1.16502090e+00, -6.67094116e-02, -0.00445306;
-    m_fr_swinging_y_fs.resize(19);
-    m_fr_swinging_y_fs << 5.34008225e-03,  1.58727198e-16, -4.00287442e-16,
-            2.04006133e-02, -5.55111512e-16, -2.77555756e-16,
-            -4.67513343e-02,  3.45903178e-02,  1.00038210e-02,
-            -3.39628381e-03, -7.25649871e-02,  2.66127522e-01,
-            1.53824492e-01, -6.69291976e-02, -1.25680840e-01,
-            -1.64627201e+00,  2.21972692e-01,  4.46878327e-01, 0.23246413;
-
-    // RL models coefficients
-    m_rl_swinging_x_fs.resize(19);
-    m_rl_swinging_x_fs << 7.79802189e-03,  6.66133815e-16, -1.73472348e-16,
-            8.26464943e-02, -1.45716772e-16, -3.88578059e-16,
-            4.34497675e-01, -3.14847826e-01, -1.05995296e-01,
-            -3.45420950e-02,  7.06510111e-01,  2.43376966e-01,
-            -1.82229567e-01,  7.04716335e-01, -6.32295167e-01,
-            -3.87117578e-02, -1.25555562e+00, -2.01462757e-01, -0.56056053;
-    m_rl_swinging_y_fs.resize(19);
-    m_rl_swinging_y_fs << 5.34008225e-03,  1.58727198e-16, -4.00287442e-16,
-            2.04006133e-02, -5.55111512e-16, -2.77555756e-16,
-            -4.67513343e-02,  3.45903178e-02,  1.00038210e-02,
-            -3.39628381e-03, -7.25649871e-02,  2.66127522e-01,
-            1.53824492e-01, -6.69291976e-02, -1.25680840e-01,
-            -1.64627201e+00,  2.21972692e-01,  4.46878327e-01, 0.23246413;
-
-    // RR models coefficients
-    m_rr_swinging_x_fs.resize(19);
-    m_rr_swinging_x_fs << 1.24992855e-02,  1.11022302e-16, -6.93889390e-17,
-            1.05618429e-01, -1.11022302e-16,  5.82867088e-16,
-            4.21684803e-01,  3.68385216e-01, -1.24842067e-01,
-            9.90899905e-03,  2.51371537e-01, -9.90138125e-01,
-            -7.75263939e-01,  6.59148238e-01,  8.36876079e-02,
-            1.21563528e+00, -1.22723600e+00,  6.06083898e-01, -0.01714463;
-    m_rr_swinging_y_fs.resize(19);
-    m_rr_swinging_y_fs << -3.98897869e-03,  3.46944695e-17, -1.56125113e-16,
-            -5.13190653e-03,  2.94902991e-17,  1.64798730e-16,
-            5.52404659e-02,  2.60914675e-02, -5.86537091e-03,
-            -4.98036713e-03,  7.92422074e-02, -5.33540420e-01,
-            -1.03239751e-01,  3.94104769e-01, -7.07802915e-02,
-            3.50998996e-01, -2.38010157e-02, -6.82391788e-01, -0.03352679;
+    m_rr_swinging_x.resize(12);
+    m_rr_swinging_x << 0.00580415, 0.02782015, 0.44224174,
+                       -0.66931282, 0.14647178, -0.49006852,
+                       0.14150115,  0.51284002, -0.11883361,
+                       -0.25752218, -0.35263594, 0.31415006;
+    m_rr_swinging_y.resize(12);
+    m_rr_swinging_y << 0.00845576, -0.01507626,  0.06071777,
+                       0.139385, -1.69421209, 0.23205075,
+                       0.55351303, -0.42233337,  0.19220614,
+                       -0.1531297, -0.35902625, -0.02091745;
 }
 
 /**
- * Footstep prediction for first step.
+ * Motion prediction.
  *
  * @param p_previousVelocityX
  * @param p_previousVelocityY
@@ -256,7 +112,7 @@ void Model::setModelsCoefficients() {
  * @param p_currentFeetConfiguration
  * @param p_predictions
  */
-void Model::predictFirstStep(double p_previousVelocityX,
+void Model::motionPrediction(double p_previousVelocityX,
                              double p_previousVelocityY,
                              double p_previousAngularVelocity,
                              double p_nextVelocityX,
@@ -265,17 +121,10 @@ void Model::predictFirstStep(double p_previousVelocityX,
                              const geometry_msgs::Twist &p_odomVelocityState,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              std::vector<double> &p_predictions) {
-    Eigen::VectorXd l_modelInput(19);
+    Eigen::VectorXd l_modelInput(12);
     l_modelInput << p_previousVelocityX,
-                    p_previousVelocityY,
-                    p_previousAngularVelocity,
                     p_nextVelocityX,
-                    p_nextVelocityY,
-                    p_nextAngularVelocity,
                     p_odomVelocityState.linear.x,
-                    p_odomVelocityState.linear.y,
-                    p_odomVelocityState.linear.z,
-                    p_odomVelocityState.angular.z,
                     p_currentFeetConfiguration.flCoM.x,
                     p_currentFeetConfiguration.flCoM.y,
                     p_currentFeetConfiguration.frCoM.x,
@@ -286,125 +135,55 @@ void Model::predictFirstStep(double p_previousVelocityX,
                     p_currentFeetConfiguration.rrCoM.y,
                     1;
 
-    ROS_INFO_STREAM("Input (first): " << l_modelInput);
+    ROS_INFO_STREAM("Input: " << l_modelInput);
 
     if (p_currentFeetConfiguration.fr_rl_swinging) {
+        // CoM prediction
         p_predictions[0] = m_fr_rl_com_x_fs * l_modelInput;
         p_predictions[1] = 0.0;
 
+        // FL prediction
         p_predictions[2] = 0.0;
         p_predictions[3] = 0.0;
 
+        // FR prediction
         p_predictions[4] = m_fr_swinging_x_fs * l_modelInput;
         p_predictions[5] = 0.0;
 
+        // RL prediction
         p_predictions[6] = m_rl_swinging_x_fs * l_modelInput;
         p_predictions[7] = 0.0;
 
+        // RR prediction
         p_predictions[8] = 0.0;
         p_predictions[9] = 0.0;
 
-        p_predictions[10] = m_fr_rl_com_theta_fs * l_modelInput;
+        // Theta (CoM) prediction
+        p_predictions[10] = 0.0;
     }
     else {
+        // CoM prediction
         p_predictions[0] = m_fl_rr_com_x_fs * l_modelInput;
         p_predictions[1] = 0.0;
 
+        // FL prediction
         p_predictions[2] = m_fl_swinging_x_fs * l_modelInput;
         p_predictions[3] = 0.0;
 
+        // FR prediction
         p_predictions[4] = 0.0;
         p_predictions[5] = 0.0;
 
+        // RL prediction
         p_predictions[6] = 0.0;
         p_predictions[7] = 0.0;
 
+        // RR prediction
         p_predictions[8] = m_rr_swinging_x_fs * l_modelInput;
         p_predictions[9] = 0.0;
 
-        p_predictions[10] = m_fl_rr_com_theta_fs * l_modelInput;
-    }
-}
-
-/**
- * Footstep prediction for 
- * second step onwards
- *
- * @param p_previousVelocityX
- * @param p_previousVelocityY
- * @param p_previousAngularVelocity
- * @param p_nextVelocityX
- * @param p_nextVelocityY
- * @param p_nextAngularVelocity
- * @param p_currentFeetConfiguration
- * @param p_predictions
- */
-void Model::predictOnwardSteps(double p_previousVelocityX,
-                               double p_previousVelocityY,
-                               double p_previousAngularVelocity,
-                               double p_nextVelocityX,
-                               double p_nextVelocityY,
-                               double p_nextAngularVelocity,
-                               const FeetConfiguration &p_currentFeetConfiguration,
-                               std::vector<double> &p_predictions) {
-    Eigen::VectorXd l_modelInput(15);
-    l_modelInput << p_previousVelocityX,
-                    p_previousVelocityY,
-                    p_previousAngularVelocity,
-                    p_nextVelocityX,
-                    p_nextVelocityY,
-                    p_nextAngularVelocity,
-                    p_currentFeetConfiguration.flCoM.x,
-                    p_currentFeetConfiguration.flCoM.y,
-                    p_currentFeetConfiguration.frCoM.x,
-                    p_currentFeetConfiguration.frCoM.y,
-                    p_currentFeetConfiguration.rlCoM.x,
-                    p_currentFeetConfiguration.rlCoM.y,
-                    p_currentFeetConfiguration.rrCoM.x,
-                    p_currentFeetConfiguration.rrCoM.y,
-                    1;
-
-    ROS_DEBUG_STREAM("Input (onward): " << l_modelInput);
-
-    if (p_currentFeetConfiguration.fr_rl_swinging) {
-        p_predictions[0] = m_fr_rl_com_x * l_modelInput;
-        p_predictions[1] = 0.0;
-
-        p_predictions[2] = 0.0;
-        p_predictions[3] = 0.0;
-
-        p_predictions[4] = m_fr_swinging_x * l_modelInput;
-        // p_predictions[5] = m_fr_swinging_y * l_modelInput;
-        p_predictions[5] = 0.0;
-
-        p_predictions[6] = m_rl_swinging_x * l_modelInput;
-        // p_predictions[7] = m_rl_swinging_y * l_modelInput;
-        p_predictions[7] = 0.0;
-
-        p_predictions[8] = 0.0;
-        p_predictions[9] = 0.0;
-
-        p_predictions[10] = m_fr_rl_com_theta * l_modelInput;
-    }
-    else {
-        p_predictions[0] = m_fl_rr_com_x * l_modelInput;
-        p_predictions[1] = 0.0;
-
-        p_predictions[2] = m_fl_swinging_x * l_modelInput;
-        // p_predictions[3] = m_fl_swinging_y * l_modelInput;
-        p_predictions[3] = 0.0;
-
-        p_predictions[4] = 0.0;
-        p_predictions[5] = 0.0;
-
-        p_predictions[6] = 0.0;
-        p_predictions[7] = 0.0;
-
-        p_predictions[8] = m_rr_swinging_x * l_modelInput;
-        // p_predictions[9] = m_rr_swinging_y * l_modelInput;
-        p_predictions[9] = 0.0;
-
-        p_predictions[10] = m_fl_rr_com_theta * l_modelInput;
+        // Theta (CoM) prediction
+        p_predictions[10] = 0.0;
     }
 }
 
@@ -444,7 +223,6 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
     // Compute quaternion representation of predicted rotation
     tf2::Quaternion l_velocityCommandQuaternion;
     //l_velocityCommandQuaternion.setRPY(0, 0, p_predictedCoMDisplacementTheta);
-    l_velocityCommandQuaternion.setRPY(0, 0, 0);
 
     // Apply predicted quaternion rotation to
     // current CoM's rotation in world frame
@@ -465,9 +243,7 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
                                         const std::vector<double> &p_predictions,
                                         const FeetConfiguration &p_currentFeetConfiguration,
                                         FeetConfiguration &p_newFeetConfiguration) {
-    //TODO: should use the old rotation
-
-    // Get rotation matrix of 
+    // Get rotation matrix of
     // the base w.r.t world
     Eigen::Quaterniond q;
     q.x() = p_newWorldCoordinatesCoM.q.x();
@@ -550,27 +326,15 @@ void Model::predictNextState(uint p_plannedFootstep,
                              World3D &p_newWorldCoordinatesCoM) {
     std::vector<double> l_predictions(11);
 
-    if (p_plannedFootstep == 0) {
-        predictFirstStep(p_action.x * p_previousVelocity,
-                         p_action.y * p_previousVelocity,
-                         p_action.theta * p_previousVelocity,
-                         p_action.x * p_nextVelocity,
-                         p_action.y * p_nextVelocity,
-                         p_action.theta * p_nextVelocity,
-                         p_odomVelocityState,
-                         p_currentFeetConfiguration,
-                         l_predictions);
-    }
-    else {
-        predictOnwardSteps(p_action.x * p_previousVelocity,
-                           p_action.y * p_previousVelocity,
-                           p_action.theta * p_previousVelocity,
-                           p_action.x * p_nextVelocity,
-                           p_action.y * p_nextVelocity,
-                           p_action.theta * p_nextVelocity,
-                           p_currentFeetConfiguration,
-                           l_predictions);
-    }
+    motionPrediction(p_action.x * p_previousVelocity,
+                     p_action.y * p_previousVelocity,
+                     p_action.theta * p_previousVelocity,
+                     p_action.x * p_nextVelocity,
+                     p_action.y * p_nextVelocity,
+                     p_action.theta * p_nextVelocity,
+                     p_odomVelocityState,
+                     p_currentFeetConfiguration,
+                     l_predictions);
 
     ROS_DEBUG_STREAM("Prev Velocity: " << p_previousVelocity);
     ROS_DEBUG_STREAM("Next Velocity: " << p_nextVelocity);
