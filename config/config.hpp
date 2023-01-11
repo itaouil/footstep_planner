@@ -72,7 +72,7 @@ const float BACK_IN_CONTACT_FORCE(20.0);
 const float BACK_IN_CONTACT_HEIGHT(0.02);
 
 // Elevation map layer to use
-const std::string ELEVATION_LAYER("median");
+const std::string ELEVATION_LAYER("elevation");
 
 // Scenario
 const std::string SCENARIO("n-gaps");

@@ -24,7 +24,7 @@ import message_filters
 # ROS msgs imports
 from std_msgs.msg import Bool
 from geometry_msgs.msg import TwistStamped
-from unitree_legged_msgs.msg import HighStateStamped, HighCmdStamped
+from unitree_legged_msgs.msg import HighStateStamped
 
 # Global flags (footstep extraction)
 first_footstep = True
@@ -32,17 +32,18 @@ prev_footstep_time = None
 prev_footstep_flag = False
 
 # Global parameters (footstep extraction)
+velocities = []
 cmd_cache = None
 publisher = None
 fl_max_height = 0
 fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
-in_between_vel = []
+accelerometer = []
 
 # Global variables
-path = "/home/ilyass/workspace/catkin_ws/src/footstep_planner/data/dataset_real/gianpaolo/step_0.10/force"
-file_object = open(path + "/forward_accelerations_sharp.csv", "a")
+path = "/home/user/ros_ws"
+file_object = open(path + "/fail.csv", "a")
 
 # Output
 output = []
@@ -77,33 +78,24 @@ def valid_footstep(footholds_msg):
     # Get force threshold and height threshold
     height_threshold = rospy.get_param("/height_threshold")
 
-    # Acquire heights
+    # Acquire front feet heights
     fl_height = footholds_msg.footPosition2Body[1].z
     fr_height = footholds_msg.footPosition2Body[0].z
-    rl_height = footholds_msg.footPosition2Body[3].z
-    rr_height = footholds_msg.footPosition2Body[2].z
 
-    # Acquire feet forces
+    # Acquire front feet forces
     fl_force = footholds_msg.footForce[1]
     fr_force = footholds_msg.footForce[0]
-    rl_force = footholds_msg.footForce[3]
-    rr_force = footholds_msg.footForce[2]
 
-    # Update recorded max heights for each foot
+    # Update recorded front feet heights
     fl_max_height = max(fl_max_height, fl_height)
     fr_max_height = max(fr_max_height, fr_height)
-    rl_max_height = max(rl_max_height, rl_height)
-    rr_max_height = max(rr_max_height, rr_height)
 
-    # Compute feet height difference booleans
-    front_height_difference_in_range = abs(fl_height - fr_height) < height_threshold
-    hind_height_difference_in_range = abs(rl_height - rr_height) < height_threshold
-
-    # Force condition check
-    force_condition = fl_force > 20 and fr_force > 20 and rl_force > 20 and rr_force > 20
+    # Footstep conditions check
+    footstep_force_condition = fl_force > 20 and fr_force > 20
+    footstep_height_condition = abs(fl_height - fr_height) < height_threshold
 
     # Check if footstep detected or not
-    if hind_height_difference_in_range and front_height_difference_in_range and force_condition:
+    if footstep_force_condition and footstep_height_condition:
         if first_footstep:
             footstep.data = True
             first_footstep = False
@@ -118,79 +110,52 @@ def valid_footstep(footholds_msg):
         footstep.data = False
         prev_footstep_flag = False
 
-    # Check that the feet motion that
-    # brought the footstep is regular
-    fl_moving, fr_moving, rl_moving, rr_moving = None, None, None, None
+    # Check which feet swung
+    fl_rr_moving, fr_rl_moving = None, None
     if footstep.data:
-        # Compute booleans indicating which feet
-        # are swinging based on height comparison
-        # (swinging feet need to be diagonally
-        # opposite)
-        fl_moving = fl_max_height > fr_max_height
-        fr_moving = fr_max_height > fl_max_height
-        rl_moving = rl_max_height > rr_max_height
-        rr_moving = rr_max_height > rl_max_height
-
-        # Get max heights reached in the motion
-        max_heights_sorted = sorted([fl_max_height, fr_max_height, rl_max_height, rr_max_height], reverse=True)
-        swing1_max_height = max_heights_sorted[0]
-        swing2_max_height = max_heights_sorted[1]
-
-        # Compute booleans for swinging and max height conditions
-        swinging_condition = fr_moving != fl_moving and rl_moving != rr_moving and fr_moving == rl_moving and fl_moving == rr_moving
-        max_heights_condition = swing1_max_height > -0.32 and swing2_max_height > -0.32
-
-        if not swinging_condition or not max_heights_condition:
-            footstep.data = False
-            if not max_heights_condition:
-                print("Invalid max height condition")
-                print(swing1_max_height, swing2_max_height)
-            if not swinging_condition:
-                print("Invalid swinging condition")
-                print(fl_moving, fr_moving, rl_moving, rr_moving, fl_max_height, fr_max_height, rl_max_height,
-                      rr_max_height)
-
-        # Clean max height variable if footstep detected
+        fl_rr_moving = True if fl_max_height > fr_max_height else False
+        fr_rl_moving = True if fr_max_height > fl_max_height else False
+        print(fl_rr_moving, fr_rl_moving, fl_max_height, fr_max_height)
         clean_max_heights()
 
     publisher.publish(footstep)
-
     rospy.set_param("/feet_in_contact", footstep.data)
-
-    return footstep.data, fl_moving, fr_moving, rl_moving, rr_moving
+    return footstep.data, fl_rr_moving, fr_rl_moving
 
 
 def live_extraction(state):
     # Globals
     global output
     global cmd_cache
+    global velocities
     global file_object
-    global in_between_vel
+    global accelerometer
 
-    # Check at this time a valid footstep is detected
-    is_valid_footstep, fl_moving, fr_moving, rl_moving, rr_moving = valid_footstep(state)
+    # Check if at this time a valid footstep is detected
+    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
 
     # Get synced command with cache
     cmd = cmd_cache.getElemBeforeTime(state.header.stamp)
 
     if not cmd:
-        print("Invalid command")
         return
 
-    # If not a valid footstep, skip callback
     if not is_valid_footstep:
-        in_between_vel.append(state.velocity)
+        velocities.append([state.velocity[0], state.velocity[1], state.velocity[2], state.yawSpeed])
+        accelerometer.append([state.imu.accelerometer[0], state.imu.accelerometer[1], state.imu.accelerometer[2]])
         return
 
-    in_between_vel_np = np.array(in_between_vel)
-    in_between_vel.clear()
-    in_between_vel_np_mean = np.mean(in_between_vel_np, axis=0)
+    # Compute mean velocity
+    velocities_np_mean = np.asarray(velocities).mean(axis=0)
+
+    # Compute mean accelerometer data
+    accelerometer_np_mean = np.asarray(accelerometer).mean(axis=0)
 
     file_object.write(str(time.time()) + "," +  # 0
 
                       str(cmd.twist.linear.x) + "," +  # 1
                       str(cmd.twist.linear.y) + "," +  # 2
-                      str(cmd.twist.angular.z) + "," +     # 3
+                      str(cmd.twist.angular.z) + "," +  # 3
 
                       str(state.footPosition2Body[1].x) + "," +  # 4
                       str(state.footPosition2Body[1].y) + "," +  # 5
@@ -231,29 +196,35 @@ def live_extraction(state):
                       str(state.footForce[0]) + "," +  # 36
                       str(state.footForce[3]) + "," +  # 37
                       str(state.footForce[2]) + "," +  # 38
-                      str(in_between_vel_np_mean[0]) + "," +  # 39
-                      str(in_between_vel_np_mean[1]) + "," +  # 40
-                      str(in_between_vel_np_mean[2]) + "," +  # 41
-                      str(0) + "," +  # 42
-                      str(0) + "," +  # 43
-                      str(0) + "," +  # 44
-                      str(0) + "," +  # 45
-                      str(0) + "," +  # 46
-                      str(0) + "," +  # 47
 
-                      str(state.imu.quaternion[0]) + "," + # 48
-                      str(state.imu.quaternion[1]) + "," + # 49
-                      str(state.imu.quaternion[2]) + "," + # 50
-                      str(state.imu.quaternion[3]) + "," + # 51
+                      str(state.imu.quaternion[0]) + "," +  # 39
+                      str(state.imu.quaternion[1]) + "," +  # 40
+                      str(state.imu.quaternion[2]) + "," +  # 41
+                      str(state.imu.quaternion[3]) + "," +  # 42
 
-                      str(state.imu.rpy[0]) + "," + # 52
-                      str(state.imu.rpy[1]) + "," + # 53
-                      str(state.imu.rpy[2]) + "," + # 54
+                      str(state.imu.rpy[0]) + "," +  # 43
+                      str(state.imu.rpy[1]) + "," +  # 44
+                      str(state.imu.rpy[2]) + "," +  # 45
 
-                      str(fl_moving) + "," +  # 55
-                      str(fr_moving) + "," +  # 56
-                      str(rl_moving) + "," +  # 57
-                      str(rr_moving) + "\n")  # 58
+                      str(velocities_np_mean[0]) + "," +  # 46
+                      str(velocities_np_mean[1]) + "," +  # 47
+                      str(velocities_np_mean[2]) + "," +  # 48
+                      str(velocities_np_mean[3]) + "," +  # 49
+
+                      str(accelerometer_np_mean[0]) + "," +  # 50
+                      str(accelerometer_np_mean[1]) + "," +  # 51
+                      str(accelerometer_np_mean[2]) + "," +  # 52
+
+                      str(state.imu.accelerometer[0]) + "," +  # 53
+                      str(state.imu.accelerometer[1]) + "," +  # 54
+                      str(state.imu.accelerometer[2]) + "," +  # 55
+
+                      str(fl_rr_moving) + "," +  # 56
+                      str(fr_rl_moving) + "," +  # 57
+                      str(2) + "\n")  # 58
+
+    velocities = []
+    accelerometer = []
 
 
 def main():
