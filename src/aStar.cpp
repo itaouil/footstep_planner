@@ -503,7 +503,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     Action{0, 0, 0},
                                                                     l_targetGridCoordinates,
                                                                     p_targetWorldCoordinates,
-                                                                    l_newFeetConfiguration}) << ". Distance: " << l_feetDistanceCost);
+                                                                    l_newFeetConfiguration}));
                 } else if ((l_currentNode->G + 1) < successor->G) {
                     successor->G = l_currentNode->G + 1;
                     successor->action = m_actions[i];

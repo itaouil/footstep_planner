@@ -183,6 +183,9 @@ private:
     //! Path planned
     std::vector<Node> m_path;
 
+    //! Previous path planned
+    std::vector<Node> m_previousPath;
+
     //! Commanded velocities
     std::vector<float> m_velocities;
     
