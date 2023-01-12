@@ -164,6 +164,8 @@ void Planner::plan(std::vector<Node> &p_path,
     FeetConfiguration l_feetConfiguration;
     getFeetConfiguration(p_swingingPair, p_robotPose, l_feetConfiguration, p_latestCoMFeetPoses);
 
+    ROS_INFO_STREAM("FL map input: " << l_feetConfiguration.flMap.x << ". FR map input: " << l_feetConfiguration.frMap.x);
+
     // Clear reference path
     p_path.clear();
 

@@ -411,7 +411,7 @@ void Navigation::executeHighLevelCommands() {
 
                 if (SCENARIO == "gaps") {
                     if (l_swingingFeetOutOfContact) {
-                            if (std::abs(l_lfHeightZ - l_rfHeightZ) <= BACK_IN_CONTACT_HEIGHT && std::abs(l_lhHeightZ - l_rhHeightZ) <= BACK_IN_CONTACT_HEIGHT) {
+                            if (std::abs(l_lfHeightZ - l_rfHeightZ) <= BACK_IN_CONTACT_HEIGHT) {
                                 l_feetInContact = true;
                             }
                     }

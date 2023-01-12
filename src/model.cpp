@@ -139,7 +139,7 @@ void Model::motionPrediction(double p_previousVelocityX,
 
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         // CoM prediction
-        p_predictions[0] = m_fr_rl_com_x_fs * l_modelInput;
+        p_predictions[0] = m_fr_rl_com_x * l_modelInput;
         p_predictions[1] = 0.0;
 
         // FL prediction
@@ -147,11 +147,11 @@ void Model::motionPrediction(double p_previousVelocityX,
         p_predictions[3] = 0.0;
 
         // FR prediction
-        p_predictions[4] = m_fr_swinging_x_fs * l_modelInput;
+        p_predictions[4] = m_fr_swinging_x * l_modelInput;
         p_predictions[5] = 0.0;
 
         // RL prediction
-        p_predictions[6] = m_rl_swinging_x_fs * l_modelInput;
+        p_predictions[6] = m_rl_swinging_x * l_modelInput;
         p_predictions[7] = 0.0;
 
         // RR prediction
@@ -163,11 +163,11 @@ void Model::motionPrediction(double p_previousVelocityX,
     }
     else {
         // CoM prediction
-        p_predictions[0] = m_fl_rr_com_x_fs * l_modelInput;
+        p_predictions[0] = m_fl_rr_com_x * l_modelInput;
         p_predictions[1] = 0.0;
 
         // FL prediction
-        p_predictions[2] = m_fl_swinging_x_fs * l_modelInput;
+        p_predictions[2] = m_fl_swinging_x * l_modelInput;
         p_predictions[3] = 0.0;
 
         // FR prediction
@@ -179,7 +179,7 @@ void Model::motionPrediction(double p_previousVelocityX,
         p_predictions[7] = 0.0;
 
         // RR prediction
-        p_predictions[8] = m_rr_swinging_x_fs * l_modelInput;
+        p_predictions[8] = m_rr_swinging_x * l_modelInput;
         p_predictions[9] = 0.0;
 
         // Theta (CoM) prediction
