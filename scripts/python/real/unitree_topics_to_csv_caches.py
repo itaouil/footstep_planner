@@ -33,8 +33,8 @@ prev_footstep_flag = False
 
 # Global parameters (footstep extraction)
 velocities = []
-cmd_cache = None
 publisher = None
+state_cache = None
 fl_max_height = 0
 fr_max_height = 0
 rl_max_height = 0
@@ -43,7 +43,7 @@ accelerometer = []
 
 # Global variables
 path = "/home/user/ros_ws"
-file_object = open(path + "/fail.csv", "a")
+file_object = open(path + "/accelerations.csv", "a")
 
 # Output
 output = []
@@ -123,22 +123,17 @@ def valid_footstep(footholds_msg):
     return footstep.data, fl_rr_moving, fr_rl_moving
 
 
-def live_extraction(state):
+def live_extraction(cmd):
     # Globals
     global output
-    global cmd_cache
+    global state_cache
     global velocities
     global file_object
     global accelerometer
 
     # Check if at this time a valid footstep is detected
+    state = state_cache.getElemBeforeTime(cmd.header.stamp)
     is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
-
-    # Get synced command with cache
-    cmd = cmd_cache.getElemBeforeTime(state.header.stamp)
-
-    if not cmd:
-        return
 
     if not is_valid_footstep:
         velocities.append([state.velocity[0], state.velocity[1], state.velocity[2], state.yawSpeed])
@@ -230,7 +225,7 @@ def live_extraction(state):
 def main():
     # Globals
     global publisher
-    global cmd_cache
+    global state_cache
 
     print("Starting node")
 
@@ -242,10 +237,10 @@ def main():
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
-    cmd_sub = message_filters.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, queue_size=1)
-    cmd_cache = message_filters.Cache(cmd_sub, 100)
+    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped, queue_size=100)
+    state_cache = message_filters.Cache(state_sub, 1000)
 
-    rospy.Subscriber("/aliengo_bridge/high_state", HighStateStamped, live_extraction, queue_size=1)
+    rospy.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, live_extraction, queue_size=1)
 
     rospy.spin()
 
