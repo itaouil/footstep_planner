@@ -290,7 +290,12 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-   ros::Duration(7).sleep();
+    // Start cmd publisher if not running
+    if (!m_startedCmdPublisher) {
+        startCmdPublisher();
+    }
+
+    ros::Duration(9).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -411,16 +416,16 @@ void Navigation::executeHighLevelCommands() {
 
                 if (SCENARIO == "gaps") {
                     if (l_swingingFeetOutOfContact) {
-                            ROS_INFO_STREAM("Left height: " << std::abs(l_lfHeightZ - l_lhHeightZ));
-                            ROS_INFO_STREAM("Right height: " << std::abs(l_rfHeightZ - l_rhHeightZ));
-                            ROS_INFO_STREAM("Forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
+                            ROS_DEBUG_STREAM("Left height: " << std::abs(l_lfHeightZ - l_lhHeightZ));
+                            ROS_DEBUG_STREAM("Right height: " << std::abs(l_rfHeightZ - l_rhHeightZ));
+                            ROS_DEBUG_STREAM("Forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
                             if (std::abs(l_lfHeightZ - l_lhHeightZ) <= BACK_IN_CONTACT_HEIGHT &&
                                 std::abs(l_rfHeightZ - l_rhHeightZ) <= BACK_IN_CONTACT_HEIGHT && 
                                 l_lfForceZ > BACK_IN_CONTACT_FORCE &&
                                 l_rfForceZ > BACK_IN_CONTACT_FORCE && 
                                 l_lhForceZ > BACK_IN_CONTACT_FORCE &&
                                 l_rhForceZ > BACK_IN_CONTACT_FORCE) {
-                                l_feetInContact = false;
+                                l_feetInContact = true;
                             }
                     }
                 }

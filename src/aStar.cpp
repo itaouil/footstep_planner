@@ -513,12 +513,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                     successor->gridCoordinates = l_newGridCoordinatesCoM;
                     successor->worldCoordinates = l_newWorldCoordinatesCoM;
                     successor->feetConfiguration = l_newFeetConfiguration;
-                    // successor->H = AStar::Heuristic::euclidean(*successor,
-                    //                                            Node{0,
-                    //                                                 Action{0, 0, 0},
-                    //                                                 l_targetGridCoordinates,
-                    //                                                 p_targetWorldCoordinates,
-                    //                                                 l_newFeetConfiguration}) + l_feetDistanceCost;
                     successor->H = AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
                                                                     Action{0, 0, 0},
