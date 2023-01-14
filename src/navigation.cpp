@@ -46,7 +46,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
     if (ACQUIRE_INITIAL_HEIGHT_MAP) buildInitialHeightMap();
 
     m_cmdPubThread = std::thread(&Navigation::cmdPublisher, this);
-    // m_predFeetThread = std::thread(&Navigation::publishOnlinePredictedFootsteps, this);
+    m_predFeetThread = std::thread(&Navigation::publishOnlinePredictedFootsteps, this);
 }
 
 /**
@@ -57,9 +57,9 @@ Navigation::~Navigation() {
         m_cmdPubThread.join();
     }
 
-    // if (m_predFeetThread.joinable()) {
-    //     m_predFeetThread.join();
-    // }
+    if (m_predFeetThread.joinable()) {
+        m_predFeetThread.join();
+    }
 }
 
 /**
