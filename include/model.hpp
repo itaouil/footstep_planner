@@ -91,7 +91,7 @@ public:
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
-    void motionPrediction(double p_previousVelocityX,
+    void predictFirstStep(double p_previousVelocityX,
                           double p_previousVelocityY,
                           double p_previousAngularVelocity,
                           double p_nextVelocityX,
