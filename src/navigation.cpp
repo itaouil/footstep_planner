@@ -295,7 +295,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
         startCmdPublisher();
     }
 
-    ros::Duration(9).sleep();
+    ros::Duration(10).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {

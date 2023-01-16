@@ -147,7 +147,8 @@ void Planner::plan(std::vector<Node> &p_path,
     // Starting position
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(p_robotPose.pose.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{p_robotPose.pose.pose.position.x,
+    World3D l_worldStartPosition{p_robotPose.twist.twist.linear.x,
+                                 p_robotPose.pose.pose.position.x,
                                  p_robotPose.pose.pose.position.y,
                                  p_robotPose.pose.pose.position.z,
                                  l_startPositionQuaternion};
@@ -155,7 +156,8 @@ void Planner::plan(std::vector<Node> &p_path,
     // Goal position
     tf2::Quaternion l_goalPositionQuaternion;
     tf2::convert(p_goalPosition.pose.orientation, l_goalPositionQuaternion);
-    World3D l_worldGoalPosition{p_goalPosition.pose.position.x,
+    World3D l_worldGoalPosition{0.0,
+                                p_goalPosition.pose.position.x,
                                 p_goalPosition.pose.position.y,
                                 0,
                                 l_goalPositionQuaternion};
@@ -174,7 +176,6 @@ void Planner::plan(std::vector<Node> &p_path,
                       p_initialVelocity,
                       l_worldStartPosition,
                       l_worldGoalPosition,
-                      p_robotPose.twist.twist,
                       l_feetConfiguration,
                       p_path);
     auto stop = high_resolution_clock::now();

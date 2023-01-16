@@ -244,7 +244,6 @@ void AStar::Search::setFeetConfigurationMapFields(const World3D &p_newCoMWorldCo
  * @param p_initialVelocity
  * @param p_sourceWorldCoordinates
  * @param p_targetWorldCoordinates
- * @param p_odomVelocityState
  * @param p_sourceFeetConfiguration
  * @param p_path
  */
@@ -252,7 +251,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                              const double &p_initialVelocity,
                              const World3D &p_sourceWorldCoordinates,
                              const World3D &p_targetWorldCoordinates,
-                             const geometry_msgs::Twist &p_odomVelocityState,
                              const FeetConfiguration &p_sourceFeetConfiguration,
                              std::vector<Node> &p_path) {
     // Store initial idle feet configuration
@@ -303,11 +301,20 @@ void AStar::Search::findPath(const Action &p_initialAction,
         // Find next node to expand
         for (auto it = l_openSet.begin(); it != l_openSet.end(); it++) {
             auto l_iteratorNode = *it;
+
+            ROS_INFO_STREAM("Velocity: " << l_iteratorNode->worldCoordinates.v);
+            ROS_INFO_STREAM("H: " << l_iteratorNode->H);
+            ROS_INFO_STREAM("G: " << l_iteratorNode->G);
+            ROS_INFO_STREAM("Score: " << l_iteratorNode->getScore() << "\n");
+
             if (l_iteratorNode->getScore() <= l_currentNode->getScore()) {
                 l_currentNode = l_iteratorNode;
                 l_iterator = it;
             }
         }
+
+        ROS_INFO_STREAM("Chosen Velocity: " << l_currentNode->worldCoordinates.v);
+        ROS_INFO_STREAM("Chosen Score: " << l_currentNode->getScore());
 
         ROS_DEBUG_STREAM(
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
@@ -363,11 +370,12 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_currentNode->velocity,
                                          l_nextVelocity,
                                          m_actions[i],
-                                         p_odomVelocityState,
                                          l_currentNode->worldCoordinates,
                                          l_currentNode->feetConfiguration,
                                          l_newFeetConfiguration,
                                          l_newWorldCoordinatesCoM);
+
+                ROS_INFO_STREAM("hEEEEEY: " << l_newWorldCoordinatesCoM.v);
 
                 Vec2D l_newGridCoordinatesCoM{};
                 AStar::Search::worldToGrid(l_newWorldCoordinatesCoM, l_newGridCoordinatesCoM);
@@ -417,7 +425,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                l_rlGridPose.x,
                                                                l_rlGridPose.y,
                                                                l_hindFootDistance)) {
-                        ROS_DEBUG_STREAM("Invalid FR/RL Footstep");
+                        ROS_INFO_STREAM("Invalid FR/RL Footstep");
                         continue;
                     }
                 } else {
@@ -431,7 +439,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                l_rrGridPose.x,
                                                                l_rrGridPose.y,
                                                                l_hindFootDistance)) {
-                        ROS_DEBUG_STREAM("Invalid FL/RR Footstep");
+                        ROS_INFO_STREAM("Invalid FL/RR Footstep");
                         continue;
                     }
                 }
@@ -483,7 +491,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
                                          l_currentNode);
-                    successor->G = l_currentNode->G + 1;
+                    // successor->G = l_currentNode->G + 1;
+                    successor->G = 0;
                     successor->velocity = l_nextVelocity;
                     // successor->H = AStar::Heuristic::euclidean(*successor,
                     //                                            Node{0,
@@ -498,14 +507,15 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration});
                     l_openSet.push_back(successor);
-                    ROS_DEBUG_STREAM("Euclidean: " << AStar::Heuristic::euclidean(*successor,
+                    ROS_INFO_STREAM("Euclidean: " << AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
                                                                     Action{0, 0, 0},
                                                                     l_targetGridCoordinates,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration}));
                 } else if ((l_currentNode->G + 1) < successor->G) {
-                    successor->G = l_currentNode->G + 1;
+                    // successor->G = l_currentNode->G + 1;
+                    successor->G = 0;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;

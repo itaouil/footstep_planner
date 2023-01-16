@@ -99,7 +99,7 @@ public:
                            double p_nextVelocityX,
                            double p_nextVelocityY,
                            double p_nextAngularVelocity,
-                           const geometry_msgs::Twist &p_odomVelocityState,
+                           const double &p_baseVelocity,
                            const FeetConfiguration &p_currentFeetConfiguration,
                            std::vector<double> &p_predictions);
 
@@ -121,7 +121,7 @@ public:
                               double p_nextVelocityX,
                               double p_nextVelocityY,
                               double p_nextAngularVelocity,
-                              const geometry_msgs::Twist &p_odomVelocityState,
+                              double p_baseVelocity,
                               const FeetConfiguration &p_currentFeetConfiguration);
 
     /**
@@ -136,13 +136,15 @@ public:
     /**
      * Compute new CoM in world coordinates.
      *
+     * @param p_predictedCoMVelocity
      * @param p_predictedCoMDisplacementX
      * @param p_predictedCoMDisplacementY
      * @param p_predictedCoMDisplacementTheta,
      * @param p_currentWorldCoordinatesCoM
      * @param p_newWorldCoordinatesCoM
      */
-    void computeNewCoM(double p_predictedCoMDisplacementX,
+    void computeNewCoM(double p_predictedCoMVelocity,
+                       double p_predictedCoMDisplacementX,
                        double p_predictedCoMDisplacementY,
                        double p_predictedCoMDisplacementTheta,
                        const World3D &p_currentWorldCoordinatesCoM,
@@ -182,7 +184,6 @@ public:
                           double p_previousVelocity,
                           double p_currentVelocity,
                           const Action &p_action,
-                          const geometry_msgs::Twist &p_odomVelocityState,
                           const World3D &p_currentWorldCoordinatesCoM,
                           const FeetConfiguration &p_currentFeetConfiguration,
                           FeetConfiguration &p_newFeetConfiguration,

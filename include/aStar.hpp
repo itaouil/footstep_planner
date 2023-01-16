@@ -70,7 +70,6 @@ namespace AStar {
                       const double &p_initialVelocity,
                       const World3D &p_sourceWorldCoordinates,
                       const World3D &p_targetWorldCoordinates,
-                      const geometry_msgs::Twist &p_odomVelocityState,
                       const FeetConfiguration &p_sourceFeetConfiguration,
                       std::vector<Node> &p_path);
 

@@ -13,6 +13,9 @@
   */
 struct World3D
 {
+    //! CoM velocity
+    double v{};
+
     //! X position in the world
     double x{};
 
