@@ -81,6 +81,7 @@ public:
     /**
      * Motion prediction.
      *
+     * @param p_plannedHorizon
      * @param p_previousVelocityX
      * @param p_previousVelocityY
      * @param p_previousAngularVelocity
@@ -91,18 +92,19 @@ public:
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
-    void predictFirstStep(double p_previousVelocityX,
-                          double p_previousVelocityY,
-                          double p_previousAngularVelocity,
-                          double p_nextVelocityX,
-                          double p_nextVelocityY,
-                          double p_nextAngularVelocity,
-                          const geometry_msgs::Twist &p_odomVelocityState,
-                          const FeetConfiguration &p_currentFeetConfiguration,
-                          std::vector<double> &p_predictions);
+     void motionPrediction(uint p_plannedHorizon,
+                           double p_previousVelocityX,
+                           double p_previousVelocityY,
+                           double p_previousAngularVelocity,
+                           double p_nextVelocityX,
+                           double p_nextVelocityY,
+                           double p_nextAngularVelocity,
+                           const geometry_msgs::Twist &p_odomVelocityState,
+                           const FeetConfiguration &p_currentFeetConfiguration,
+                           std::vector<double> &p_predictions);
 
     /**
-     * Footstep prediction for after second step
+     * Predict next velocity.
      *
      * @param p_previousVelocityX
      * @param p_previousVelocityY
@@ -112,20 +114,19 @@ public:
      * @param p_nextAngularVelocity
      * @param p_odomVelocityState
      * @param p_currentFeetConfiguration
-     * @param p_predictions
      */
-    void predictOnwardSteps(double p_previousVelocityX,
-                            double p_previousVelocityY,
-                            double p_previousAngularVelocity,
-                            double p_nextVelocityX,
-                            double p_nextVelocityY,
-                            double p_nextAngularVelocity,
-                            const FeetConfiguration &p_currentFeetConfiguration,
-                            std::vector<double> &p_predictions);
+    double velocityPrediction(double p_previousVelocityX,
+                              double p_previousVelocityY,
+                              double p_previousAngularVelocity,
+                              double p_nextVelocityX,
+                              double p_nextVelocityY,
+                              double p_nextAngularVelocity,
+                              const geometry_msgs::Twist &p_odomVelocityState,
+                              const FeetConfiguration &p_currentFeetConfiguration);
 
     /**
-     * Rotate predictions accordint to
-     * robot's rotation.
+     * Rotate predictions according
+     * to robot's rotation.
      * 
      * @param l_predictions 
      * @param l_odometry 
@@ -198,7 +199,11 @@ private:
     //! Publisher for feet poses (debugging)
     ros::Publisher m_feetConfigurationPublisher;
 
-    //! CoM models' coefficients (2nd step onward)
+    //! CoM models' coefficients (velocity prediction)
+    Eigen::RowVectorXd m_fr_rl_com_velocity;
+    Eigen::RowVectorXd m_fl_rr_com_velocity;
+
+    //! CoM models' coefficients (CoM prediction)
     Eigen::RowVectorXd m_fr_rl_com_x;
     Eigen::RowVectorXd m_fr_rl_com_y;
     Eigen::RowVectorXd m_fr_rl_com_theta;
@@ -206,15 +211,7 @@ private:
     Eigen::RowVectorXd m_fl_rr_com_y;
     Eigen::RowVectorXd m_fl_rr_com_theta;
 
-    //! CoM models' coefficients (1st step only)
-    Eigen::RowVectorXd m_fr_rl_com_x_fs;
-    Eigen::RowVectorXd m_fr_rl_com_y_fs;
-    Eigen::RowVectorXd m_fr_rl_com_theta_fs;
-    Eigen::RowVectorXd m_fl_rr_com_x_fs;
-    Eigen::RowVectorXd m_fl_rr_com_y_fs;
-    Eigen::RowVectorXd m_fl_rr_com_theta_fs;
-
-    //! Feet models' coefficients (2nd step onward)
+    //! Feet models' coefficients (footstep prediction)
     Eigen::RowVectorXd m_fl_swinging_x;
     Eigen::RowVectorXd m_fl_swinging_y;
     Eigen::RowVectorXd m_fr_swinging_x;
@@ -223,14 +220,4 @@ private:
     Eigen::RowVectorXd m_rl_swinging_y;
     Eigen::RowVectorXd m_rr_swinging_x;
     Eigen::RowVectorXd m_rr_swinging_y;
-
-    //! Feet models' coefficients (1st step only)
-    Eigen::RowVectorXd m_fl_swinging_x_fs;
-    Eigen::RowVectorXd m_fl_swinging_y_fs;
-    Eigen::RowVectorXd m_fr_swinging_x_fs;
-    Eigen::RowVectorXd m_fr_swinging_y_fs;
-    Eigen::RowVectorXd m_rl_swinging_x_fs;
-    Eigen::RowVectorXd m_rl_swinging_y_fs;
-    Eigen::RowVectorXd m_rr_swinging_x_fs;
-    Eigen::RowVectorXd m_rr_swinging_y_fs;
 };
