@@ -375,8 +375,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newFeetConfiguration,
                                          l_newWorldCoordinatesCoM);
 
-                ROS_INFO_STREAM("hEEEEEY: " << l_newWorldCoordinatesCoM.v);
-
                 Vec2D l_newGridCoordinatesCoM{};
                 AStar::Search::worldToGrid(l_newWorldCoordinatesCoM, l_newGridCoordinatesCoM);
 
@@ -491,15 +489,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                          l_newWorldCoordinatesCoM,
                                          l_newFeetConfiguration,
                                          l_currentNode);
-                    // successor->G = l_currentNode->G + 1;
-                    successor->G = 0;
+                    successor->G = l_currentNode->G + 1;
                     successor->velocity = l_nextVelocity;
-                    // successor->H = AStar::Heuristic::euclidean(*successor,
-                    //                                            Node{0,
-                    //                                                 Action{0, 0, 0},
-                    //                                                 l_targetGridCoordinates,
-                    //                                                 p_targetWorldCoordinates,
-                    //                                                 l_newFeetConfiguration}) + l_feetDistanceCost;
                     successor->H = AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
                                                                     Action{0, 0, 0},
@@ -514,8 +505,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration}));
                 } else if ((l_currentNode->G + 1) < successor->G) {
-                    // successor->G = l_currentNode->G + 1;
-                    successor->G = 0;
+                    successor->G = l_currentNode->G + 1;
                     successor->action = m_actions[i];
                     successor->parent = l_currentNode;
                     successor->velocity = l_nextVelocity;
@@ -541,7 +531,6 @@ void AStar::Search::findPath(const Action &p_initialAction,
     // (i.e. the starting action as this was already executed)
     // which happens to be the root node (i.e. null parent)
     while (l_currentNode != nullptr && l_currentNode->parent != nullptr) {
-        ROS_INFO_STREAM("Velocity: " << l_currentNode->velocity << ". FL pose: " << l_currentNode->feetConfiguration.flMap.x << ". FR pose: " << l_currentNode->feetConfiguration.frMap.x);
         p_path.push_back(*l_currentNode);
         l_currentNode = l_currentNode->parent;
 
@@ -567,6 +556,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
  */
 World3D AStar::Heuristic::getDistanceDelta(const World3D &p_sourceWorldCoordinates,
                                            const World3D &p_targetWorldCoordinates) {
+
+    ROS_INFO_STREAM(p_sourceWorldCoordinates.x << ", " << p_targetWorldCoordinates.x);
+    ROS_INFO_STREAM(p_sourceWorldCoordinates.y << ", " << p_targetWorldCoordinates.y);
+
     return World3D{std::abs(p_sourceWorldCoordinates.x - p_targetWorldCoordinates.x),
                    std::abs(p_sourceWorldCoordinates.y - p_targetWorldCoordinates.y)};
 }
@@ -610,7 +603,7 @@ float AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_target
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
 
     auto l_angleHeuristic = static_cast<float>(std::abs(l_angleDelta) * 5);
-    auto l_distanceHeuristic = static_cast<float>(10 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
+    auto l_distanceHeuristic = static_cast<float>(100 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
 
     ROS_DEBUG_STREAM("Angle Delta: " << l_angleDelta);
     ROS_DEBUG_STREAM("Angle heuristic: " << l_angleHeuristic);
