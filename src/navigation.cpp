@@ -106,7 +106,7 @@ void Navigation::stopCmdPublisher() {
     m_velCmd.twist.angular.x = 0;
     m_velCmd.twist.angular.y = 0;
     m_velCmd.twist.angular.z = 0;
-    m_startedCmdPublisher = false;
+    //m_startedCmdPublisher = false;
     ROS_INFO("Navigation: Cmd publisher stopped.");
 }
 
