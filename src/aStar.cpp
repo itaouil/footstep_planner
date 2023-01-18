@@ -302,10 +302,10 @@ void AStar::Search::findPath(const Action &p_initialAction,
         for (auto it = l_openSet.begin(); it != l_openSet.end(); it++) {
             auto l_iteratorNode = *it;
 
-            ROS_INFO_STREAM("Velocity: " << l_iteratorNode->worldCoordinates.v);
-            ROS_INFO_STREAM("H: " << l_iteratorNode->H);
-            ROS_INFO_STREAM("G: " << l_iteratorNode->G);
-            ROS_INFO_STREAM("Score: " << l_iteratorNode->getScore() << "\n");
+            ROS_DEBUG_STREAM("Velocity: " << l_iteratorNode->worldCoordinates.v);
+            ROS_DEBUG_STREAM("H: " << l_iteratorNode->H);
+            ROS_DEBUG_STREAM("G: " << l_iteratorNode->G);
+            ROS_DEBUG_STREAM("Score: " << l_iteratorNode->getScore() << "\n");
 
             if (l_iteratorNode->getScore() <= l_currentNode->getScore()) {
                 l_currentNode = l_iteratorNode;
@@ -313,8 +313,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
             }
         }
 
-        ROS_INFO_STREAM("Chosen Velocity: " << l_currentNode->worldCoordinates.v);
-        ROS_INFO_STREAM("Chosen Score: " << l_currentNode->getScore());
+        ROS_DEBUG_STREAM("Chosen Velocity: " << l_currentNode->worldCoordinates.v);
+        ROS_DEBUG_STREAM("Chosen Score: " << l_currentNode->getScore());
 
         ROS_DEBUG_STREAM(
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
@@ -423,7 +423,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                l_rlGridPose.x,
                                                                l_rlGridPose.y,
                                                                l_hindFootDistance)) {
-                        ROS_INFO_STREAM("Invalid FR/RL Footstep");
+                        ROS_DEBUG_STREAM("Invalid FR/RL Footstep");
                         continue;
                     }
                 } else {
@@ -437,7 +437,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                l_rrGridPose.x,
                                                                l_rrGridPose.y,
                                                                l_hindFootDistance)) {
-                        ROS_INFO_STREAM("Invalid FL/RR Footstep");
+                        ROS_DEBUG_STREAM("Invalid FL/RR Footstep");
                         continue;
                     }
                 }
@@ -498,7 +498,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     p_targetWorldCoordinates,
                                                                     l_newFeetConfiguration});
                     l_openSet.push_back(successor);
-                    ROS_INFO_STREAM("Euclidean: " << AStar::Heuristic::euclidean(*successor,
+                    ROS_DEBUG_STREAM("Euclidean: " << AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
                                                                     Action{0, 0, 0},
                                                                     l_targetGridCoordinates,
@@ -542,8 +542,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
     releaseNodes(l_openSet);
     releaseNodes(l_closedSet);
 
-    ROS_INFO_STREAM("Number of expanded nodes: " << l_expandedNodes);
-    ROS_INFO_STREAM("Path size: " << p_path.size());
+    ROS_DEBUG_STREAM("Number of expanded nodes: " << l_expandedNodes);
+    ROS_DEBUG_STREAM("Path size: " << p_path.size());
 }
 
 /**
@@ -557,8 +557,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
 World3D AStar::Heuristic::getDistanceDelta(const World3D &p_sourceWorldCoordinates,
                                            const World3D &p_targetWorldCoordinates) {
 
-    ROS_INFO_STREAM(p_sourceWorldCoordinates.x << ", " << p_targetWorldCoordinates.x);
-    ROS_INFO_STREAM(p_sourceWorldCoordinates.y << ", " << p_targetWorldCoordinates.y);
+    ROS_DEBUG_STREAM(p_sourceWorldCoordinates.x << ", " << p_targetWorldCoordinates.x << ", " << std::abs(p_sourceWorldCoordinates.x - p_targetWorldCoordinates.x));
+    ROS_DEBUG_STREAM(p_sourceWorldCoordinates.y << ", " << p_targetWorldCoordinates.y << ", " << std::abs(p_sourceWorldCoordinates.y - p_targetWorldCoordinates.y));
 
     return World3D{std::abs(p_sourceWorldCoordinates.x - p_targetWorldCoordinates.x),
                    std::abs(p_sourceWorldCoordinates.y - p_targetWorldCoordinates.y)};
@@ -603,6 +603,12 @@ float AStar::Heuristic::euclidean(const Node &p_sourceNode, const Node &p_target
     auto l_distanceDelta = getDistanceDelta(p_sourceNode.worldCoordinates, p_targetNode.worldCoordinates);
 
     auto l_angleHeuristic = static_cast<float>(std::abs(l_angleDelta) * 5);
+
+    ROS_DEBUG_STREAM("Received: " << l_distanceDelta.x << ", " << l_distanceDelta.y);
+    ROS_DEBUG_STREAM(pow(l_distanceDelta.x, 2) << ", " << pow(l_distanceDelta.y, 2));
+    ROS_DEBUG_STREAM(sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
+
+
     auto l_distanceHeuristic = static_cast<float>(100 * sqrt(pow(l_distanceDelta.x, 2) + pow(l_distanceDelta.y, 2)));
 
     ROS_DEBUG_STREAM("Angle Delta: " << l_angleDelta);

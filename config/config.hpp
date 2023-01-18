@@ -53,10 +53,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(4);
+const unsigned int FOOTSTEP_HORIZON(6);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.025);
+const float MIN_STAIR_DISTANCE(0.02);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);

@@ -108,9 +108,6 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
     p_feetConfiguration.rrMap.x = rr_transform.transform.translation.x;
     p_feetConfiguration.rrMap.y = rr_transform.transform.translation.y;
 
-    ROS_INFO_STREAM("Planner: " << p_feetConfiguration.flMap.x << " ," << p_feetConfiguration.frMap.x);
-    ROS_INFO_STREAM("Planner: " << p_feetConfiguration.rlMap.x << " ," << p_feetConfiguration.rrMap.x);
-
     // Feet poses w.r.t CoM
     p_feetConfiguration.flCoM.x = p_latestCoMFeetPoses[0].x;
     p_feetConfiguration.flCoM.y = p_latestCoMFeetPoses[0].y;
@@ -147,20 +144,20 @@ void Planner::plan(std::vector<Node> &p_path,
     // Starting position
     tf2::Quaternion l_startPositionQuaternion;
     tf2::convert(p_robotPose.pose.pose.orientation, l_startPositionQuaternion);
-    World3D l_worldStartPosition{p_robotPose.twist.twist.linear.x,
-                                 p_robotPose.pose.pose.position.x,
+    World3D l_worldStartPosition{p_robotPose.pose.pose.position.x,
                                  p_robotPose.pose.pose.position.y,
                                  p_robotPose.pose.pose.position.z,
-                                 l_startPositionQuaternion};
+                                 l_startPositionQuaternion,
+                                 p_robotPose.twist.twist.linear.x};
 
     // Goal position
     tf2::Quaternion l_goalPositionQuaternion;
     tf2::convert(p_goalPosition.pose.orientation, l_goalPositionQuaternion);
-    World3D l_worldGoalPosition{0.0,
-                                p_goalPosition.pose.position.x,
+    World3D l_worldGoalPosition{p_goalPosition.pose.position.x,
                                 p_goalPosition.pose.position.y,
-                                0,
-                                l_goalPositionQuaternion};
+                                0.0,
+                                l_goalPositionQuaternion,
+                                0.0};
 
     // Create FeetConfiguration object
     FeetConfiguration l_feetConfiguration;
