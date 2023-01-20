@@ -140,8 +140,6 @@ void Model::motionPrediction(uint p_plannedHorizon,
                              const double &p_baseVelocity,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              std::vector<double> &p_predictions) {
-    ROS_DEBUG_STREAM("Planned footstep horizon " << p_plannedHorizon);
-
     Eigen::VectorXd l_modelInput(12);
     l_modelInput << p_previousVelocityX,
                     p_nextVelocityX,

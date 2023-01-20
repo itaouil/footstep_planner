@@ -329,21 +329,34 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
  * Execute planned commands.
  */
 void Navigation::executeHighLevelCommands() {
+    // Start cmd publisher if not running
+    if (!m_startedCmdPublisher) {
+        startCmdPublisher();
+    }
+
     while (ros::ok()) {
         unsigned int l_actionInExecution = 1;
 
         if (m_path.empty()) {
-            stopCmdPublisher();
-            ROS_WARN_STREAM("Navigation: Path obtained is empty");
-            break;
-        }
+            ROS_WARN_STREAM("Navigation: Path obtained is empty.... Using previously saved path");
 
-        // Start cmd publisher if not running
-        if (!m_startedCmdPublisher) {
-            startCmdPublisher();
-        }
+            ROS_INFO_STREAM("Prev size: " << m_previousPath.size());
 
-        // Execute planned commands within horizon
+            // Skip previously applied action
+            // and set the path to be executed
+            m_previousPath = std::vector<Node>(m_previousPath.begin() + 1, m_previousPath.end());
+            m_path = m_previousPath;
+
+            ROS_INFO_STREAM("Actual size: " << m_previousPath.size());
+            ROS_INFO_STREAM("Actual size2: " << m_path.size());
+        }
+            
+        // Save current plan in
+        // case no plan is found
+        // in the future
+        m_previousPath = m_path;
+
+        // Execute velocities
         for (auto &l_node: m_path) {
             // Only execute first footstep
             if (l_actionInExecution > 1) {
@@ -637,56 +650,57 @@ void Navigation::publishOnlinePredictedFootsteps() {
 
             if (l_frDiagonalSwung) {
                 visualization_msgs::Marker l_predictedFR = l_predictionCommon;
+                visualization_msgs::Marker l_predictedRL = l_predictionCommon;
+
                 l_predictedFR.id = j++;
-                l_predictedFR.color.r = 1;
-                l_predictedFR.color.g = 0.4;
-                l_predictedFR.color.b = 0.4;
-                // l_predictedFR.color.a = static_cast<float>(1 - (i * 0.1));
-                l_predictedFR.color.a = 1;
+                l_predictedFR.color.r = 0.98;
+                l_predictedFR.color.g = 0.02;
+                l_predictedFR.color.b = 0.02;
+                l_predictedFR.color.a = static_cast<float>(1 - (i * 0.1));
+
+                l_predictedRL.id = j++;
+                l_predictedRL.color.r = 0.05;
+                l_predictedRL.color.g = 0.98;
+                l_predictedRL.color.b = 0.02;
+                l_predictedRL.color.a = static_cast<float>(1 - (i * 0.1));
+
                 l_predictedFR.pose.position.x = m_path[i].feetConfiguration.frMap.x;
                 l_predictedFR.pose.position.y = m_path[i].feetConfiguration.frMap.y;
                 l_predictedFR.pose.position.z = m_path[i].feetConfiguration.frMap.z;
+
+                l_predictedRL.pose.position.x = m_path[i].feetConfiguration.rlMap.x;
+                l_predictedRL.pose.position.y = m_path[i].feetConfiguration.rlMap.y;
+                l_predictedRL.pose.position.z = m_path[i].feetConfiguration.rlMap.z;
+
                 l_onlineConfiguration.markers.push_back(l_predictedFR);
-                // ROS_INFO_STREAM("FR pose: " << m_path[i].feetConfiguration.frMap.x);
+                l_onlineConfiguration.markers.push_back(l_predictedRL);
             } else {
                 visualization_msgs::Marker l_predictedFL = l_predictionCommon;
+                visualization_msgs::Marker l_predictedRR = l_predictionCommon;
+
                 l_predictedFL.id = j++;
-                l_predictedFL.color.r = 1;
-                l_predictedFL.color.g = 0.501;
-                l_predictedFL.color.b = 0;
-                // l_predictedFL.color.a = static_cast<float>(1 - (i * 0.1));
-                l_predictedFL.color.a = 1;
+                l_predictedFL.color.r = 0.98;
+                l_predictedFL.color.g = 0.87;
+                l_predictedFL.color.b = 0.02;
+                l_predictedFL.color.a = static_cast<float>(1 - (i * 0.1));
+
+                l_predictedRR.id = j++;
+                l_predictedRR.color.r = 0.02;
+                l_predictedRR.color.g = 0.54;
+                l_predictedRR.color.b = 0.98;
+                l_predictedRR.color.a = static_cast<float>(1 - (i * 0.1));
+
                 l_predictedFL.pose.position.x = m_path[i].feetConfiguration.flMap.x;
                 l_predictedFL.pose.position.y = m_path[i].feetConfiguration.flMap.y;
                 l_predictedFL.pose.position.z = m_path[i].feetConfiguration.flMap.z;
+
+                l_predictedRR.pose.position.x = m_path[i].feetConfiguration.rrMap.x;
+                l_predictedRR.pose.position.y = m_path[i].feetConfiguration.rrMap.y;
+                l_predictedRR.pose.position.z = m_path[i].feetConfiguration.rrMap.z;
+
                 l_onlineConfiguration.markers.push_back(l_predictedFL);
-                // ROS_INFO_STREAM("FL pose: " << m_path[i].feetConfiguration.flMap.x);
+                l_onlineConfiguration.markers.push_back(l_predictedRR);
             }
-
-            // visualization_msgs::Marker l_predictedRL = l_predictionCommon;
-            // l_predictedRL.id = j++;
-            // l_predictedRL.id = j++;
-            // l_predictedRL.color.r = 0;
-            // l_predictedRL.color.g = 1;
-            // l_predictedRL.color.b = 0.501;
-            // l_predictedRL.color.a = static_cast<float>(1 - (i * 0.1));
-            // l_predictedRL.pose.position.x = m_path[i].feetConfiguration.rlMap.x;
-            // l_predictedRL.pose.position.y = m_path[i].feetConfiguration.rlMap.y;
-            // l_predictedRL.pose.position.z = m_path[i].feetConfiguration.rlMap.z;
-
-            // visualization_msgs::Marker l_predictedRR = l_predictionCommon;
-            // l_predictedRR.id = j++;
-            // l_predictedRR.id = j++;
-            // l_predictedRR.color.r = 0;
-            // l_predictedRR.color.g = 0.501;
-            // l_predictedRR.color.b = 1;
-            // l_predictedRR.color.a = static_cast<float>(1 - (i * 0.1));
-            // l_predictedRR.pose.position.x = m_path[i].feetConfiguration.rrMap.x;
-            // l_predictedRR.pose.position.y = m_path[i].feetConfiguration.rrMap.y;
-            // l_predictedRR.pose.position.z = m_path[i].feetConfiguration.rrMap.z;
-            
-            // l_onlineConfiguration.markers.push_back(l_predictedRL);
-            // l_onlineConfiguration.markers.push_back(l_predictedRR);
         }
         
         m_targetFeetConfigurationPublisher.publish(l_onlineConfiguration);
