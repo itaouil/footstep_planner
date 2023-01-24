@@ -32,14 +32,12 @@ prev_footstep_time = None
 prev_footstep_flag = False
 
 # Global parameters (footstep extraction)
-velocities = []
 publisher = None
 state_cache = None
 fl_max_height = 0
 fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
-accelerometer = []
 
 # Global variables
 path = "/home/user/ros_ws"
@@ -47,6 +45,9 @@ file_object = open(path + "/accelerations.csv", "a")
 
 # Output
 output = []
+
+prev_vel = 0.0
+prev_com_vel = 0.0
 
 
 def clean_max_heights():
@@ -75,9 +76,6 @@ def valid_footstep(footholds_msg):
     footstep = Bool()
     footstep.data = False
 
-    # Get force threshold and height threshold
-    height_threshold = rospy.get_param("/height_threshold")
-
     # Acquire front feet heights
     fl_height = footholds_msg.footPosition2Body[1].z
     fr_height = footholds_msg.footPosition2Body[0].z
@@ -91,11 +89,10 @@ def valid_footstep(footholds_msg):
     fr_max_height = max(fr_max_height, fr_height)
 
     # Footstep conditions check
-    footstep_force_condition = fl_force > 20 and fr_force > 20
-    footstep_height_condition = abs(fl_height - fr_height) < height_threshold
+    footstep_force_condition = fl_force > 10 and fr_force > 10
 
     # Check if footstep detected or not
-    if footstep_force_condition and footstep_height_condition:
+    if footstep_force_condition:
         if first_footstep:
             footstep.data = True
             first_footstep = False
@@ -115,7 +112,7 @@ def valid_footstep(footholds_msg):
     if footstep.data:
         fl_rr_moving = True if fl_max_height > fr_max_height else False
         fr_rl_moving = True if fr_max_height > fl_max_height else False
-        print(fl_rr_moving, fr_rl_moving, fl_max_height, fr_max_height)
+        # print(fl_rr_moving, fr_rl_moving, fl_max_height, fr_max_height)
         clean_max_heights()
 
     publisher.publish(footstep)
@@ -129,22 +126,13 @@ def live_extraction(cmd):
     global state_cache
     global velocities
     global file_object
-    global accelerometer
 
     # Check if at this time a valid footstep is detected
     state = state_cache.getElemBeforeTime(cmd.header.stamp)
     is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
 
     if not is_valid_footstep:
-        velocities.append([state.velocity[0], state.velocity[1], state.velocity[2], state.yawSpeed])
-        accelerometer.append([state.imu.accelerometer[0], state.imu.accelerometer[1], state.imu.accelerometer[2]])
         return
-
-    # Compute mean velocity
-    velocities_np_mean = np.asarray(velocities).mean(axis=0)
-
-    # Compute mean accelerometer data
-    accelerometer_np_mean = np.asarray(accelerometer).mean(axis=0)
 
     file_object.write(str(time.time()) + "," +  # 0
 
@@ -201,25 +189,9 @@ def live_extraction(cmd):
                       str(state.imu.rpy[1]) + "," +  # 44
                       str(state.imu.rpy[2]) + "," +  # 45
 
-                      str(velocities_np_mean[0]) + "," +  # 46
-                      str(velocities_np_mean[1]) + "," +  # 47
-                      str(velocities_np_mean[2]) + "," +  # 48
-                      str(velocities_np_mean[3]) + "," +  # 49
-
-                      str(accelerometer_np_mean[0]) + "," +  # 50
-                      str(accelerometer_np_mean[1]) + "," +  # 51
-                      str(accelerometer_np_mean[2]) + "," +  # 52
-
-                      str(state.imu.accelerometer[0]) + "," +  # 53
-                      str(state.imu.accelerometer[1]) + "," +  # 54
-                      str(state.imu.accelerometer[2]) + "," +  # 55
-
-                      str(fl_rr_moving) + "," +  # 56
-                      str(fr_rl_moving) + "," +  # 57
+                      str(fl_rr_moving) + "," +  # 46
+                      str(fr_rl_moving) + "," +  # 47
                       str(2) + "\n")  # 58
-
-    velocities = []
-    accelerometer = []
 
 
 def main():
@@ -232,12 +204,11 @@ def main():
     # Initialise node
     rospy.init_node('topics_sim_to_csv')
 
-    rospy.set_param("/height_threshold", 0.05)
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped, queue_size=100)
+    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped, queue_size=1)
     state_cache = message_filters.Cache(state_sub, 1000)
 
     rospy.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, live_extraction, queue_size=1)
