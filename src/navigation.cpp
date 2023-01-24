@@ -432,9 +432,7 @@ void Navigation::executeHighLevelCommands() {
                             ROS_DEBUG_STREAM("Left height: " << std::abs(l_lfHeightZ - l_lhHeightZ));
                             ROS_DEBUG_STREAM("Right height: " << std::abs(l_rfHeightZ - l_rhHeightZ));
                             ROS_DEBUG_STREAM("Forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
-                            if (std::abs(l_lfHeightZ - l_lhHeightZ) <= BACK_IN_CONTACT_HEIGHT &&
-                                std::abs(l_rfHeightZ - l_rhHeightZ) <= BACK_IN_CONTACT_HEIGHT && 
-                                l_lfForceZ > BACK_IN_CONTACT_FORCE &&
+                            if (l_lfForceZ > BACK_IN_CONTACT_FORCE &&
                                 l_rfForceZ > BACK_IN_CONTACT_FORCE && 
                                 l_lhForceZ > BACK_IN_CONTACT_FORCE &&
                                 l_rhForceZ > BACK_IN_CONTACT_FORCE) {

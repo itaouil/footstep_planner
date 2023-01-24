@@ -65,7 +65,7 @@ const float ANGLE_DIFFERENCE_TOLERANCE(2);
 const float OUT_OF_CONTACT_FORCE(10.0);
 
 // Back in contact force
-const float BACK_IN_CONTACT_FORCE(15.0);
+const float BACK_IN_CONTACT_FORCE(10.0);
 
 // Out of contact height
 const float OUT_OF_CONTACT_HEIGHT(0.05);
