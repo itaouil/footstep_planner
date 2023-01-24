@@ -20,7 +20,7 @@ const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuratio
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
-const std::string HEIGHT_MAP_TOPIC("/footstep_planner/elevation_processed_resampled");
+const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
 const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
@@ -56,25 +56,16 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(5);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.03);
+const float MIN_STAIR_DISTANCE(0.02);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);
 
 // Out of contact force
-const float OUT_OF_CONTACT_FORCE(10.0);
+const float OUT_OF_CONTACT_FORCE(5.0);
 
 // Back in contact force
 const float BACK_IN_CONTACT_FORCE(10.0);
 
-// Out of contact height
-const float OUT_OF_CONTACT_HEIGHT(0.05);
-
-// Back in contact height
-const float BACK_IN_CONTACT_HEIGHT(0.05);
-
 // Elevation map layer to use
 const std::string ELEVATION_LAYER("elevation");
-
-// Scenario
-const std::string SCENARIO("gaps");

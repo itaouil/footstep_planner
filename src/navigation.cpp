@@ -340,21 +340,17 @@ void Navigation::executeHighLevelCommands() {
         if (m_path.empty()) {
             ROS_WARN_STREAM("Navigation: Path obtained is empty.... Using previously saved path");
 
-            ROS_INFO_STREAM("Prev size: " << m_previousPath.size());
-
             // Skip previously applied action
             // and set the path to be executed
             m_previousPath = std::vector<Node>(m_previousPath.begin() + 1, m_previousPath.end());
             m_path = m_previousPath;
-
-            ROS_INFO_STREAM("Actual size: " << m_previousPath.size());
-            ROS_INFO_STREAM("Actual size2: " << m_path.size());
         }
-            
-        // Save current plan in
-        // case no plan is found
-        // in the future
-        m_previousPath = m_path;
+        else {
+            // Save current plan in
+            // case no plan is found
+            // in the future
+            m_previousPath = m_path;
+        }
 
         // Execute velocities
         for (auto &l_node: m_path) {
@@ -384,73 +380,32 @@ void Navigation::executeHighLevelCommands() {
                 auto l_lhForceZ = m_latestFeetForces[2];
                 auto l_rhForceZ = m_latestFeetForces[3];
 
-                // Get feet heights
-                auto l_lfHeightZ = m_feetConfigurationCoM[0].z;
-                auto l_rfHeightZ = m_feetConfigurationCoM[1].z;
-                auto l_lhHeightZ = m_feetConfigurationCoM[2].z;
-                auto l_rhHeightZ = m_feetConfigurationCoM[3].z;
-
-                if (SCENARIO == "gaps") {
-                    if (!l_swingingFeetOutOfContact) {
-                            if (std::abs(l_lfHeightZ - l_rfHeightZ) > OUT_OF_CONTACT_HEIGHT && std::abs(l_lhHeightZ - l_rhHeightZ) > OUT_OF_CONTACT_HEIGHT) {
-                                if (l_lfHeightZ > l_rfHeightZ) {
-                                    l_lfDiagonalSwinging = true;
-                                }
-                                else {
-                                    l_rfDiagonalSwinging = true;
-                                }
-
-                                l_swingingFeetOutOfContact = true;
-                            }
-
-                            if (l_swingingFeetOutOfContact) {
-                                ROS_INFO_STREAM("O.O.C heights: " << l_lfHeightZ << ", " << l_rfHeightZ << ", " << l_lhHeightZ << ", " << l_rhHeightZ);
-                            }
+                if (!l_swingingFeetOutOfContact) {
+                    if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
+                        l_lfDiagonalSwinging = true;
+                        l_swingingFeetOutOfContact = true;
+                        ROS_DEBUG("LF and RH feet are swinging and are out of contact");
                     }
-                }
-                else {
-                    if (!l_swingingFeetOutOfContact) {
-                        if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
-                            l_lfDiagonalSwinging = true;
-                            l_swingingFeetOutOfContact = true;
-                            ROS_DEBUG("LF and RH feet are swinging and are out of contact");
-                        }
-                        else if (l_rfForceZ < OUT_OF_CONTACT_FORCE && l_lhForceZ < OUT_OF_CONTACT_FORCE) {
-                            l_rfDiagonalSwinging = true;
-                            l_swingingFeetOutOfContact = true;
-                            ROS_DEBUG("RF and LH feet are swinging and are out of contact");
-                        }
-
-                        if (l_swingingFeetOutOfContact) {
-                            ROS_INFO_STREAM("O.O.C forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
-                        }
+                    else if (l_rfForceZ < OUT_OF_CONTACT_FORCE && l_lhForceZ < OUT_OF_CONTACT_FORCE) {
+                        l_rfDiagonalSwinging = true;
+                        l_swingingFeetOutOfContact = true;
+                        ROS_DEBUG("RF and LH feet are swinging and are out of contact");
                     }
-                }
 
-                if (SCENARIO == "gaps") {
                     if (l_swingingFeetOutOfContact) {
-                            ROS_DEBUG_STREAM("Left height: " << std::abs(l_lfHeightZ - l_lhHeightZ));
-                            ROS_DEBUG_STREAM("Right height: " << std::abs(l_rfHeightZ - l_rhHeightZ));
-                            ROS_DEBUG_STREAM("Forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
-                            if (l_lfForceZ > BACK_IN_CONTACT_FORCE &&
-                                l_rfForceZ > BACK_IN_CONTACT_FORCE && 
-                                l_lhForceZ > BACK_IN_CONTACT_FORCE &&
-                                l_rhForceZ > BACK_IN_CONTACT_FORCE) {
-                                l_feetInContact = true;
-                            }
+                        ROS_INFO_STREAM("O.O.C forces: " << l_lfForceZ << ", " << l_rfForceZ << ", " << l_lhForceZ << ", " << l_rhForceZ);
                     }
                 }
-                else {
-                    if (l_swingingFeetOutOfContact) {
-                        if (l_lfDiagonalSwinging) {
-                            if (l_lfForceZ > BACK_IN_CONTACT_FORCE && l_rhForceZ > BACK_IN_CONTACT_FORCE) {
-                                l_feetInContact = true;
-                            }
+                
+                if (l_swingingFeetOutOfContact) {
+                    if (l_lfDiagonalSwinging) {
+                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE || l_rhForceZ > BACK_IN_CONTACT_FORCE) {
+                            l_feetInContact = true;
                         }
-                        else if (l_rfDiagonalSwinging) {
-                            if (l_rfForceZ > BACK_IN_CONTACT_FORCE && l_lhForceZ > BACK_IN_CONTACT_FORCE) {
-                                l_feetInContact = true;
-                            }
+                    }
+                    else if (l_rfDiagonalSwinging) {
+                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE || l_lhForceZ > BACK_IN_CONTACT_FORCE) {
+                            l_feetInContact = true;
                         }
                     }
                 }
