@@ -126,8 +126,6 @@ void Model::motionPrediction(uint p_plannedHorizon,
                              const double &p_baseVelocity,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              std::vector<double> &p_predictions) {
-    ROS_DEBUG_STREAM("Planned footstep horizon " << p_plannedHorizon);
-
     Eigen::VectorXd l_modelInput(12);
     l_modelInput << p_previousVelocityX,
                     p_nextVelocityX,
@@ -142,7 +140,7 @@ void Model::motionPrediction(uint p_plannedHorizon,
                     p_currentFeetConfiguration.rrCoM.y,
                     1;
 
-    ROS_DEBUG_STREAM("Input: " << l_modelInput);
+    ROS_INFO_STREAM("Input: " << l_modelInput);
 
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         // CoM prediction
@@ -406,7 +404,7 @@ void Model::predictNextState(uint p_plannedFootstep,
 
     ROS_DEBUG_STREAM("Prev Velocity: " << p_previousVelocity);
     ROS_DEBUG_STREAM("Next Velocity: " << p_nextVelocity);
-    ROS_DEBUG_STREAM("Predictions: " << l_predictions[0] << ", "
+    ROS_INFO_STREAM("Predictions: " << l_predictions[0] << ", "
                                     << l_predictions[1] << ", "
                                     << l_predictions[2] << ", "
                                     << l_predictions[3] << ", "

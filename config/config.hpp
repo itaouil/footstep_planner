@@ -20,7 +20,7 @@ const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuratio
 const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_configuration");
 
 // Subscribed topics
-const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
+const std::string HEIGHT_MAP_TOPIC("/footstep_planner/elevation_processed_resampled");
 const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
@@ -41,7 +41,7 @@ const double HEIGHT_FILTER_THRESHOLD(0.06);
 const float ZERO_COST_FOOT_DISTANCE(0.15);
 
 // Max footstep height
-const float MAX_FOOTSTEP_HEIGHT(0.05);
+const float MAX_FOOTSTEP_HEIGHT(0.03);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(200);
@@ -53,10 +53,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(6);
+const unsigned int FOOTSTEP_HORIZON(5);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.02);
+const float MIN_STAIR_DISTANCE(0.03);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);
