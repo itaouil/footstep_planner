@@ -59,7 +59,7 @@ def stomping(velocity_publisher):
 def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
     global MAX_NON_FWD_VELOCITY
 
-    for next_velocity in np.arange(0.1, 1.1, 0.1):
+    for next_velocity in np.arange(0.0, 1.2, 0.1):
         # Limit clockwise, counterclockwise, left and right motions to 0.5
         if motion not in ["forward", "backward"] and (
                 curr_velocity > MAX_NON_FWD_VELOCITY or next_velocity > MAX_NON_FWD_VELOCITY):
@@ -73,7 +73,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
         print("Applying curr velocity: ", curr_velocity, ", with next velocity: ",
               -next_velocity if curr_velocity < 0 else next_velocity)
 
-        for _ in range(10):
+        for _ in range(15):
             # Reset velocity to initial one
             if motion in ["forward", "backward"]:
                 twist.twist.linear.x = curr_velocity
@@ -84,7 +84,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
 
             # Apply current velocity
             rate = rospy.Rate(1000)
-            end_time = time.time() + random.uniform(0.8, 1.5)
+            end_time = time.time() + random.uniform(0.6, 0.9)
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
@@ -102,7 +102,7 @@ def publish_joy_accelerations(twist, velocity_publisher, curr_velocity, motion):
 
             # Apply current velocity
             rate = rospy.Rate(1000)
-            end_time = time.time() + random.uniform(0.8, 1.5)
+            end_time = time.time() + random.uniform(0.6, 0.9)
             while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
                 # Update joy timestamp
                 twist.header.stamp = rospy.Time.now()
@@ -115,7 +115,7 @@ def publish_joy_continuous(twist, velocity_publisher):
     rate = rospy.Rate(1000)
     end_time = time.time() + SECONDS_TO_WAIT
 
-    while time.time() < end_time:
+    while time.time() < end_time or not rospy.get_param("/feet_in_contact"):
         twist.header.stamp = rospy.Time.now()
         velocity_publisher.publish(twist)
         rate.sleep()
@@ -126,7 +126,7 @@ def joy_publisher():
     velocity_publisher = rospy.Publisher('/cmd_vel', TwistStamped, queue_size=1)
 
     while not rospy.is_shutdown():
-        for velocity in np.arange(0.0, 0.1, 0.1):
+        for velocity in np.arange(0.0, 1.2, 0.1):
 
             print(velocity)
 
@@ -143,8 +143,6 @@ def joy_publisher():
                 print("Publishing continuous forward command")
                 publish_joy_continuous(twist, velocity_publisher)
             
-            stomping(velocity_publisher)
-
             # # Clockwise rotation
             # twist = get_twist_message([0, 0, -velocity, 0, 0, 0])
             # if ACCELERATION_ENABLED:
@@ -224,8 +222,6 @@ def joy_publisher():
             #     print("Publishing forward + counter clockwise command")
             #     publish_joy_continuous(joy, velocity_publisher)
                 
-            print(f"Sequence {velocity} finished")
-
         break
 
     # Stop robot fully

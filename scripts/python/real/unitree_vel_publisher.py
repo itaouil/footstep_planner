@@ -205,8 +205,6 @@ def joy_publisher():
                 print("Publishing continuous forward command")
                 publish_joy_continuous(twist, velocity_publisher)
 
-            stomping(velocity_publisher)
-
             # # Clockwise rotation
             # twist = get_twist_message([0, 0, -velocity, 0, 0, 0])
             # if ACCELERATION_ENABLED:

@@ -18,7 +18,6 @@
 # General imports
 import time
 import rospy
-import numpy as np
 import message_filters
 
 # ROS msgs imports
