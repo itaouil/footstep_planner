@@ -12,19 +12,8 @@
 #include <utility>
 #include <iostream>
 
-// Simulation or Real robot
-#define SIMULATION true
-
-// Sim vs real variables
-#if SIMULATION
-const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
-const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
-#else
-const std::string ROBOT_POSE_TOPIC("/aliengo/ground_truth");
-const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/twist_cmd");
-#endif
-
 // Published topics
+const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
@@ -32,6 +21,7 @@ const std::string PREDICTED_FEET_CONFIGURATION_MARKERS_TOPIC("/predicted_feet_co
 
 // Subscribed topics
 const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
+const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
 // TF reference frames
@@ -43,6 +33,9 @@ const bool PUBLISH(true);
 
 // Publish CoM and feet visualization
 const bool VISUALIZE(true);
+
+// Simulation or real robot
+const bool SIMULATION(true);
 
 // Height threshold when computing unsafe edges
 const double HEIGHT_FILTER_THRESHOLD(0.06);

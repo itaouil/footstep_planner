@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-    Listen to simulation topics:
-        * /odom:                                to retrieve robot odometry (i.e. position of CoM and current velocity)
-        * /foot:                                to retrieve foot position w.r.t to the base
-        * /cmd_vel:                             to get robot commanded velocity
-        * /foot_contacts:                       to retrieve whether the foot is contact with the ground or not
-        * /visual/FR_foot_contact/the_force:    force of FR foot
-        * /visual/FL_foot_contact/the_force:    force of FL foot
-        * /visual/RR_foot_contact/the_force:    force of RR foot
-        * /visual/RL_foot_contact/the_force:    force of RL foot
-
-    and logs the relevant data to a csv file.
-"""
-
 # General imports
 import rospy
 import numpy as np
@@ -111,7 +97,7 @@ def main():
     rospy.init_node('topics_sim_to_csv')
 
     # Publishers
-    odom_pub = rospy.Publisher('/aliengo_bridge/odom', Odometry, queue_size=1)
+    odom_pub = rospy.Publisher('/vicon/Jumpaolo/odom', Odometry, queue_size=1)
     state_pub = rospy.Publisher('/aliengo_bridge/high_state', HighStateStamped, queue_size=1)
 
     # Subscribers

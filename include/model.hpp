@@ -53,9 +53,17 @@ public:
      * Populates the respective model
      * coefficients vectors required for
      * the prediction process of continuous
-     * velocity commands.
+     * velocity commands for the real robot;
      */
-    void setModelsCoefficients();
+    void setModelsCoefficientsReal();
+
+    /**
+     * Populates the respective model
+     * coefficients vectors required for
+     * the prediction process of continuous
+     * velocity commands for the simulated robot;
+     */
+    void setModelsCoefficientsSimulation();
 
     /**
      * Quaternion to rotation matrix.
