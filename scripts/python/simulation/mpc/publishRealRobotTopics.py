@@ -35,6 +35,9 @@ mpc_out_cache = None
 
 
 def publish(mpc_in_msg):
+    global  odom_pub
+    global state_pub
+
     # Create odom and high state messages
     odom_msg = Odometry()
     state_msg = HighStateStamped()
@@ -43,8 +46,11 @@ def publish(mpc_in_msg):
     mpc_out_msg = mpc_out_cache.getElemBeforeTime(mpc_in_msg.header.stamp)
 
     # Transform rotation matrix to quaternion
-    R = [mpc_in_msg.Rop[x] for x in range(9)]
-    R = np.asarray(R).reshape(3,3)
+    R = [mpc_in_msg.Rop[0], mpc_in_msg.Rop[1], mpc_in_msg.Rop[2], 0,
+         mpc_in_msg.Rop[3], mpc_in_msg.Rop[4], mpc_in_msg.Rop[5], 0,
+         mpc_in_msg.Rop[6], mpc_in_msg.Rop[7], mpc_in_msg.Rop[8], 0,
+         0, 0, 0, 1]
+    R = np.asarray(R).reshape(4,4)
     Q = tr.quaternion_from_matrix(R)
 
     # Populate odometry message
@@ -68,10 +74,10 @@ def publish(mpc_in_msg):
     fr_pose_world = np.asarray([mpc_in_msg.xop[15], mpc_in_msg.xop[16], mpc_in_msg.xop[17]])
     rl_pose_world = np.asarray([mpc_in_msg.xop[18], mpc_in_msg.xop[19], mpc_in_msg.xop[20]])
     rr_pose_world = np.asarray([mpc_in_msg.xop[21], mpc_in_msg.xop[22], mpc_in_msg.xop[23]])
-    fl_pose_base = np.dot(R.T, fl_pose_world - com_pose_world).tolist()
-    fr_pose_base = np.dot(R.T, fr_pose_world - com_pose_world).tolist()
-    rl_pose_base = np.dot(R.T, rl_pose_world - com_pose_world).tolist()
-    rr_pose_base = np.dot(R.T, rr_pose_world - com_pose_world).tolist()
+    fl_pose_base = np.dot(R[:3, :3].T, fl_pose_world - com_pose_world).tolist()
+    fr_pose_base = np.dot(R[:3, :3].T, fr_pose_world - com_pose_world).tolist()
+    rl_pose_base = np.dot(R[:3, :3].T, rl_pose_world - com_pose_world).tolist()
+    rr_pose_base = np.dot(R[:3, :3].T, rr_pose_world - com_pose_world).tolist()
 
     # Populate high state message
     state_msg.header.stamp = rospy.Time.now()
@@ -87,9 +93,12 @@ def publish(mpc_in_msg):
     state_msg.footPosition2Body[2] = Cartesian(rl_pose_base[0], rl_pose_base[1], rl_pose_base[2])
     state_msg.footPosition2Body[3] = Cartesian(rr_pose_base[0], rr_pose_base[1], rl_pose_base[2])
     state_msg.footForce[0] = mpc_out_msg.GRF[2]
-    state_msg.footForce[0] = mpc_out_msg.GRF[5]
-    state_msg.footForce[0] = mpc_out_msg.GRF[8]
-    state_msg.footForce[0] = mpc_out_msg.GRF[11]
+    state_msg.footForce[1] = mpc_out_msg.GRF[5]
+    state_msg.footForce[2] = mpc_out_msg.GRF[8]
+    state_msg.footForce[3] = mpc_out_msg.GRF[11]
+
+    odom_pub.publish(odom_msg)
+    state_pub.publish(state_msg)
 
 def main():
     global odom_pub
