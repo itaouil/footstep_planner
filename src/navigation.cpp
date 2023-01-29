@@ -295,7 +295,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
         startCmdPublisher();
     }
 
-    ros::Duration(7).sleep();
+//    ros::Duration(7).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -473,8 +473,7 @@ void Navigation::executeHighLevelCommands() {
             ros::spinOnce();
         }
 
-        if ((std::abs(std::abs(m_latestCoMPose.pose.pose.position.x) - std::abs(m_goalMsg.pose.position.x)) > 0.02 ||
-             std::abs(std::abs(m_latestCoMPose.pose.pose.position.y) - std::abs(m_goalMsg.pose.position.y)) > 0.2) ) {
+        if ((std::abs(std::abs(m_latestCoMPose.pose.pose.position.x) - std::abs(m_goalMsg.pose.position.x)) > 0.05) ) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
             m_planner.plan(m_path, 

@@ -74,14 +74,14 @@ def publish(mpc_in_msg):
     state_msg.velocity[1] = mpc_in_msg.xop[4]
     state_msg.velocity[2] = 0.0
     state_msg.yawSpeed = mpc_in_msg.xop[5]
-    state_msg.footPosition2Body[0] = Cartesian(fl_pose_base[0], fl_pose_base[1], fl_pose_base[2])
-    state_msg.footPosition2Body[1] = Cartesian(fr_pose_base[0], fr_pose_base[1], fr_pose_base[2])
-    state_msg.footPosition2Body[2] = Cartesian(rl_pose_base[0], rl_pose_base[1], rl_pose_base[2])
-    state_msg.footPosition2Body[3] = Cartesian(rr_pose_base[0], rr_pose_base[1], rl_pose_base[2])
-    state_msg.footForce[0] = mpc_out_msg.GRF[2]
-    state_msg.footForce[1] = mpc_out_msg.GRF[5]
-    state_msg.footForce[2] = mpc_out_msg.GRF[8]
-    state_msg.footForce[3] = mpc_out_msg.GRF[11]
+    state_msg.footPosition2Body[1] = Cartesian(fl_pose_base[0], fl_pose_base[1], fl_pose_base[2])
+    state_msg.footPosition2Body[0] = Cartesian(fr_pose_base[0], fr_pose_base[1], fr_pose_base[2])
+    state_msg.footPosition2Body[3] = Cartesian(rl_pose_base[0], rl_pose_base[1], rl_pose_base[2])
+    state_msg.footPosition2Body[2] = Cartesian(rr_pose_base[0], rr_pose_base[1], rl_pose_base[2])
+    state_msg.footForce[1] = mpc_out_msg.GRF[2]
+    state_msg.footForce[0] = mpc_out_msg.GRF[5]
+    state_msg.footForce[3] = mpc_out_msg.GRF[8]
+    state_msg.footForce[2] = mpc_out_msg.GRF[11]
 
     odom_pub.publish(odom_msg)
     state_pub.publish(state_msg)
