@@ -25,21 +25,21 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import TwistStamped
 from unitree_legged_msgs.msg import HighStateStamped
 
-# Global flags (footstep extraction)
-first_footstep = True
-prev_footstep_time = None
-prev_footstep_flag = False
-
 # Global parameters (footstep extraction)
+fl_force = 1000
+fr_force = 1000
+rl_force = 1000
+rr_force = 1000
 publisher = None
-state_cache = None
 fl_max_height = 0
 fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
+state_cache = None
+prev_footstep_time = 0
 
 # Global variables
-path = "/home/user/ros_ws"
+path = "/home/ilyass/dls_ws/src/footstep_planner/data/real"
 file_object = open(path + "/accelerations.csv", "a")
 
 # Output
@@ -49,11 +49,20 @@ prev_vel = 0.0
 prev_com_vel = 0.0
 
 
-def clean_max_heights():
+def clean_values()():
+    global fl_force
+    global fr_force
+    global rl_force
+    global rr_force
     global fl_max_height
     global fr_max_height
     global rl_max_height
     global rr_max_height
+
+    fl_force = 1000
+    fr_force = 1000
+    rl_force = 1000
+    rr_force = 1000
 
     fl_max_height = -100
     fr_max_height = -100
@@ -62,14 +71,16 @@ def clean_max_heights():
 
 
 def valid_footstep(footholds_msg):
+    global fl_force
+    global fr_force
+    global rl_force
+    global rr_force
     global publisher
     global fl_max_height
     global fr_max_height
     global rl_max_height
     global rr_max_height
-    global first_footstep
     global prev_footstep_time
-    global prev_footstep_flag
 
     # Footstep boolean message
     footstep = Bool()
@@ -79,40 +90,33 @@ def valid_footstep(footholds_msg):
     fl_height = footholds_msg.footPosition2Body[1].z
     fr_height = footholds_msg.footPosition2Body[0].z
 
-    # Acquire front feet forces
-    fl_force = footholds_msg.footForce[1]
-    fr_force = footholds_msg.footForce[0]
-
     # Update recorded front feet heights
     fl_max_height = max(fl_max_height, fl_height)
     fr_max_height = max(fr_max_height, fr_height)
 
     # Footstep conditions check
-    footstep_force_condition = fl_force > 10 and fr_force > 10
+    contact_condition_1 = fl_force < 5 and footholds_msg.footForce[1] > 10 or rr_force < 5 and footholds_msg.footForce[2] > 10
+    contact_condition_2 = fr_force < 5 and footholds_msg.footForce[0] > 10 or rl_force < 5 and footholds_msg.footForce[3] > 10
+
+    # Update seen forces (only after half swing)
+    if time.time() - prev_footstep_time > 0.15:
+        fl_force = min(fl_force, footholds_msg.footForce[1])
+        fr_force = min(fr_force, footholds_msg.footForce[0])
+        rl_force = min(rl_force, footholds_msg.footForce[3])
+        rr_force = min(rr_force, footholds_msg.footForce[2])
 
     # Check if footstep detected or not
-    if footstep_force_condition:
-        if first_footstep:
+    if contact_condition_1 or contact_condition_2:
+        if time.time() - prev_footstep_time > 0.2:
             footstep.data = True
-            first_footstep = False
-            prev_footstep_flag = True
             prev_footstep_time = time.time()
-        else:
-            if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
-                footstep.data = True
-                prev_footstep_flag = True
-                prev_footstep_time = time.time()
-    else:
-        footstep.data = False
-        prev_footstep_flag = False
 
     # Check which feet swung
     fl_rr_moving, fr_rl_moving = None, None
     if footstep.data:
         fl_rr_moving = True if fl_max_height > fr_max_height else False
         fr_rl_moving = True if fr_max_height > fl_max_height else False
-        # print(fl_rr_moving, fr_rl_moving, fl_max_height, fr_max_height)
-        clean_max_heights()
+        clean_values()()
 
     publisher.publish(footstep)
     rospy.set_param("/feet_in_contact", footstep.data)
@@ -123,11 +127,10 @@ def live_extraction(cmd):
     # Globals
     global output
     global state_cache
-    global velocities
     global file_object
 
     # Check if at this time a valid footstep is detected
-    state = state_cache.getElemBeforeTime(cmd.header.stamp)
+    state = state_cache.getElemBeforeTime(rospy.Time.now())
     is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
 
     if not is_valid_footstep:
@@ -198,18 +201,13 @@ def main():
     global publisher
     global state_cache
 
-    print("Starting node")
-
-    # Initialise node
     rospy.init_node('topics_sim_to_csv')
-
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
     state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped, queue_size=1)
     state_cache = message_filters.Cache(state_sub, 1000)
-
     rospy.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, live_extraction, queue_size=1)
 
     rospy.spin()

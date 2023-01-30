@@ -337,18 +337,17 @@ void Navigation::executeHighLevelCommands() {
     while (ros::ok()) {
         unsigned int l_actionInExecution = 1;
 
-        if (m_path.empty()) {
-            ROS_WARN_STREAM("Navigation: Path obtained is empty.... Using previously saved path");
+        if (m_path.empty() || m_path.size() < FOOTSTEP_HORIZON) {
+            ROS_WARN_STREAM("Navigation: Path obtained is empty.... Using previously saved path: " << m_previousPath.size());
 
             // Skip previously applied action
             // and set the path to be executed
             m_previousPath = std::vector<Node>(m_previousPath.begin() + 1, m_previousPath.end());
             m_path = m_previousPath;
         }
-        else {
-            // Save current plan in
-            // case no plan is found
-            // in the future
+
+        // Save full path
+        if (m_path.size() == FOOTSTEP_HORIZON) {
             m_previousPath = m_path;
         }
 

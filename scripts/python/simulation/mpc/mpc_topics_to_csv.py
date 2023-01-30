@@ -26,16 +26,11 @@ from dls_messages.msg import mpc_signal_in
 from dls_messages.msg import mpc_signal_out
 from geometry_msgs.msg import TwistStamped
 
-# Global flags (footstep extraction)
-first_footstep = True
-prev_footstep_time = None
-prev_footstep_flag = False
-
 # Global parameters (footstep extraction)
-fl_force = 60
-fr_force = 60
-rl_force = 60
-rr_force = 60
+fl_force = 1000
+fr_force = 1000
+rl_force = 1000
+rr_force = 1000
 publisher = None
 fl_max_height = 0
 fr_max_height = 0
@@ -43,6 +38,7 @@ rl_max_height = 0
 rr_max_height = 0
 mpc_in_cache = None
 mpc_out_cache = None
+prev_footstep_time = 0
 
 # Global variables
 file_object = open("/home/ilyass/dls_ws/src/footstep_planner/data/accelerations.csv", "a")
@@ -60,10 +56,10 @@ def clean_values():
     global rl_max_height
     global rr_max_height
 
-    fl_force = 60
-    fr_force = 60
-    rl_force = 60
-    rr_force = 60
+    fl_force = 1000
+    fr_force = 1000
+    rl_force = 1000
+    rr_force = 1000
 
     fl_max_height = -100
     fr_max_height = -100
@@ -81,9 +77,7 @@ def valid_footstep(mpc_in_msg, mpc_out_msg):
     global fr_max_height
     global rl_max_height
     global rr_max_height
-    global first_footstep
     global prev_footstep_time
-    global prev_footstep_flag
 
     # Footstep boolean message
     footstep = Bool()
@@ -92,8 +86,6 @@ def valid_footstep(mpc_in_msg, mpc_out_msg):
     # Acquire front feet heights
     fl_height = mpc_in_msg.xop[14]
     fr_height = mpc_in_msg.xop[17]
-    rl_height = mpc_in_msg.xop[20]
-    rr_height = mpc_in_msg.xop[23]
 
     # Update recorded front feet heights
     fl_max_height = max(fl_max_height, fl_height)
@@ -103,26 +95,18 @@ def valid_footstep(mpc_in_msg, mpc_out_msg):
     contact_condition_1 = fl_force < 5 and mpc_out_msg.GRF[2] > 10 or rr_force < 5 and mpc_out_msg.GRF[11] > 10
     contact_condition_2 = fr_force < 5 and mpc_out_msg.GRF[5] > 10 or rl_force < 5 and mpc_out_msg.GRF[8] > 10
 
-    fl_force = min(fl_force, mpc_out_msg.GRF[2])
-    fr_force = min(fr_force, mpc_out_msg.GRF[5])
-    rl_force = min(rl_force, mpc_out_msg.GRF[11])
-    rr_force = min(rr_force, mpc_out_msg.GRF[8])
+    # Update seen forces (only after half swing)
+    if time.time() - prev_footstep_time > 0.15:
+        fl_force = min(fl_force, mpc_out_msg.GRF[2])
+        fr_force = min(fr_force, mpc_out_msg.GRF[5])
+        rl_force = min(rl_force, mpc_out_msg.GRF[8])
+        rr_force = min(rr_force, mpc_out_msg.GRF[11])
 
     # Check if footstep detected or not
-    if contact_condition_1 and contact_condition_2:
-        if first_footstep:
-            footstep.data = True
-            first_footstep = False
-            prev_footstep_flag = True
-            prev_footstep_time = time.time()
-        else:
-            if not prev_footstep_flag and not (time.time() - prev_footstep_time) < 0.2:
+    if contact_condition_1 or contact_condition_2:
+        if time.time() - prev_footstep_time > 0.2:
                 footstep.data = True
-                prev_footstep_flag = True
                 prev_footstep_time = time.time()
-    else:
-        footstep.data = False
-        prev_footstep_flag = False
 
     # Check which feet swung
     fl_rr_moving, fr_rl_moving = None, None
@@ -201,19 +185,14 @@ def main():
     global mpc_in_cache
     global mpc_out_cache
 
-    print("Starting node")
-
     rospy.init_node('topics_sim_to_csv')
-
     rospy.set_param("/feet_in_contact", False)
 
     publisher = rospy.Publisher('footstep', Bool, queue_size=5)
 
     rospy.Subscriber("/cmd_vel", TwistStamped, live_extraction, queue_size=1)
-
     mpc_out_sub = message_filters.Subscriber("/mpc/mpc_signal_out", mpc_signal_out, queue_size=10)
     mpc_out_cache = message_filters.Cache(mpc_out_sub, 1000)
-
     mpc_in_sub = message_filters.Subscriber("/aliengo/mpc_signal_in", mpc_signal_in, queue_size=10)
     mpc_in_cache = message_filters.Cache(mpc_in_sub, 1000)
 
