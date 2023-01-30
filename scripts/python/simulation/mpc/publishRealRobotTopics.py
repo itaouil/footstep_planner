@@ -65,15 +65,18 @@ def publish(mpc_in_msg):
     rl_pose_base = np.dot(R[:3, :3].T, rl_pose_world - com_pose_world).tolist()
     rr_pose_base = np.dot(R[:3, :3].T, rr_pose_world - com_pose_world).tolist()
 
+    # Transform velocity from world frame to base frame
+    com_velocity_base = np.dot(R[:3, :3].T, np.asarray([mpc_in_msg.xop[3], mpc_in_msg.xop[4], mpc_in_msg.xop[5]])).tolist()
+
     # Populate high state message
     state_msg.header.stamp = rospy.Time.now()
     state_msg.position[0] = mpc_in_msg.xop[0]
     state_msg.position[1] = mpc_in_msg.xop[1]
     state_msg.position[2] = mpc_in_msg.xop[2]
-    state_msg.velocity[0] = mpc_in_msg.xop[3]
-    state_msg.velocity[1] = mpc_in_msg.xop[4]
+    state_msg.velocity[0] = com_velocity_base[0]
+    state_msg.velocity[1] = com_velocity_base[1]
     state_msg.velocity[2] = 0.0
-    state_msg.yawSpeed = mpc_in_msg.xop[5]
+    state_msg.yawSpeed = com_velocity_base[2]
     state_msg.footPosition2Body[1] = Cartesian(fl_pose_base[0], fl_pose_base[1], fl_pose_base[2])
     state_msg.footPosition2Body[0] = Cartesian(fr_pose_base[0], fr_pose_base[1], fr_pose_base[2])
     state_msg.footPosition2Body[3] = Cartesian(rl_pose_base[0], rl_pose_base[1], rl_pose_base[2])

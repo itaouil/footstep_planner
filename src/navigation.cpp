@@ -413,12 +413,12 @@ void Navigation::executeHighLevelCommands() {
                 ros::spinOnce();
             }
 
-            ROS_INFO_STREAM("E.O.C time: " << ros::Time::now().toSec() - l_startTime.toSec());
-            ROS_INFO_STREAM("E.O.C heights: " << m_feetConfigurationCoM[0].z << ", "
+            ROS_DEBUG_STREAM("E.O.C time: " << ros::Time::now().toSec() - l_startTime.toSec());
+            ROS_DEBUG_STREAM("E.O.C heights: " << m_feetConfigurationCoM[0].z << ", "
                                               << m_feetConfigurationCoM[1].z << ", "
                                               << m_feetConfigurationCoM[2].z << ", "
                                               << m_feetConfigurationCoM[3].z);
-            ROS_INFO_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
+            ROS_DEBUG_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
                                              << m_latestFeetForces[1] << ", "
                                              << m_latestFeetForces[2] << ", "
                                              << m_latestFeetForces[3]);
@@ -473,7 +473,7 @@ void Navigation::executeHighLevelCommands() {
             ros::spinOnce();
         }
 
-        if ((std::abs(std::abs(m_latestCoMPose.pose.pose.position.x) - std::abs(m_goalMsg.pose.position.x)) > 0.05) ) {
+        if ((std::abs(std::abs(m_latestCoMPose.pose.pose.position.x) - std::abs(m_goalMsg.pose.position.x)) > 0.10)) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
             m_planner.plan(m_path, 

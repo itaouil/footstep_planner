@@ -25,7 +25,7 @@ const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
 // TF reference frames
-const std::string ROBOT_REFERENCE_FRAME("base");
+const std::string ROBOT_REFERENCE_FRAME("base_link");
 const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map
