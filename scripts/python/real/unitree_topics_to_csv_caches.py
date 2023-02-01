@@ -36,20 +36,18 @@ fr_max_height = 0
 rl_max_height = 0
 rr_max_height = 0
 state_cache = None
+prev_velocity = 0.0
 prev_footstep_time = 0
+invalid_velocity_change = 0.0
 
 # Global variables
 path = "/home/ilyass/dls_ws/src/footstep_planner/data/real"
-file_object = open(path + "/accelerations.csv", "a")
+file_object = open(path + "/accelerations2.csv", "a")
 
 # Output
 output = []
 
-prev_vel = 0.0
-prev_com_vel = 0.0
-
-
-def clean_values()():
+def clean_values():
     global fl_force
     global fr_force
     global rl_force
@@ -70,7 +68,7 @@ def clean_values()():
     rr_max_height = -100
 
 
-def valid_footstep(footholds_msg):
+def valid_footstep(footholds_msg, current_velocity):
     global fl_force
     global fr_force
     global rl_force
@@ -80,7 +78,9 @@ def valid_footstep(footholds_msg):
     global fr_max_height
     global rl_max_height
     global rr_max_height
+    global prev_velocity
     global prev_footstep_time
+    global invalid_velocity_change
 
     # Footstep boolean message
     footstep = Bool()
@@ -98,6 +98,16 @@ def valid_footstep(footholds_msg):
     contact_condition_1 = fl_force < 5 and footholds_msg.footForce[1] > 10 or rr_force < 5 and footholds_msg.footForce[2] > 10
     contact_condition_2 = fr_force < 5 and footholds_msg.footForce[0] > 10 or rl_force < 5 and footholds_msg.footForce[3] > 10
 
+    # Check if velocity changed
+    # during the early swing phase
+    if prev_velocity != current_velocity and \
+       ((footholds_msg.footForce[1] < 5 and footholds_msg.footForce[2] < 5) or
+        (footholds_msg.footForce[0] < 5 and footholds_msg.footForce[3] < 5)) and \
+        (0.12 < (time.time() - prev_footstep_time) < 0.27) :
+        invalid_velocity_change = True
+        print("Invalid velocity change")
+    prev_velocity = current_velocity
+
     # Update seen forces (only after half swing)
     if time.time() - prev_footstep_time > 0.15:
         fl_force = min(fl_force, footholds_msg.footForce[1])
@@ -106,17 +116,22 @@ def valid_footstep(footholds_msg):
         rr_force = min(rr_force, footholds_msg.footForce[2])
 
     # Check if footstep detected or not
-    if contact_condition_1 or contact_condition_2:
+    if (contact_condition_1 or contact_condition_2) and not invalid_velocity_change:
         if time.time() - prev_footstep_time > 0.2:
             footstep.data = True
             prev_footstep_time = time.time()
+    elif (contact_condition_1 or contact_condition_2) and invalid_velocity_change:
+        if time.time() - prev_footstep_time > 0.2:
+            clean_values()
+            prev_footstep_time = time.time()
+            invalid_velocity_change = False
 
     # Check which feet swung
     fl_rr_moving, fr_rl_moving = None, None
     if footstep.data:
         fl_rr_moving = True if fl_max_height > fr_max_height else False
         fr_rl_moving = True if fr_max_height > fl_max_height else False
-        clean_values()()
+        clean_values()
 
     publisher.publish(footstep)
     rospy.set_param("/feet_in_contact", footstep.data)
@@ -131,7 +146,7 @@ def live_extraction(cmd):
 
     # Check if at this time a valid footstep is detected
     state = state_cache.getElemBeforeTime(rospy.Time.now())
-    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
+    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state, cmd.twist.linear.x)
 
     if not is_valid_footstep:
         return
@@ -192,8 +207,7 @@ def live_extraction(cmd):
                       str(state.imu.rpy[2]) + "," +  # 45
 
                       str(fl_rr_moving) + "," +  # 46
-                      str(fr_rl_moving) + "," +  # 47
-                      str(2) + "\n")  # 58
+                      str(fr_rl_moving) + "\n")  # 47
 
 
 def main():
