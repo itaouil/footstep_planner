@@ -323,9 +323,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         // Stop planning if horizon reached or target expanded or overshot goal
         if (l_currentNode->sequence == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
-                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q) ||
-            (p_targetWorldCoordinates.x >= 0 && l_currentNode->worldCoordinates.x > p_targetWorldCoordinates.x) ||
-            (p_targetWorldCoordinates.x < 0 && l_currentNode->worldCoordinates.x < p_targetWorldCoordinates.x)) {
+                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
             ROS_INFO_STREAM("Search: Planning completed. " << l_currentNode->sequence);
             break;
         }

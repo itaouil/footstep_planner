@@ -289,9 +289,8 @@ double Model::velocityPrediction(double p_previousVelocityX,
                                  double p_nextAngularVelocity,
                                  double p_baseVelocity,
                                  const FeetConfiguration &p_currentFeetConfiguration) {
-    Eigen::VectorXd l_modelInput(12);
-    l_modelInput << p_previousVelocityX,
-                    p_nextVelocityX,
+    Eigen::VectorXd l_modelInput(11);
+    l_modelInput << p_nextVelocityX,
                     p_baseVelocity,
                     p_currentFeetConfiguration.flCoM.x,
                     p_currentFeetConfiguration.flCoM.y,
@@ -350,9 +349,6 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
     // Update CoM position in world frame
     p_newWorldCoordinatesCoM.x = p_currentWorldCoordinatesCoM.x + l_displacementMapFrame(0);
     p_newWorldCoordinatesCoM.y = p_currentWorldCoordinatesCoM.y + l_displacementMapFrame(1);
-
-    ROS_DEBUG_STREAM("CoM position: " << p_currentWorldCoordinatesCoM.x << ", " << p_currentWorldCoordinatesCoM.y);
-    ROS_DEBUG_STREAM("CoM position2: " << p_newWorldCoordinatesCoM.x << ", " << p_newWorldCoordinatesCoM.y);
 
     // Compute quaternion representation of predicted rotation
     tf2::Quaternion l_velocityCommandQuaternion;

@@ -112,11 +112,11 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                 grid_map::Position l_cellPos2D;
                 grid_map::Index l_cellIndex{x, y};
                 m_gridMap.getPosition(l_cellIndex, l_cellPos2D);
-                if (l_cellPos2D.x() > 3.25 &&  l_cellPos2D.x() < 3.45) {
+                if (l_cellPos2D.x() > 3.25 &&  l_cellPos2D.x() < 3.40) {
                     l_elevationMapImage.at<float>(x, y) = -100;
                 }
 
-                if (l_cellPos2D.x() > 3.75 &&  l_cellPos2D.x() < 3.95) {
+                if (l_cellPos2D.x() > 3.75 &&  l_cellPos2D.x() < 3.90) {
                     l_elevationMapImage.at<float>(x, y) = -100;
                 }
             }
