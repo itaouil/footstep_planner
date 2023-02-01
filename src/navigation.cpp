@@ -472,17 +472,23 @@ void Navigation::executeHighLevelCommands() {
             ros::spinOnce();
         }
 
-        if ((std::abs(std::abs(m_latestCoMPose.pose.pose.position.x) - std::abs(m_goalMsg.pose.position.x)) > 0.10)) {
+        if ((m_goalMsg.pose.position.x >= 0 &&
+            m_latestCoMPose.pose.pose.position.x < m_goalMsg.pose.position.x &&
+            std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x) > 0.01) ||
+            (m_goalMsg.pose.position.x < 0 &&
+             m_latestCoMPose.pose.pose.position.x > m_goalMsg.pose.position.x &&
+             std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x) > 0.01)) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
-            m_planner.plan(m_path, 
-                           m_swingingFRRL, 
-                           m_previousAction, 
+            m_planner.plan(m_path,
+                           m_swingingFRRL,
+                           m_previousAction,
                            m_previousVelocity,
-                           m_latestCoMPose, 
+                           m_latestCoMPose,
                            m_goalMsg,
                            m_feetConfigurationCoM);
-        } else {
+        }
+        else {
             stopCmdPublisher();
             ROS_INFO("Navigation: Goal has been reached.");
             break;
