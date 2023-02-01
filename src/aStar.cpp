@@ -52,7 +52,7 @@ AStar::Search::Search(ros::NodeHandle &p_nh) :
             {0, -1, 0},  // Right
             {0, 1,  0}  // Left
     };
-    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
+    m_velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 }
 
 /**
@@ -294,6 +294,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
     l_initialNode->velocity = p_initialVelocity;
 
     // Search process
+    const auto l_startTime = ros::Time::now();
     while (!l_openSet.empty()) {
         l_iterator = l_openSet.begin();
         l_currentNode = *l_iterator;
@@ -320,11 +321,13 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 "G value: " << l_currentNode->G << ", " << l_currentNode->H << ", " << l_currentNode->getScore());
         ROS_DEBUG_STREAM("Current sequence: " << l_currentNode->sequence);
 
-        // Stop planning if horizon reached or target expanded or overshot goal
+        // Stop planning if horizon reached or 
+        // target expanded or went above planning time
         if (l_currentNode->sequence == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
-                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
-            ROS_INFO_STREAM("Search: Planning completed. " << l_currentNode->sequence);
+                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q) ||
+            ros::Time::now().toSec() - l_startTime.toSec() > 0.006) {
+            ROS_INFO_STREAM("Search: Planning completed. " << l_currentNode->sequence << ". Time: " << ros::Time::now().toSec() - l_startTime.toSec());
             break;
         }
 

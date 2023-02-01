@@ -23,6 +23,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_swingingFRRL(false),
         m_rate(1000),
         m_previousVelocity(0.0),
+        m_previousDistanceToGoal(100),
         m_startedCmdPublisher(false),
         m_previousAction{0, 0, 0} {
     m_realPathPublisher = m_nh.advertise<nav_msgs::Path>(REAL_CoM_PATH_TOPIC, 1);
@@ -290,12 +291,7 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-    // Start cmd publisher if not running
-    if (!m_startedCmdPublisher) {
-        startCmdPublisher();
-    }
-
-//    ros::Duration(7).sleep();
+   ros::Duration(5).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -337,7 +333,7 @@ void Navigation::executeHighLevelCommands() {
     while (ros::ok()) {
         unsigned int l_actionInExecution = 1;
 
-        if (m_path.empty() || m_path.size() < FOOTSTEP_HORIZON) {
+        if (m_path.empty()) {
             ROS_WARN_STREAM("Navigation: Path obtained is empty.... Using previously saved path: " << m_previousPath.size());
 
             // Skip previously applied action
@@ -345,9 +341,8 @@ void Navigation::executeHighLevelCommands() {
             m_previousPath = std::vector<Node>(m_previousPath.begin() + 1, m_previousPath.end());
             m_path = m_previousPath;
         }
-
-        // Save full path
-        if (m_path.size() == FOOTSTEP_HORIZON) {
+        else {
+            // Save path
             m_previousPath = m_path;
         }
 
@@ -407,17 +402,20 @@ void Navigation::executeHighLevelCommands() {
                             l_feetInContact = true;
                         }
                     }
+                    else if (ros::Time::now().toSec() - l_startTime.toSec() > 0.3) {
+                        l_feetInContact = true;
+                    }
                 }
 
                 ros::spinOnce();
             }
 
-            ROS_DEBUG_STREAM("E.O.C time: " << ros::Time::now().toSec() - l_startTime.toSec());
-            ROS_DEBUG_STREAM("E.O.C heights: " << m_feetConfigurationCoM[0].z << ", "
+            ROS_INFO_STREAM("E.O.C time: " << ros::Time::now().toSec() - l_startTime.toSec());
+            ROS_INFO_STREAM("E.O.C heights: " << m_feetConfigurationCoM[0].z << ", "
                                               << m_feetConfigurationCoM[1].z << ", "
                                               << m_feetConfigurationCoM[2].z << ", "
                                               << m_feetConfigurationCoM[3].z);
-            ROS_DEBUG_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
+            ROS_INFO_STREAM("E.O.C forces: " << m_latestFeetForces[0] << ", "
                                              << m_latestFeetForces[1] << ", "
                                              << m_latestFeetForces[2] << ", "
                                              << m_latestFeetForces[3]);
@@ -472,12 +470,8 @@ void Navigation::executeHighLevelCommands() {
             ros::spinOnce();
         }
 
-        if ((m_goalMsg.pose.position.x >= 0 &&
-            m_latestCoMPose.pose.pose.position.x < m_goalMsg.pose.position.x &&
-            std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x) > 0.01) ||
-            (m_goalMsg.pose.position.x < 0 &&
-             m_latestCoMPose.pose.pose.position.x > m_goalMsg.pose.position.x &&
-             std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x) > 0.01)) {
+        double l_currentDistanceToGoal = std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x);
+        if (l_currentDistanceToGoal > 0.01 && m_previousDistanceToGoal > l_currentDistanceToGoal) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
             m_planner.plan(m_path,
@@ -487,6 +481,7 @@ void Navigation::executeHighLevelCommands() {
                            m_latestCoMPose,
                            m_goalMsg,
                            m_feetConfigurationCoM);
+            m_previousDistanceToGoal = l_currentDistanceToGoal; 
         }
         else {
             stopCmdPublisher();

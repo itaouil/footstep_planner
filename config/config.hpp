@@ -13,7 +13,7 @@
 #include <iostream>
 
 // Published topics
-const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
+const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/twist_cmd");
 const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
 const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
 const std::string REAL_FEET_CONFIGURATION_MARKERS_TOPIC("/real_feet_configuration");
@@ -25,7 +25,7 @@ const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
 const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
 
 // TF reference frames
-const std::string ROBOT_REFERENCE_FRAME("base_link");
+const std::string ROBOT_REFERENCE_FRAME("base");
 const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
 
 // Publish processed elevation map
@@ -35,16 +35,16 @@ const bool PUBLISH(true);
 const bool VISUALIZE(true);
 
 // Simulation or real robot
-const bool SIMULATION(true);
+const bool SIMULATION(false);
 
 // Height threshold when computing unsafe edges
-const double HEIGHT_FILTER_THRESHOLD(0.06);
+const double HEIGHT_FILTER_THRESHOLD(0.10);
 
 // Distance used for heuristic in the planner
 const float ZERO_COST_FOOT_DISTANCE(0.15);
 
 // Max footstep height
-const float MAX_FOOTSTEP_HEIGHT(0.03);
+const float MAX_FOOTSTEP_HEIGHT(0.10);
 
 // Cache size for the robot pose
 const unsigned int CACHE_SIZE(200);
@@ -56,10 +56,10 @@ const bool ACQUIRE_INITIAL_HEIGHT_MAP(false);
 const bool SET_DIAGONAL_MOVEMENT(false);
 
 // Footstep planning horizon
-const unsigned int FOOTSTEP_HORIZON(5);
+const unsigned int FOOTSTEP_HORIZON(6);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.03);
+const float MIN_STAIR_DISTANCE(0.04);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);

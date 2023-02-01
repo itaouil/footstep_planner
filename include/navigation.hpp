@@ -195,6 +195,9 @@ private:
     //! Goal message
     geometry_msgs::PoseStamped m_goalMsg;
 
+    //! Previous distance to goal
+    double m_previousDistanceToGoal;
+
     //! Latest feet forces
     std::vector<float> m_latestFeetForces;
 

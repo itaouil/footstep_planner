@@ -89,10 +89,10 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
     geometry_msgs::TransformStamped rl_transform;
     geometry_msgs::TransformStamped rr_transform;
     try{
-      fl_transform = m_buffer.lookupTransform("world", "lf_foot", ros::Time(0));
-      fr_transform = m_buffer.lookupTransform("world", "rf_foot", ros::Time(0));
-      rl_transform = m_buffer.lookupTransform("world", "lh_foot", ros::Time(0));
-      rr_transform = m_buffer.lookupTransform("world", "rh_foot", ros::Time(0));
+      fl_transform = m_buffer.lookupTransform("world", "FL_foot", ros::Time(0));
+      fr_transform = m_buffer.lookupTransform("world", "FR_foot", ros::Time(0));
+      rl_transform = m_buffer.lookupTransform("world", "RL_foot", ros::Time(0));
+      rr_transform = m_buffer.lookupTransform("world", "RR_foot", ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
