@@ -291,7 +291,7 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-   ros::Duration(5).sleep();
+//   ros::Duration(5).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -471,7 +471,7 @@ void Navigation::executeHighLevelCommands() {
         }
 
         double l_currentDistanceToGoal = std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x);
-        if (l_currentDistanceToGoal > 0.01 && m_previousDistanceToGoal > l_currentDistanceToGoal) {
+        if (l_currentDistanceToGoal > 0.05 && (m_previousDistanceToGoal + 0.06) > l_currentDistanceToGoal) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
             m_planner.plan(m_path,
