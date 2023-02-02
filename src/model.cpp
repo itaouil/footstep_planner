@@ -315,16 +315,24 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
     if (p_currentFeetConfiguration.fr_rl_swinging) {
         p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x + l_feetDisplacementWorldFrame(0);
         p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y + l_feetDisplacementWorldFrame(1);
+        p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + l_feetDisplacementWorldFrame(0);
+        p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + l_feetDisplacementWorldFrame(1);
 
-        p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + l_feetDisplacementWorldFrame(0);
-        p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + l_feetDisplacementWorldFrame(1);
+        p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x;
+        p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y;
+        p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x;
+        p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y;
     }
     else {
         p_newFeetConfiguration.flMap.x = p_currentFeetConfiguration.flMap.x + l_feetDisplacementWorldFrame(0);
         p_newFeetConfiguration.flMap.y = p_currentFeetConfiguration.flMap.y + l_feetDisplacementWorldFrame(1);
+        p_newFeetConfiguration.rrMap.x = p_currentFeetConfiguration.rrMap.x + l_feetDisplacementWorldFrame(0);
+        p_newFeetConfiguration.rrMap.y = p_currentFeetConfiguration.rrMap.y + l_feetDisplacementWorldFrame(1);
 
-        p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x + l_feetDisplacementWorldFrame(0);
-        p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y + l_feetDisplacementWorldFrame(1);
+        p_newFeetConfiguration.frMap.x = p_currentFeetConfiguration.frMap.x;
+        p_newFeetConfiguration.frMap.y = p_currentFeetConfiguration.frMap.y;
+        p_newFeetConfiguration.rlMap.x = p_currentFeetConfiguration.rlMap.x;
+        p_newFeetConfiguration.rlMap.y = p_currentFeetConfiguration.rlMap.y;
     }
 
     // Compute new feet configuration in CoM frame
