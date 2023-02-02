@@ -208,25 +208,12 @@ private:
     //! Publisher for feet poses (debugging)
     ros::Publisher m_feetConfigurationPublisher;
 
-    //! CoM models' coefficients (velocity prediction)
-    Eigen::RowVectorXd m_fr_rl_com_velocity;
-    Eigen::RowVectorXd m_fl_rr_com_velocity;
+    //! Feet models' coefficients (footstep prediction)
+    Eigen::RowVectorXd m_feet_x;
+    Eigen::RowVectorXd m_feet_y;
 
     //! CoM models' coefficients (CoM prediction)
-    Eigen::RowVectorXd m_fr_rl_com_x;
-    Eigen::RowVectorXd m_fr_rl_com_y;
-    Eigen::RowVectorXd m_fr_rl_com_theta;
-    Eigen::RowVectorXd m_fl_rr_com_x;
-    Eigen::RowVectorXd m_fl_rr_com_y;
-    Eigen::RowVectorXd m_fl_rr_com_theta;
-
-    //! Feet models' coefficients (footstep prediction)
-    Eigen::RowVectorXd m_fl_swinging_x;
-    Eigen::RowVectorXd m_fl_swinging_y;
-    Eigen::RowVectorXd m_fr_swinging_x;
-    Eigen::RowVectorXd m_fr_swinging_y;
-    Eigen::RowVectorXd m_rl_swinging_x;
-    Eigen::RowVectorXd m_rl_swinging_y;
-    Eigen::RowVectorXd m_rr_swinging_x;
-    Eigen::RowVectorXd m_rr_swinging_y;
+    Eigen::RowVectorXd m_com_x;
+    Eigen::RowVectorXd m_com_y;
+    Eigen::RowVectorXd m_com_velocity;
 };
