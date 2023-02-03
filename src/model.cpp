@@ -42,31 +42,24 @@ Model::~Model() = default;
 void Model::setModelsCoefficientsReal() {
     // CoM models coefficients
     m_com_x.resize(11);
-    m_com_x << 0.05614017,  0.24416557,  0.11551485,
-               -0.16395513, -0.6102207, 0.69225701,
-               0.21613095,  0.11673955, -0.53767237,
-               -0.5138379, 0.06480121;
+    m_com_x << 0.05161183,  0.24184621,  0.07715381,
+               -0.26828992, -0.42155623, 0.6377989 ,
+               -0.01467821,  0.25629002, -0.54420026,
+               -0.61956506, -0.05527602;
     m_com_y.resize(11);
-    m_com_y << 0.00257218,  0.01013021, -0.1959273,
-               -0.24460939,  0.042696 , -0.16506606,
-               -0.09664014,  0.11211787,  0.14725632,
-               0.14250605, 0.06361157;
+    m_com_y << 0.00232028,  0.01020135, -0.18229893, -0.22342083,  0.02513787,
+            -0.16011047, -0.07382184,  0.06855063,  0.12875993,  0.12090062, 0.06652304;
 
     // Feet models coefficients
     m_feet_x.resize(11);
-    m_feet_x << 0.09418648,  0.52550962, -0.97187076,
-                -0.71906376, -0.96919576, 0.72239317,
-                -0.42631457,  0.854714, -0.42357979,
-                -0.83651817, 0.21809017;
+    m_feet_x << 0.09217351,  0.52066393, -0.85994097, -0.72568713, -0.8383571 ,
+            0.70113854, -0.56682693,  0.97946736, -0.5448619 , -0.98243096, 0.05810637;
     m_feet_y.resize(11);
-    m_feet_y << 0.01151527,  0.00734038,  0.84013564,
-                0.36165677,  0.83473552, -0.37609029,
-                -0.66387425,  0.38955635, -0.66894712,
-                -0.38943575, -0.95016634;
+    m_feet_y << 0.01233718,  0.00542518,  0.64597745,  0.32331714,  0.64165595,
+            -0.3143843 , -0.43677607,  0.31227631, -0.44125327, -0.3009676, -0.7054088;
 
-    m_com_velocity.resize(11);
-    m_com_velocity << 0.49175065, 0.58153937, 0, 0,
-            0,0,0,0,0,0, -0.01958978;
+    m_com_velocity.resize(3);
+    m_com_velocity << 0.50417108, 0.57061469, -0.02003172;
 }
 
 /**
@@ -76,67 +69,26 @@ void Model::setModelsCoefficientsReal() {
  * velocity commands for the simulated robot;
  */
 void Model::setModelsCoefficientsSimulation() {
-//    /**
-//     * Models to predict CoM and feet displacements.
-//     */
-//    // CoM models coefficients when FR/RL are swinging
-//    m_fr_rl_com_x.resize(11);
-//    m_fr_rl_com_x << 0.14195434,  0.29309914, -0.45063771,  0.10792488, -0.35124081,
-//            -0.27716803,  0.63653376,  0.45524618, -0.2922709 , -0.43105432, 0.12798102;
-//    m_fr_rl_com_y.resize(11);
-//    m_fr_rl_com_y << 0.02240725, -0.01769868,  0.04851553,  0.0044649 ,  0.00978158,
-//            -0.07848464, -0.01821843, -0.03730028, -0.07432889,  0.18059606, -0.01957075;
-//
-//    // CoM models coefficients when FL/RR are swinging
-//    m_fl_rr_com_x.resize(11);
-//    m_fl_rr_com_x << 0.14497326,  0.27579546, -0.46409283,  0.30298774, -0.49893243,
-//            -0.27786822, -0.1428397 ,  0.63605616,  0.7484066 , -0.47387858, 0.18265735;
-//    m_fl_rr_com_y.resize(11);
-//    m_fl_rr_com_y << -0.0187296 ,  0.01060315, -0.00248636, -0.1425632 , -0.03449454,
-//            0.03747548,  0.05862977,  0.16866319, -0.00718056, -0.01268418, 0.02055811;
-//
-//    // FL models coefficients
-//    m_fl_swinging_x.resize(11);
-//    m_fl_swinging_x << 0.30013909,  0.36931784, -1.1074553 ,  0.93583121, -0.25726387,
-//            -0.11980933, -0.50802773,  0.56461053,  0.61182688, -0.97648846, 0.03803627;
-//    m_fl_swinging_y.resize(11);
-//    m_fl_swinging_y << -0.04428962, -0.00720189,  0.0721136 , -1.0658317 , -0.55454471,
-//            -0.00109622,  0.70293325,  0.54989502, -0.1292977 ,  0.14070075, 0.36168857;
-//
-//    // FR models coefficients
-//    m_fr_swinging_x.resize(11);
-//    m_fr_swinging_x << 0.2937814 ,  0.37239737, -0.23818396, -0.16423643, -1.08254897,
-//            -0.68770499,  0.56144116,  0.83909571, -0.61687197, -0.22815406, 0.11685523;
-//    m_fr_swinging_y.resize(11);
-//    m_fr_swinging_y << 0.0498393 ,  0.00436791,  0.54752218,  0.05112793, -0.08545294,
-//            -1.14838131,  0.10240832,  0.10149859, -0.71089934,  0.6389606, -0.36486827;
-//
-//    // RL models coefficients
-//    m_rl_swinging_x.resize(11);
-//    m_rl_swinging_x << 0.29476012,  0.37255638, -0.19666099, -0.20529423, -1.10887963,
-//            -0.67182016,  0.59328337,  0.8695958 , -0.6709506 , -0.1866163, 0.11607556;
-//    m_rl_swinging_y.resize(11);
-//    m_rl_swinging_y << 0.04987723,  0.00214641,  0.55488705,  0.05641943, -0.10095723,
-//            -1.14232925,  0.11468043,  0.10034111, -0.71062025,  0.63335682, -0.3599297;
-//
-//    // RR models coefficients
-//    m_rr_swinging_x.resize(11);
-//    m_rr_swinging_x << 0.3000257 ,  0.36589414, -1.16892414,  0.9394715 , -0.29496693,
-//            -0.16138798, -0.44886004,  0.60326015,  0.67842782, -0.98761891, 0.08390283;
-//    m_rr_swinging_y.resize(11);
-//    m_rr_swinging_y << -0.04434898, -0.00771166,  0.07051247, -1.07733049, -0.56825544,
-//            0.0163967 ,  0.71544876,  0.55445835, -0.1263772 ,  0.14038913, 0.37286927;
-//
-//    /**
-//     * Models to predict next CoM velocity.
-//     */
-//    m_fr_rl_com_velocity.resize(11);
-//    m_fr_rl_com_velocity << 0.85510601,  0.17584364, -0.54060372,  0.10019051, -0.33629804,
-//            -0.18362215,  0.36374963,  0.01261887,  0.07632279,  0.11875604, 0.31037846;
-//    m_fl_rr_com_velocity.resize(11);
-//    m_fl_rr_com_velocity << 0.86909078,  0.16767237, -0.34461438,  0.58227706, -0.38741709,
-//            -0.44716001,  0.02843422,  0.05172457,  0.33606895, -0.04124653, 0.12983126;
-    return;
+    // CoM models coefficients
+    m_com_x.resize(11);
+    m_com_x << 0.14267699,  0.12305496, -0.33118454,  0.43730415, -0.30782957,
+            -0.43523469,  0.45521423,  0.57486121,  0.46607542, -0.55604231, 0.14402872;
+    m_com_y.resize(11);
+    m_com_y << 0.00120014,  0.00297546,  0.11956603,  0.11613013, -0.04487742,
+            0.08731888,  0.03709329, -0.02229205, -0.15739845,  0.04791459, -0.04480356;
+
+    // Feet models coefficients
+    m_feet_x.resize(11);
+    m_feet_x << 0.29964666,  0.31752395, -0.63171749,  0.25078884, -0.5806638 ,
+            -0.23353872, -0.01500927,  0.62897377,  0.03867802, -0.64303468, 0.08248208;
+    m_feet_y.resize(11);
+    m_feet_y << -6.68847940e-05,  4.05595280e-03,  3.77927166e-02,
+            1.16062116e-02,  4.82208001e-03, -2.44262538e-02,
+            -3.31418929e-02,  2.42256065e-02, -6.68354721e-02,
+            -1.64414447e-02, -0.04552546;
+
+    m_com_velocity.resize(3);
+    m_com_velocity << 0.86605954, 0.07516349, -0.01088777;
 }
 
 /**
@@ -219,17 +171,9 @@ double Model::velocityPrediction(double p_previousVelocityX,
                                  double p_nextAngularVelocity,
                                  double p_baseVelocity,
                                  const FeetConfiguration &p_currentFeetConfiguration) {
-    Eigen::VectorXd l_modelInput(11);
+    Eigen::VectorXd l_modelInput(3);
     l_modelInput << p_nextVelocityX,
                     p_baseVelocity,
-                    p_currentFeetConfiguration.flCoM.x,
-                    p_currentFeetConfiguration.flCoM.y,
-                    p_currentFeetConfiguration.frCoM.x,
-                    p_currentFeetConfiguration.frCoM.y,
-                    p_currentFeetConfiguration.rlCoM.x,
-                    p_currentFeetConfiguration.rlCoM.y,
-                    p_currentFeetConfiguration.rrCoM.x,
-                    p_currentFeetConfiguration.rrCoM.y,
                     1;
 
     ROS_INFO_STREAM("Velocity Input: " << l_modelInput);
@@ -253,8 +197,7 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
                           const double p_predictedCoMVelocity,
                           const World3D &p_currentWorldCoordinatesCoM,
                           World3D &p_newWorldCoordinatesCoM) {
-    // Get rotation matrix of 
-    // the base w.r.t world
+    // Get rotation matrix of the base w.r.t world
     Eigen::Quaterniond q;
     q.x() = p_currentWorldCoordinatesCoM.q.x();
     q.y() = p_currentWorldCoordinatesCoM.q.y();
@@ -262,16 +205,12 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
     q.w() = p_currentWorldCoordinatesCoM.q.w();
     Eigen::Matrix3d RWorldBase = q.normalized().toRotationMatrix();
 
-    // CoM displacement
+    // Transform CoM prediction from base to world frame
     Eigen::Vector3d l_displacementCoMFrame{p_predictedCoMDisplacementX, p_predictedCoMDisplacementY, 0.0};
+    Eigen::Vector3d l_displacementMapFrame = RWorldBase * l_displacementCoMFrame;
 
-    // Map displacement
-    Eigen::Vector3d l_displacementMapFrame = RWorldBase.transpose() * l_displacementCoMFrame;
-
-    // Update predicted CoM velocity
+    // Update predicted CoM velocity and pose
     p_newWorldCoordinatesCoM.v = p_predictedCoMVelocity;
-
-    // Update CoM position in world frame
     p_newWorldCoordinatesCoM.x = p_currentWorldCoordinatesCoM.x + l_displacementMapFrame(0);
     p_newWorldCoordinatesCoM.y = p_currentWorldCoordinatesCoM.y + l_displacementMapFrame(1);
 
@@ -486,5 +425,5 @@ void Model::predictNextState(uint p_plannedFootstep,
      l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
      m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-     ros::Duration(0.5).sleep();
+     ros::Duration(2).sleep();
 }
