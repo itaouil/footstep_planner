@@ -41,8 +41,8 @@ prev_footstep_time = 0
 invalid_velocity_change = 0.0
 
 # Global variables
-path = "/home/ilyass/dls_ws/src/footstep_planner/data/real"
-file_object = open(path + "/accelerations2.csv", "a")
+path = "/home/ilyass/dls_ws/src/footstep_planner/data/real_monica"
+file_object = open(path + "/accelerations3.csv", "a")
 
 # Output
 output = []
@@ -95,14 +95,14 @@ def valid_footstep(footholds_msg, current_velocity):
     fr_max_height = max(fr_max_height, fr_height)
 
     # Footstep conditions check
-    contact_condition_1 = fl_force < 5 and footholds_msg.footForce[1] > 10 or rr_force < 5 and footholds_msg.footForce[2] > 10
-    contact_condition_2 = fr_force < 5 and footholds_msg.footForce[0] > 10 or rl_force < 5 and footholds_msg.footForce[3] > 10
+    contact_condition_1 = fl_force < 15 and footholds_msg.footForce[1] > 30 or rr_force < 15 and footholds_msg.footForce[2] > 30
+    contact_condition_2 = fr_force < 15 and footholds_msg.footForce[0] > 30 or rl_force < 15 and footholds_msg.footForce[3] > 30
 
     # Check if velocity changed
     # during the early swing phase
     if prev_velocity != current_velocity and \
-       ((footholds_msg.footForce[1] < 5 and footholds_msg.footForce[2] < 5) or
-        (footholds_msg.footForce[0] < 5 and footholds_msg.footForce[3] < 5)) and \
+       ((footholds_msg.footForce[1] < 15 and footholds_msg.footForce[2] < 15) or
+        (footholds_msg.footForce[0] < 15 and footholds_msg.footForce[3] < 15)) and \
         (0.12 < (time.time() - prev_footstep_time) < 0.27) :
         invalid_velocity_change = True
         print("Invalid velocity change")
@@ -138,14 +138,16 @@ def valid_footstep(footholds_msg, current_velocity):
     return footstep.data, fl_rr_moving, fr_rl_moving
 
 
-def live_extraction(cmd):
+def live_extraction(cmd, state):
     # Globals
     global output
     global state_cache
     global file_object
 
+    print("Here")
+
     # Check if at this time a valid footstep is detected
-    state = state_cache.getElemBeforeTime(rospy.Time.now())
+    #state = state_cache.getElemBeforeTime(cmd.header.stamp)
     is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state, cmd.twist.linear.x)
 
     if not is_valid_footstep:
@@ -220,9 +222,13 @@ def main():
 
     publisher = rospy.Publisher('footstep2', Bool, queue_size=1)
 
-    state_sub = message_filters.Subscriber("/aliengo_bridge/high_state", HighStateStamped, queue_size=1)
-    state_cache = message_filters.Cache(state_sub, 1000)
-    rospy.Subscriber("/aliengo_bridge/twist_cmd", TwistStamped, live_extraction, queue_size=1)
+    # Sync state and cmd message
+    cmd_sub = message_filters.Subscriber('/aliengo_bridge/twist_cmd', TwistStamped)
+    state_sub = message_filters.Subscriber('/aliengo_bridge/high_state', HighStateStamped)
+
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10, 0.05)
+    ts.registerCallback(live_extraction)
+    rospy.spin()
 
     rospy.spin()
 
