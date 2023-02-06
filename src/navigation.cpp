@@ -23,6 +23,7 @@ Navigation::Navigation(ros::NodeHandle &p_nh, tf2_ros::Buffer &p_buffer, tf2_ros
         m_swingingFRRL(false),
         m_rate(1000),
         m_previousVelocity(0.0),
+        m_previousCoMVelocity(0.0),
         m_previousDistanceToGoal(100),
         m_startedCmdPublisher(false),
         m_previousAction{0, 0, 0} {
@@ -313,6 +314,7 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
                    m_swingingFRRL, 
                    m_previousAction, 
                    m_previousVelocity,
+                   m_previousCoMVelocity,
                    m_latestCoMPose, 
                    m_goalMsg,
                    m_feetConfigurationCoM);
@@ -478,10 +480,12 @@ void Navigation::executeHighLevelCommands() {
                            m_swingingFRRL,
                            m_previousAction,
                            m_previousVelocity,
+                           m_previousCoMVelocity,
                            m_latestCoMPose,
                            m_goalMsg,
                            m_feetConfigurationCoM);
-            m_previousDistanceToGoal = l_currentDistanceToGoal; 
+            m_previousDistanceToGoal = l_currentDistanceToGoal;
+            m_previousCoMVelocity = m_latestCoMPose.twist.twist.linear.x;
         }
         else {
             stopCmdPublisher();

@@ -42,7 +42,7 @@ invalid_velocity_change = 0.0
 
 # Global variables
 path = "/home/ilyass/dls_ws/src/footstep_planner/data/real_monica"
-file_object = open(path + "/accelerations3.csv", "a")
+file_object = open(path + "/continuous.csv", "a")
 
 # Output
 output = []

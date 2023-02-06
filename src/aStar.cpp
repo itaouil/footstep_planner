@@ -325,8 +325,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         // target expanded or went above planning time
         if (l_currentNode->sequence == FOOTSTEP_HORIZON ||
             targetReached(l_currentNode->gridCoordinates, l_targetGridCoordinates,
-                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q) ||
-            ros::Time::now().toSec() - l_startTime.toSec() > 0.006) {
+                          l_currentNode->worldCoordinates.q, p_targetWorldCoordinates.q)) {
             ROS_INFO_STREAM("Search: Planning completed. " << l_currentNode->sequence << ". Time: " << ros::Time::now().toSec() - l_startTime.toSec());
             break;
         }

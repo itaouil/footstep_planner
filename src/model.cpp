@@ -41,25 +41,27 @@ Model::~Model() = default;
  */
 void Model::setModelsCoefficientsReal() {
     // CoM models coefficients
-    m_com_x.resize(11);
-    m_com_x << 0.05421525,  0.25725182, -0.10765707, -0.31647743, -0.33106386,
-            0.58849636, -0.22103663,  0.43702301, -0.4101444 , -0.37746098, -0.04793777;
-    m_com_y.resize(11);
-    m_com_y << 0.00410621,  0.01714258, -0.13614921, -0.35050945, -0.1070792 ,
-            -0.06573225,  0.06950836,  0.02651255,  0.11093522,  0.01786974, 0.14007718;
+    m_com_x.resize(13);
+    m_com_x << 0.05997183,  0.02459342, -0.06926164,  0.26511245,  0.10624007,
+            -0.34722695, -0.17132605,  0.38170843,  0.35860445,  0.20243359,
+            0.10179559, -0.2001249, 0.17478526;
+    m_com_y.resize(13);
+    m_com_y << 0.00752922,  0.00148236, -0.00438225,  0.01441431, -0.15547298,
+            -0.34179785, -0.10283741, -0.11411006,  0.11818828, -0.03319756,
+            0.18204935,  0.06265764, 0.1807604;
 
     // Feet models coefficients
-    m_feet_x.resize(11);
-    m_feet_x << 0.10041994,  0.54531577, -1.41535963,  0.74266505, -1.40179212,
-            -0.77490835,  0.03239483, -1.87437606,  0.04464605,  1.87504419, 0.97872756;
-    m_feet_y.resize(11);
-    m_feet_y << 1.97291379e-02,  1.28805633e-04, -4.20866906e-01,
-            -4.23797738e-01, -4.42158316e-01,  4.46038530e-01,
-            7.26703246e-01, -1.34874414e-01,  7.06166228e-01,
-            9.05282256e-02, 0.71194563;
+    m_feet_x.resize(13);
+    m_feet_x << 0.10709382,  0.05165214, -0.09017548,  0.53112765, -0.29422654,
+            0.25904083, -0.29728666, -0.25640557, -0.11391962, -0.83852641,
+            -0.11870351,  0.84781016, 0.23136446;
+    m_feet_y.resize(13);
+    m_feet_y << 0.02697272,  0.00834253, -0.00662008, -0.01343634, -0.29899145,
+            -0.5217546 , -0.32128996,  0.54454878,  0.7236316 ,  0.00259462,
+            0.7001143 , -0.05302296, 0.64057295;
 
-    m_com_velocity.resize(3);
-    m_com_velocity << 0.56731776, 0.50682852, -0.02284965;
+    m_com_velocity.resize(5);
+    m_com_velocity << 0.50780543,  0.30216846, -0.27227284,  0.48449388, -0.00558968;
 }
 
 /**
@@ -92,7 +94,7 @@ void Model::setModelsCoefficientsSimulation() {
 }
 
 /**
- * Motion prediction for the first step.
+ * Motion prediction.
  *
  * @param p_plannedHorizon
  * @param p_previousVelocityX
@@ -101,22 +103,27 @@ void Model::setModelsCoefficientsSimulation() {
  * @param p_nextVelocityX
  * @param p_nextVelocityY
  * @param p_nextAngularVelocity
+ * @param p_previousCoMVelocity
+ * @param p_currentCoMVelocity
  * @param p_currentFeetConfiguration
  * @param p_predictions
  */
-void Model::motionPrediction(uint p_plannedHorizon,
-                             double p_previousVelocityX,
-                             double p_previousVelocityY,
-                             double p_previousAngularVelocity,
-                             double p_nextVelocityX,
-                             double p_nextVelocityY,
-                             double p_nextAngularVelocity,
-                             const double &p_baseVelocity,
+void Model::motionPrediction(const uint &p_plannedHorizon,
+                             const double &p_previousVelocityX,
+                             const double &p_previousVelocityY,
+                             const double &p_previousAngularVelocity,
+                             const double &p_nextVelocityX,
+                             const double &p_nextVelocityY,
+                             const double &p_nextAngularVelocity,
+                             const double &p_previousCoMVelocity,
+                             const double &p_currentCoMVelocity,
                              const FeetConfiguration &p_currentFeetConfiguration,
                              std::vector<double> &p_predictions) {
-    Eigen::VectorXd l_modelInput(11);
-    l_modelInput << p_nextVelocityX,
-                    p_baseVelocity,
+    Eigen::VectorXd l_modelInput(13);
+    l_modelInput << p_previousVelocityX,
+                    p_nextVelocityX,
+                    p_previousCoMVelocity,
+                    p_currentCoMVelocity,
                     p_currentFeetConfiguration.flCoM.x,
                     p_currentFeetConfiguration.flCoM.y,
                     p_currentFeetConfiguration.frCoM.x,
@@ -147,12 +154,12 @@ void Model::motionPrediction(uint p_plannedHorizon,
                                           p_nextVelocityX,
                                           p_nextVelocityY,
                                           p_nextAngularVelocity,
-                                          p_baseVelocity,
-                                          p_currentFeetConfiguration);
+                                          p_previousCoMVelocity
+                                          p_currentCoMVelocity);
 }
 
 /**
- * Motion prediction for second step onwards.
+ * Predict next velocity.
  *
  * @param p_previousVelocityX
  * @param p_previousVelocityY
@@ -160,20 +167,22 @@ void Model::motionPrediction(uint p_plannedHorizon,
  * @param p_nextVelocityX
  * @param p_nextVelocityY
  * @param p_nextAngularVelocity
- * @param p_currentFeetConfiguration
- * @param p_predictions
+ * @param p_previousCoMVelocity
+ * @param p_currentCoMVelocity
  */
-double Model::velocityPrediction(double p_previousVelocityX,
-                                 double p_previousVelocityY,
-                                 double p_previousAngularVelocity,
-                                 double p_nextVelocityX,
-                                 double p_nextVelocityY,
-                                 double p_nextAngularVelocity,
-                                 double p_baseVelocity,
-                                 const FeetConfiguration &p_currentFeetConfiguration) {
-    Eigen::VectorXd l_modelInput(3);
-    l_modelInput << p_nextVelocityX,
-                    p_baseVelocity,
+double Model::velocityPrediction(const double &p_previousVelocityX,
+                                 const double &p_previousVelocityY,
+                                 const double &p_previousAngularVelocity,
+                                 const double &p_nextVelocityX,
+                                 const double &p_nextVelocityY,
+                                 const double &p_nextAngularVelocity,
+                                 const double &p_previousCoMVelocity,
+                                 const double &p_currentCoMVelocity) {
+    Eigen::VectorXd l_modelInput(5);
+    l_modelInput << p_previousVelocityX,
+                    p_nextVelocityX,
+                    p_previousCoMVelocity
+                    p_currentCoMVelocity,
                     1;
 
     ROS_INFO_STREAM("Velocity Input: " << l_modelInput);
@@ -182,19 +191,20 @@ double Model::velocityPrediction(double p_previousVelocityX,
 }
 
 /**
-  * Compute new CoM in world frame.
-  *
-  * @param p_predictedCoMVelocity
-  * @param p_predictedCoMDisplacementX
-  * @param p_predictedCoMDisplacementY
-  * @param p_predictedCoMDisplacementTheta,
-  * @param p_currentWorldCoordinatesCoM
-  * @param p_newWorldCoordinatesCoM
-  */
-void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
-                          const double p_predictedCoMDisplacementY,
-                          const double p_predictedCoMDisplacementTheta,
-                          const double p_predictedCoMVelocity,
+ * Compute new CoM in world frame.
+ *
+ * @param p_predictedCoMDisplacementX
+ * @param p_predictedCoMDisplacementY
+ * @param p_predictedCoMDisplacementTheta
+ * @param p_currentCoMVelocity
+ * @param p_predictedCoMVelocity
+ * @param p_currentWorldCoordinatesCoM
+ * @param p_newWorldCoordinatesCoM
+ */
+void Model::computeNewCoM(const double &p_predictedCoMDisplacementX,
+                          const double &p_predictedCoMDisplacementY,
+                          const double &p_predictedCoMDisplacementTheta,
+                          const double &p_predictedCoMVelocity,
                           const World3D &p_currentWorldCoordinatesCoM,
                           World3D &p_newWorldCoordinatesCoM) {
     // Get rotation matrix of the base w.r.t world
@@ -209,8 +219,9 @@ void Model::computeNewCoM(const double p_predictedCoMDisplacementX,
     Eigen::Vector3d l_displacementCoMFrame{p_predictedCoMDisplacementX, p_predictedCoMDisplacementY, 0.0};
     Eigen::Vector3d l_displacementMapFrame = RWorldBase * l_displacementCoMFrame;
 
-    // Update predicted CoM velocity and pose
-    p_newWorldCoordinatesCoM.v = p_predictedCoMVelocity;
+    // Update CoM attributes
+    p_newWorldCoordinatesCoM.a_v = p_predictedCoMVelocity;
+    p_newWorldCoordinatesCoM.p_v = p_currentWorldCoordinatesCoM.a_v;
     p_newWorldCoordinatesCoM.x = p_currentWorldCoordinatesCoM.x + l_displacementMapFrame(0);
     p_newWorldCoordinatesCoM.y = p_currentWorldCoordinatesCoM.y + l_displacementMapFrame(1);
 
@@ -317,6 +328,7 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
  * the previous state and a new
  * velocity.
  *
+ * @param p_plannedFootstep
  * @param p_previousVelocity
  * @param p_nextVelocity
  * @param p_action
@@ -325,9 +337,9 @@ void Model::computeNewFeetConfiguration(const World3D &p_newWorldCoordinatesCoM,
  * @param p_newFeetConfiguration
  * @param p_newWorldCoordinatesCoM
  */
-void Model::predictNextState(uint p_plannedFootstep,
-                             double p_previousVelocity,
-                             double p_nextVelocity,
+void Model::predictNextState(const uint p_plannedFootstep,
+                             const double p_previousVelocity,
+                             const double p_nextVelocity,
                              const Action &p_action,
                              const World3D &p_currentWorldCoordinatesCoM,
                              const FeetConfiguration &p_currentFeetConfiguration,
@@ -341,7 +353,8 @@ void Model::predictNextState(uint p_plannedFootstep,
                      p_action.x * p_nextVelocity,
                      p_action.y * p_nextVelocity,
                      p_action.theta * p_nextVelocity,
-                     p_currentWorldCoordinatesCoM.v,
+                     p_currentWorldCoordinatesCoM.p_v,
+                     p_currentWorldCoordinatesCoM.a_v,
                      p_currentFeetConfiguration,
                      l_predictions);
 
