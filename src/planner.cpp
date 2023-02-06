@@ -128,6 +128,7 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
  * @param p_swingingPair
  * @param p_initialAction
  * @param p_initialVelocity
+ * @param p_previousCoMVelocity
  * @param p_robotPose
  * @param p_goalPosition
  * @param p_latestCoMFeetPoses

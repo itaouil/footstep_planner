@@ -154,7 +154,7 @@ void Model::motionPrediction(const uint &p_plannedHorizon,
                                           p_nextVelocityX,
                                           p_nextVelocityY,
                                           p_nextAngularVelocity,
-                                          p_previousCoMVelocity
+                                          p_previousCoMVelocity,
                                           p_currentCoMVelocity);
 }
 
@@ -181,7 +181,7 @@ double Model::velocityPrediction(const double &p_previousVelocityX,
     Eigen::VectorXd l_modelInput(5);
     l_modelInput << p_previousVelocityX,
                     p_nextVelocityX,
-                    p_previousCoMVelocity
+                    p_previousCoMVelocity,
                     p_currentCoMVelocity,
                     1;
 
@@ -438,5 +438,5 @@ void Model::predictNextState(const uint p_plannedFootstep,
      l_pathFeetConfiguration.markers.push_back(l_rrFootMarker);
 
      m_feetConfigurationPublisher.publish(l_pathFeetConfiguration);
-     ros::Duration(2).sleep();
+     ros::Duration(0.5).sleep();
 }

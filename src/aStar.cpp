@@ -303,7 +303,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
         for (auto it = l_openSet.begin(); it != l_openSet.end(); it++) {
             auto l_iteratorNode = *it;
 
-            ROS_DEBUG_STREAM("Velocity: " << l_iteratorNode->worldCoordinates.v);
+            ROS_DEBUG_STREAM("Velocity: " << l_iteratorNode->worldCoordinates.a_v);
             ROS_DEBUG_STREAM("H: " << l_iteratorNode->H);
             ROS_DEBUG_STREAM("G: " << l_iteratorNode->G);
             ROS_DEBUG_STREAM("Score: " << l_iteratorNode->getScore() << "\n");
@@ -314,7 +314,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
             }
         }
 
-        ROS_DEBUG_STREAM("Chosen Velocity: " << l_currentNode->worldCoordinates.v);
+        ROS_DEBUG_STREAM("Chosen Velocity: " << l_currentNode->worldCoordinates.a_v);
         ROS_DEBUG_STREAM("Chosen Score: " << l_currentNode->getScore());
 
         ROS_DEBUG_STREAM(

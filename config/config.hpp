@@ -12,9 +12,9 @@
 #include <utility>
 #include <iostream>
 
-#define SIMULATION false
+#define simulation false
 
-#if SIMULATION
+#if simulation
     const bool SIMULATION(true);
     const std::string VELOCITY_CMD_TOPIC("/cmd_vel");
     const std::string ROBOT_REFERENCE_FRAME("base_link");
