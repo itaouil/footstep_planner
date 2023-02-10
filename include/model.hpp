@@ -96,18 +96,20 @@ public:
      * @param p_nextVelocityX
      * @param p_nextVelocityY
      * @param p_nextAngularVelocity
-     * @param p_odomVelocityState
+     * @param p_previousBaseVelocity
+     * @param p_currentBaseVelocity
      * @param p_currentFeetConfiguration
      * @param p_predictions
      */
-     void motionPrediction(uint p_plannedHorizon,
-                           double p_previousVelocityX,
-                           double p_previousVelocityY,
-                           double p_previousAngularVelocity,
-                           double p_nextVelocityX,
-                           double p_nextVelocityY,
-                           double p_nextAngularVelocity,
-                           const double &p_baseVelocity,
+     void motionPrediction(const uint &p_plannedHorizon,
+                           const double &p_previousVelocityX,
+                           const double &p_previousVelocityY,
+                           const double &p_previousAngularVelocity,
+                           const double &p_nextVelocityX,
+                           const double &p_nextVelocityY,
+                           const double &p_nextAngularVelocity,
+                           const double &p_previousBaseVelocity,
+                           const double &p_currentBaseVelocity,
                            const FeetConfiguration &p_currentFeetConfiguration,
                            std::vector<double> &p_predictions);
 
@@ -120,17 +122,17 @@ public:
      * @param p_nextVelocityX
      * @param p_nextVelocityY
      * @param p_nextAngularVelocity
-     * @param p_odomVelocityState
-     * @param p_currentFeetConfiguration
+     * @param p_previousCoMVelocity
+     * @param p_currentCoMVelocity
      */
-    double velocityPrediction(double p_previousVelocityX,
-                              double p_previousVelocityY,
-                              double p_previousAngularVelocity,
-                              double p_nextVelocityX,
-                              double p_nextVelocityY,
-                              double p_nextAngularVelocity,
-                              double p_baseVelocity,
-                              const FeetConfiguration &p_currentFeetConfiguration);
+    double velocityPrediction(const double &p_previousVelocityX,
+                              const double &p_previousVelocityY,
+                              const double &p_previousAngularVelocity,
+                              const double &p_nextVelocityX,
+                              const double &p_nextVelocityY,
+                              const double &p_nextAngularVelocity,
+                              const double &p_previousCoMVelocity,
+                              const double &p_currentCoMVelocity);
 
     /**
      * Rotate predictions according
@@ -144,17 +146,18 @@ public:
     /**
      * Compute new CoM in world coordinates.
      *
-     * @param p_predictedCoMVelocity
      * @param p_predictedCoMDisplacementX
      * @param p_predictedCoMDisplacementY
-     * @param p_predictedCoMDisplacementTheta,
+     * @param p_predictedCoMDisplacementTheta
+     * @param p_currentCoMVelocity
+     * @param p_predictedCoMVelocity
      * @param p_currentWorldCoordinatesCoM
      * @param p_newWorldCoordinatesCoM
      */
-    void computeNewCoM(double p_predictedCoMVelocity,
-                       double p_predictedCoMDisplacementX,
-                       double p_predictedCoMDisplacementY,
-                       double p_predictedCoMDisplacementTheta,
+    void computeNewCoM(const double &p_predictedCoMDisplacementX,
+                       const double &p_predictedCoMDisplacementY,
+                       const double &p_predictedCoMDisplacementTheta,
+                       const double &p_predictedCoMVelocity,
                        const World3D &p_currentWorldCoordinatesCoM,
                        World3D &p_newWorldCoordinatesCoM);
 
@@ -174,23 +177,22 @@ public:
                                      FeetConfiguration &p_newFeetConfiguration);
 
     /**
-     * Predicts new feet configuration using
-     * the learnt models and extracts new CoM
-     * from them.
+     * Predicts new robot state given
+     * the previous state and a new
+     * velocity.
      *
      * @param p_plannedFootstep
      * @param p_previousVelocity
-     * @param p_currentVelocity
+     * @param p_nextVelocity
      * @param p_action
-     * @param p_velocityState
      * @param p_currentWorldCoordinatesCoM
      * @param p_currentFeetConfiguration
      * @param p_newFeetConfiguration
      * @param p_newWorldCoordinatesCoM
      */
-    void predictNextState(uint p_plannedFootstep,
-                          double p_previousVelocity,
-                          double p_currentVelocity,
+    void predictNextState(const uint p_plannedFootstep,
+                          const double p_previousVelocity,
+                          const double p_nextVelocity,
                           const Action &p_action,
                           const World3D &p_currentWorldCoordinatesCoM,
                           const FeetConfiguration &p_currentFeetConfiguration,

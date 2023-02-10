@@ -72,6 +72,7 @@ public:
      * @param p_swingingPair
      * @param p_initialAction
      * @param p_initialVelocity
+     * @param p_previousCoMVelocity
      * @param p_robotPose
      * @param p_goalPosition
      * @param p_latestCoMFeetPoses
@@ -80,6 +81,7 @@ public:
               const bool &p_swingingPair,
               const Action &p_initialAction,
               const double &p_initialVelocity,
+              const double &p_previousCoMVelocity,
               const nav_msgs::Odometry &p_robotPose,
               const geometry_msgs::PoseStamped &p_goalPosition,
               const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses);

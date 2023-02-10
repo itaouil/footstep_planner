@@ -89,10 +89,10 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
     geometry_msgs::TransformStamped rl_transform;
     geometry_msgs::TransformStamped rr_transform;
     try{
-      fl_transform = m_buffer.lookupTransform("world", "FL_foot", ros::Time(0));
-      fr_transform = m_buffer.lookupTransform("world", "FR_foot", ros::Time(0));
-      rl_transform = m_buffer.lookupTransform("world", "RL_foot", ros::Time(0));
-      rr_transform = m_buffer.lookupTransform("world", "RR_foot", ros::Time(0));
+      fl_transform = m_buffer.lookupTransform("world", FEET_FRAMES[0], ros::Time(0));
+      fr_transform = m_buffer.lookupTransform("world", FEET_FRAMES[1], ros::Time(0));
+      rl_transform = m_buffer.lookupTransform("world", FEET_FRAMES[2], ros::Time(0));
+      rr_transform = m_buffer.lookupTransform("world", FEET_FRAMES[3], ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
@@ -128,6 +128,7 @@ void Planner::getFeetConfiguration(const bool &p_swingingFRRL,
  * @param p_swingingPair
  * @param p_initialAction
  * @param p_initialVelocity
+ * @param p_previousCoMVelocity
  * @param p_robotPose
  * @param p_goalPosition
  * @param p_latestCoMFeetPoses
@@ -136,6 +137,7 @@ void Planner::plan(std::vector<Node> &p_path,
                    const bool &p_swingingPair,
                    const Action &p_initialAction,
                    const double &p_initialVelocity,
+                   const double &p_previousCoMVelocity,
                    const nav_msgs::Odometry &p_robotPose,
                    const geometry_msgs::PoseStamped &p_goalPosition,
                    const std::vector<unitree_legged_msgs::Cartesian> &p_latestCoMFeetPoses) {
@@ -148,7 +150,8 @@ void Planner::plan(std::vector<Node> &p_path,
                                  p_robotPose.pose.pose.position.y,
                                  p_robotPose.pose.pose.position.z,
                                  l_startPositionQuaternion,
-                                 p_robotPose.twist.twist.linear.x};
+                                 p_robotPose.twist.twist.linear.x,
+                                 p_previousCoMVelocity};
 
     // Goal position
     tf2::Quaternion l_goalPositionQuaternion;
@@ -157,6 +160,7 @@ void Planner::plan(std::vector<Node> &p_path,
                                 p_goalPosition.pose.position.y,
                                 0.0,
                                 l_goalPositionQuaternion,
+                                0.0,
                                 0.0};
 
     // Create FeetConfiguration object

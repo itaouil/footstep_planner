@@ -25,6 +25,9 @@ struct World3D
     //! Robot rotation w.r.t to map frame
     tf2::Quaternion q{};
 
-    //! CoM velocity
-    double v{};
+    //! CoM actual velocity
+    double a_v{};
+
+    //! CoM previous velocity
+    double p_v{};
 };

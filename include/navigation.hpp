@@ -179,6 +179,7 @@ private:
     bool m_swingingFRRL;
     Action m_previousAction;
     double m_previousVelocity;
+    double m_previousCoMVelocity;
     
     //! Path planned
     std::vector<Node> m_path;
