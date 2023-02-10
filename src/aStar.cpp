@@ -237,6 +237,16 @@ void AStar::Search::setFeetConfigurationMapFields(const World3D &p_newCoMWorldCo
 }
 
 /**
+ * Barrier function.
+ */
+double barrierValue(const double &p_distance) {
+    if (p_distance <= BARRIER_THRESHOLD)
+        return 10000;
+    else
+        return -log(x - BARRIER_THRESHOLD) + 3;
+}
+
+/**
  * Find path from source to target
  * in a given height map.
  *
@@ -453,10 +463,8 @@ void AStar::Search::findPath(const Action &p_initialAction,
                 l_newFeetConfiguration.rrMap.z = m_elevationMapProcessor.getCellHeight(l_rrGridPose.x,
                                                                                        l_rrGridPose.y);
                     
-                l_hindFootCost = (l_hindFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
-                                 (ZERO_COST_FOOT_DISTANCE - l_hindFootDistance);
-                l_frontFootCost = (l_frontFootDistance >= ZERO_COST_FOOT_DISTANCE) ? 0.0 :
-                                  (ZERO_COST_FOOT_DISTANCE - l_frontFootDistance);
+                l_hindFootCost = barrierValue(l_hindFootDistance);
+                l_frontFootCost = barrierValue(l_frontFootDistance);
 
                 ROS_DEBUG_STREAM("Front foot cost/distance: " << l_frontFootCost << "," << l_frontFootDistance);
                 ROS_DEBUG_STREAM("Hind foot cost/distance: " << l_hindFootCost << "," << l_hindFootDistance);
@@ -482,7 +490,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                  l_newGridCoordinatesCoM,
                                                  l_newWorldCoordinatesCoM.q);
 
-                float l_feetDistanceCost = 500 * (l_hindFootCost + l_frontFootCost);
+                float l_feetDistanceCost = l_hindFootCost + l_frontFootCost;
 
                 if (successor == nullptr) {
                     successor = new Node(l_currentNode->sequence + 1,
