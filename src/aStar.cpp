@@ -239,11 +239,11 @@ void AStar::Search::setFeetConfigurationMapFields(const World3D &p_newCoMWorldCo
 /**
  * Barrier function.
  */
-double barrierValue(const double &p_distance) {
+double AStar::Search::barrierValue(const double &p_distance) {
     if (p_distance <= BARRIER_THRESHOLD)
         return 10000;
     else
-        return -log(x - BARRIER_THRESHOLD) + 3;
+        return -std::log(p_distance - BARRIER_THRESHOLD) + 3;
 }
 
 /**
@@ -506,7 +506,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     Action{0, 0, 0},
                                                                     l_targetGridCoordinates,
                                                                     p_targetWorldCoordinates,
-                                                                    l_newFeetConfiguration});
+                                                                    l_newFeetConfiguration}) + l_feetDistanceCost;
                     l_openSet.push_back(successor);
                     ROS_DEBUG_STREAM("Euclidean: " << AStar::Heuristic::euclidean(*successor,
                                                                Node{0,
@@ -528,7 +528,7 @@ void AStar::Search::findPath(const Action &p_initialAction,
                                                                     Action{0, 0, 0},
                                                                     l_targetGridCoordinates,
                                                                     p_targetWorldCoordinates,
-                                                                    l_newFeetConfiguration});
+                                                                    l_newFeetConfiguration}) + l_feetDistanceCost;
                 }
             }
         }

@@ -32,8 +32,8 @@
     const std::string ROBOT_REFERENCE_FRAME("base");
     const std::string HEIGHT_MAP_TOPIC("/local_gridmap");
     const std::string HEIGHT_MAP_REFERENCE_FRAME("world");
+    const std::string ROBOT_POSE_TOPIC("/high_state/odom");
     const std::string REAL_CoM_PATH_TOPIC("/real_com_path");
-    const std::string ROBOT_POSE_TOPIC("/vicon/Jumpaolo/odom");
     const std::string VELOCITY_CMD_TOPIC("/aliengo_bridge/twist_cmd");
     const std::string PREDICTED_CoM_PATH_TOPIC("/predicted_com_path");
     const std::string HIGH_STATE_SUBSCRIBER("/aliengo_bridge/high_state");
@@ -70,16 +70,16 @@ const bool SET_DIAGONAL_MOVEMENT(false);
 const unsigned int FOOTSTEP_HORIZON(4);
 
 // Minimum distance for cell to be considered traversable
-const float MIN_STAIR_DISTANCE(0.025);
+const float MIN_STAIR_DISTANCE(0.02);
 
 // Angle tolerance between target and robot rotation
 const float ANGLE_DIFFERENCE_TOLERANCE(2);
 
 // Out of contact force
-const float OUT_OF_CONTACT_FORCE(5.0);
+const float OUT_OF_CONTACT_FORCE(15.0);
 
 // Back in contact force
-const float BACK_IN_CONTACT_FORCE(10.0);
+const float BACK_IN_CONTACT_FORCE(30.0);
 
 // Elevation map layer to use
 const std::string ELEVATION_LAYER("elevation");

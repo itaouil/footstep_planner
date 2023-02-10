@@ -377,12 +377,12 @@ void Navigation::executeHighLevelCommands() {
                 auto l_rhForceZ = m_latestFeetForces[3];
 
                 if (!l_swingingFeetOutOfContact) {
-                    if (l_lfForceZ < OUT_OF_CONTACT_FORCE && l_rhForceZ < OUT_OF_CONTACT_FORCE) {
+                    if (l_lfForceZ <= OUT_OF_CONTACT_FORCE && l_rhForceZ <= OUT_OF_CONTACT_FORCE) {
                         l_lfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
                         ROS_DEBUG("LF and RH feet are swinging and are out of contact");
                     }
-                    else if (l_rfForceZ < OUT_OF_CONTACT_FORCE && l_lhForceZ < OUT_OF_CONTACT_FORCE) {
+                    else if (l_rfForceZ <= OUT_OF_CONTACT_FORCE && l_lhForceZ <= OUT_OF_CONTACT_FORCE) {
                         l_rfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
                         ROS_DEBUG("RF and LH feet are swinging and are out of contact");
@@ -395,17 +395,14 @@ void Navigation::executeHighLevelCommands() {
                 
                 if (l_swingingFeetOutOfContact) {
                     if (l_lfDiagonalSwinging) {
-                        if (l_lfForceZ > BACK_IN_CONTACT_FORCE || l_rhForceZ > BACK_IN_CONTACT_FORCE) {
+                        if (l_lfForceZ >= BACK_IN_CONTACT_FORCE || l_rhForceZ >= BACK_IN_CONTACT_FORCE) {
                             l_feetInContact = true;
                         }
                     }
                     else if (l_rfDiagonalSwinging) {
-                        if (l_rfForceZ > BACK_IN_CONTACT_FORCE || l_lhForceZ > BACK_IN_CONTACT_FORCE) {
+                        if (l_rfForceZ >= BACK_IN_CONTACT_FORCE || l_lhForceZ >= BACK_IN_CONTACT_FORCE) {
                             l_feetInContact = true;
                         }
-                    }
-                    else if (ros::Time::now().toSec() - l_startTime.toSec() > 0.3) {
-                        l_feetInContact = true;
                     }
                 }
 
