@@ -157,6 +157,11 @@ namespace AStar {
         void setFeetConfigurationMapFields(const World3D &p_newCoMWorldCoordinates,
                                            FeetConfiguration &p_newFeetConfiguration);
 
+        /**
+         * Barrier function.
+         */
+        double barrierValue(const double &p_distance);
+
         //! Robot model
         Model m_model;
 
