@@ -41,7 +41,7 @@ prev_footstep_time = 0
 
 # Global variables
 path = "/home/ilyass/dls_ws/src/footstep_planner/data/real_monica"
-file_object = open(path + "/lol.csv", "a")
+file_object = open(path + "/sharp_accelerations.csv", "a")
 
 # Output
 output = []
@@ -209,7 +209,7 @@ def main():
     cmd_sub = message_filters.Subscriber('/aliengo_bridge/twist_cmd', TwistStamped)
     state_sub = message_filters.Subscriber('/aliengo_bridge/high_state', HighStateStamped)
 
-    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10, 0.05)
+    ts = message_filters.ApproximateTimeSynchronizer([cmd_sub, state_sub], 10, 0.1)
     ts.registerCallback(live_extraction)
     rospy.spin()
 

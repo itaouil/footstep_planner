@@ -241,9 +241,9 @@ void AStar::Search::setFeetConfigurationMapFields(const World3D &p_newCoMWorldCo
  */
 double AStar::Search::barrierValue(const double &p_distance) {
     if (p_distance <= BARRIER_THRESHOLD)
-        return 10000;
+        return 0;
     else
-        return -std::log(p_distance - BARRIER_THRESHOLD) + 3;
+        return 0;
 }
 
 /**
