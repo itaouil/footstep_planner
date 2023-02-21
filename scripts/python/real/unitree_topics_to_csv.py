@@ -41,7 +41,7 @@ prev_footstep_time = 0
 
 # Global variables
 path = "/home/ilyass/dls_ws/src/footstep_planner/data/real_monica"
-file_object = open(path + "/sharp_accelerations.csv", "a")
+file_object = open(path + "/more_bags.csv", "a")
 
 # Output
 output = []
@@ -67,7 +67,7 @@ def clean_values():
     rr_max_height = -100
 
 
-def valid_footstep(footholds_msg, current_velocity):
+def valid_footstep(footholds_msg):
     global fl_force
     global fr_force
     global rl_force
@@ -127,11 +127,9 @@ def live_extraction(cmd, state):
     global state_cache
     global file_object
 
-    print("Here")
-
     # Check if at this time a valid footstep is detected
     #state = state_cache.getElemBeforeTime(cmd.header.stamp)
-    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state, cmd.twist.linear.x)
+    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
 
     if not is_valid_footstep:
         return
