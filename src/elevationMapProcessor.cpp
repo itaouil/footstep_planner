@@ -109,20 +109,12 @@ void ElevationMapProcessor::gridMapPostProcessing() {
                     l_elevationMapImage.at<float>(x, y) = l_elevationMap[ELEVATION_LAYER].coeff(x, y);
                 }
 
-//                grid_map::Position l_cellPos2D;
-//                grid_map::Index l_cellIndex{x, y};
-//                m_gridMap.getPosition(l_cellIndex, l_cellPos2D);
-//                if (l_cellPos2D.x() > 1.5 && l_cellPos2D.x() < 1.6) {
-//                    l_elevationMapImage.at<float>(x, y) = -100;
-//                }
-//
-//                if (l_cellPos2D.x() > 1.8 && l_cellPos2D.x() < 1.9) {
-//                    l_elevationMapImage.at<float>(x, y) = -100;
-//                }
-//
-//                if (l_cellPos2D.x() > 2.1 && l_cellPos2D.x() < 2.2) {
-//                    l_elevationMapImage.at<float>(x, y) = -100;
-//                }
+               grid_map::Position l_cellPos2D;
+               grid_map::Index l_cellIndex{x, y};
+               m_gridMap.getPosition(l_cellIndex, l_cellPos2D);
+               if (l_cellPos2D.x() > 0.0 && l_cellPos2D.x() < 0.2) {
+                   l_elevationMapImage.at<float>(x, y) = -100;
+               }
             }
         }
 

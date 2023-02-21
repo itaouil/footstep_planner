@@ -470,7 +470,7 @@ void Navigation::executeHighLevelCommands() {
         }
 
         double l_currentDistanceToGoal = std::abs(m_goalMsg.pose.position.x - m_latestCoMPose.pose.pose.position.x);
-        if (l_currentDistanceToGoal > 0.05 && (m_previousDistanceToGoal + 0.06) > l_currentDistanceToGoal) {
+        if (l_currentDistanceToGoal > 0.05) {
             // storeMapCoordinates(true);
             updateVariablesFromCache();
             m_planner.plan(m_path,
