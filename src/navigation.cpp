@@ -292,7 +292,7 @@ void Navigation::updateVariablesFromCache() {
 void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
     ROS_INFO("Goal callback received");
 
-//   ros::Duration(5).sleep();
+    // ros::Duration(7).sleep();
 
     // // Open file stream file
     // if (!m_fileStream.is_open()) {
@@ -376,7 +376,7 @@ void Navigation::executeHighLevelCommands() {
                 auto l_lhForceZ = m_latestFeetForces[2];
                 auto l_rhForceZ = m_latestFeetForces[3];
 
-                if (!l_swingingFeetOutOfContact) {
+                if (!l_swingingFeetOutOfContact && ros::Time::now().toSec() - l_startTime.toSec() > 0.1) {
                     if (l_lfForceZ <= OUT_OF_CONTACT_FORCE && l_rhForceZ <= OUT_OF_CONTACT_FORCE) {
                         l_lfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
