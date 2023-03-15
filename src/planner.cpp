@@ -195,6 +195,10 @@ void Planner::stats() {
         return;
     }
 
+    for (uint x = 0; x < m_runtimes.size(); x++) {
+        ROS_INFO_STREAM("Time: " << m_runtimes[x]);
+    }
+
     unsigned int l_maxRuntime = *std::max_element(m_runtimes.begin(), m_runtimes.end());
     unsigned int l_minRuntime = *std::min_element(m_runtimes.begin(), m_runtimes.end());
     double l_avgRuntime = std::accumulate(m_runtimes.begin(), m_runtimes.end(), 0.0) / m_runtimes.size();

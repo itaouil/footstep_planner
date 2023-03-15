@@ -40,8 +40,8 @@ prev_velocity = 0.0
 prev_footstep_time = 0
 
 # Global variables
-path = "/home/ilyass/dls_ws/src/footstep_planner/data/real_monica"
-file_object = open(path + "/more_bags.csv", "a")
+path = "/home/ilyass/dls_ws/src/footstep_planner/data"
+file_object = open(path + "/plot_0209.csv", "a")
 
 # Output
 output = []
@@ -127,12 +127,12 @@ def live_extraction(cmd, state):
     global state_cache
     global file_object
 
-    # Check if at this time a valid footstep is detected
-    #state = state_cache.getElemBeforeTime(cmd.header.stamp)
-    is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
-
-    if not is_valid_footstep:
-        return
+    # # Check if at this time a valid footstep is detected
+    # #state = state_cache.getElemBeforeTime(cmd.header.stamp)
+    # is_valid_footstep, fl_rr_moving, fr_rl_moving = valid_footstep(state)
+    #
+    # if not is_valid_footstep:
+    #     return
 
     file_object.write(str(time.time()) + "," +  # 0
 
@@ -187,10 +187,10 @@ def live_extraction(cmd, state):
 
                       str(state.imu.rpy[0]) + "," +  # 43
                       str(state.imu.rpy[1]) + "," +  # 44
-                      str(state.imu.rpy[2]) + "," +  # 45
+                      str(state.imu.rpy[2]) + "\n")  # 45
 
-                      str(fl_rr_moving) + "," +  # 46
-                      str(fr_rl_moving) + "\n")  # 47
+                      # str(fl_rr_moving) + "," +  # 46
+                      # str(fr_rl_moving) + "\n")  # 47
 
 
 def main():

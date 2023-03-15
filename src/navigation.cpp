@@ -294,11 +294,11 @@ void Navigation::goalCallback(const geometry_msgs::PoseStamped &p_goalMsg) {
 
     // ros::Duration(7).sleep();
 
-    // // Open file stream file
-    // if (!m_fileStream.is_open()) {
-    //     m_fileStream.open(
-    //             "/home/itaouil/workspace/code/thesis_ws/src/footstep_planner/data/planner_results/parkour3/presentation_run1.txt");
-    // }
+     // Open file stream file
+     if (!m_fileStream.is_open()) {
+         m_fileStream.open(
+                 "/home/ilyass/experiments/scenario3/horizon7/tr1.txt");
+     }
 
     // Save goal for re-planning
     m_goalMsg = p_goalMsg;
@@ -376,7 +376,7 @@ void Navigation::executeHighLevelCommands() {
                 auto l_lhForceZ = m_latestFeetForces[2];
                 auto l_rhForceZ = m_latestFeetForces[3];
 
-                if (!l_swingingFeetOutOfContact && ros::Time::now().toSec() - l_startTime.toSec() > 0.1) {
+                if (!l_swingingFeetOutOfContact) {
                     if (l_lfForceZ <= OUT_OF_CONTACT_FORCE && l_rhForceZ <= OUT_OF_CONTACT_FORCE) {
                         l_lfDiagonalSwinging = true;
                         l_swingingFeetOutOfContact = true;
@@ -440,29 +440,45 @@ void Navigation::executeHighLevelCommands() {
                 m_swingingFRRL = false;
             }
 
-            // // Add to file the predicted and actual poses
-            // m_fileStream << m_latestCoMPose.pose.pose.position.x << ","
-            //              << m_latestCoMPose.pose.pose.position.y << ", "
-            //              << l_node.worldCoordinates.x << ", "
-            //              << l_node.worldCoordinates.y << ", "
-            //              << l_flMap.transform.translation.x << ", "
-            //              << l_flMap.transform.translation.y << ", "
-            //              << l_frMap.transform.translation.x << ", "
-            //              << l_frMap.transform.translation.y << ", "
-            //              << l_rlMap.transform.translation.x << ", "
-            //              << l_rlMap.transform.translation.y << ", "
-            //              << l_rrMap.transform.translation.x << ", "
-            //              << l_rrMap.transform.translation.y << ", "
-            //              << l_node.feetConfiguration.flMap.x << ", "
-            //              << l_node.feetConfiguration.flMap.y << ", "
-            //              << l_node.feetConfiguration.frMap.x << ", "
-            //              << l_node.feetConfiguration.frMap.y << ", "
-            //              << l_node.feetConfiguration.rlMap.x << ", "
-            //              << l_node.feetConfiguration.rlMap.y << ", "
-            //              << l_node.feetConfiguration.rrMap.x << ", "
-            //              << l_node.feetConfiguration.rrMap.y << ", "
-            //              << l_node.velocity << "\n";
-            // m_fileStream.flush();
+//            geometry_msgs::TransformStamped fl_transform;
+//            geometry_msgs::TransformStamped fr_transform;
+//            geometry_msgs::TransformStamped rl_transform;
+//            geometry_msgs::TransformStamped rr_transform;
+//            try{
+//                fl_transform = m_buffer.lookupTransform("world", FEET_FRAMES[0], ros::Time(0));
+//                fr_transform = m_buffer.lookupTransform("world", FEET_FRAMES[1], ros::Time(0));
+//                rl_transform = m_buffer.lookupTransform("world", FEET_FRAMES[2], ros::Time(0));
+//                rr_transform = m_buffer.lookupTransform("world", FEET_FRAMES[3], ros::Time(0));
+//            }
+//            catch (tf2::TransformException &ex) {
+//                ROS_WARN("%s",ex.what());
+//            }
+
+             // Add to file the predicted and actual poses
+             m_fileStream << m_latestCoMPose.pose.pose.position.x << ","
+                          << m_latestCoMPose.pose.pose.position.y << ", "
+                          << l_node.worldCoordinates.x << ", "
+                          << l_node.worldCoordinates.y << ", "
+                          << m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[0].x << ", "
+                          << m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[0].y << ", "
+                          << m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[1].x << ", "
+                          << m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[1].y << ", "
+                          << m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[2].x << ", "
+                          << m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[2].y << ", "
+                          << m_latestCoMPose.pose.pose.position.x + m_feetConfigurationCoM[3].x << ", "
+                          << m_latestCoMPose.pose.pose.position.y + m_feetConfigurationCoM[3].y << ", "
+                          << l_node.feetConfiguration.flMap.x << ", "
+                          << l_node.feetConfiguration.flMap.y << ", "
+                          << l_node.feetConfiguration.frMap.x << ", "
+                          << l_node.feetConfiguration.frMap.y << ", "
+                          << l_node.feetConfiguration.rlMap.x << ", "
+                          << l_node.feetConfiguration.rlMap.y << ", "
+                          << l_node.feetConfiguration.rrMap.x << ", "
+                          << l_node.feetConfiguration.rrMap.y << ", "
+                          << l_node.velocity << ","
+                          << m_latestCoMPose.twist.twist.linear.x << ", "
+                          << l_node.worldCoordinates.a_v << "\n";
+             m_fileStream.flush();
 
             l_actionInExecution += 1;
 
@@ -483,6 +499,7 @@ void Navigation::executeHighLevelCommands() {
                            m_feetConfigurationCoM);
             m_previousDistanceToGoal = l_currentDistanceToGoal;
             m_previousCoMVelocity = m_latestCoMPose.twist.twist.linear.x;
+            m_planner.stats();
         }
         else {
             stopCmdPublisher();
@@ -509,8 +526,8 @@ void Navigation::executeHighLevelCommands() {
         publishRealFootstepSequence();
     }
 
-//    // Close file
-//    m_fileStream.close();
+    // Close file
+    m_fileStream.close();
 }
 
 /**
